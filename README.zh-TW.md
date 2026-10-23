@@ -1,4 +1,4 @@
-**語言**: [简体中文](README.md) | 繁體中文 | [English](README.en.md)
+**語言**: [简体中文](README.md) · **繁體中文** · [English](README.en.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [Português (Brasil)](README.pt-BR.md) · [Українська](README.uk.md) · [Polski](README.pl.md) · [한국어](README.ko.md) · [日本語](README.ja.md) · [Türkçe](README.tr.md)
 
 # Git Manage
 
