@@ -14,19 +14,19 @@ import { getIcon } from '../icons';
 
 /** 12 个图标的 key 顺序（与 main.ts 原版一致） */
 const KEYS = [
-  'hideBranches', 'newBranch', 'refresh', 'checkout', 'merge', 'search',
+  'hideBranches', 'newBranch', 'refresh', 'delete', 'merge', 'search',
   'favorite', 'settings', 'pull', 'expandAll', 'sort', 'close',
 ];
 
 /** 简体中文 tooltip（branchPanelHidden=false 初始态） */
 const TITLES_ZH = [
-  '隐藏 Git 分支', '新建分支', '更新所选', '签出', '合并', '搜索',
+  '隐藏 Git 分支', '新建分支', '更新所选', '删除分支', '合并', '搜索',
   '收藏', '设置', '拉取', '展开全部', '排序', '关闭',
 ];
 
 /** 英文 tooltip（branchPanelHidden=false 初始态） */
 const TITLES_EN = [
-  'Hide Git Branches', 'New Branch', 'Update Selected', 'Checkout', 'Merge', 'Search',
+  'Hide Git Branches', 'New Branch', 'Update Selected', 'Delete Branch', 'Merge', 'Search',
   'Favorite', 'Settings', 'Pull', 'Expand All', 'Sort', 'Close',
 ];
 
@@ -35,7 +35,7 @@ const HANDLER_OF: Record<string, keyof SidebarHandlers> = {
   hideBranches: 'onToggleBranchPanel',
   newBranch: 'onNewBranch',
   refresh: 'onRefresh',
-  checkout: 'onCheckout',
+  delete: 'onDeleteBranch',
   merge: 'onMerge',
   search: 'onSearch',
   favorite: 'onFavorite',
@@ -63,7 +63,7 @@ describe('sidebar', () => {
       onToggleBranchPanel: vi.fn(),
       onNewBranch: vi.fn(),
       onRefresh: vi.fn(),
-      onCheckout: vi.fn(),
+      onDeleteBranch: vi.fn(),
       onMerge: vi.fn(),
       onSearch: vi.fn(),
       onFavorite: vi.fn(),
@@ -249,9 +249,10 @@ describe('sidebar', () => {
     createBar();
 
     // 非 merge/refresh 按钮：走 getIcon(item.icon) 分支，逐个比对图形签名
+    // delete 键的图标名为 deleteBranch（垃圾桶字形）
     for (const key of KEYS) {
       if (key === 'merge' || key === 'refresh') continue;
-      const expected = getIcon(key);
+      const expected = getIcon(key === 'delete' ? 'deleteBranch' : key);
       expect(expected, `图标表应包含 ${key}`).not.toBe('');
       const svg = btn(key).querySelector('svg');
       expect(svg, `按钮 ${key} 应包含 svg 元素`).not.toBeNull();

@@ -105,6 +105,52 @@ async function onBranchDeleted(
   console.debug(JSON.stringify({ prefix: '[context-menu]', event: 'branch_delete_success', branch: branch.name, kind: res.kind }));
 }
 
+/**
+ * 删除分支统一入口（IDEA DeleteBranchAction 语义）：
+ * 无确认直接删除，服务端返回 NOT_MERGED 时弹强制删除对话框，其余错误 toast 提示
+ * @param service 服务客户端
+ * @param directory 仓库目录
+ * @param branch 目标分支
+ */
+export async function performBranchDelete(
+  service: ServiceClient,
+  directory: string,
+  branch: Branch,
+): Promise<void> {
+  console.debug(JSON.stringify({ prefix: '[context-menu]', event: 'branch_delete_start', branch: branch.name }));
+  try {
+    // 对齐 IDEA：无确认直接删除，仅服务端返回 NOT_MERGED 时才弹强制删除对话框
+    const res = await service.deleteBranch(directory, branch.name);
+    await onBranchDeleted(res, branch, service, directory);
+  } catch (e) {
+    const { code, message } = parseDeleteBranchError(e);
+    console.debug(JSON.stringify({
+      prefix: '[context-menu]',
+      event: 'branch_delete_failed',
+      branch: branch.name,
+      code: code ?? null,
+    }));
+    if (code === 'NOT_MERGED') {
+      // IDEA 未合并语义：仅此时打开强制删除对话框（打开即 force 模式）
+      showDeleteBranchDialog(branch.name, async (force) => {
+        const forceRes = await service.deleteBranch(directory, branch.name, force);
+        await onBranchDeleted(forceRes, branch, service, directory);
+      });
+    } else if (code === 'NOT_FOUND') {
+      void host.toast({ kind: 'error', message: t('branch.notFound', { name: branch.name }) })
+        .catch((toastErr) => {
+          console.error(JSON.stringify({ prefix: '[context-menu]', event: 'branch_delete_toast_error', error: String(toastErr) }));
+        });
+    } else {
+      // GIT_ERROR / 非 JSON（网络层等）：失败前缀 + 原始 message
+      void host.toast({ kind: 'error', message: `${t('branch.deleteFailed')}: ${message}` })
+        .catch((toastErr) => {
+          console.error(JSON.stringify({ prefix: '[context-menu]', event: 'branch_delete_toast_error', error: String(toastErr) }));
+        });
+    }
+  }
+}
+
 /** 菜单项类型 */
 interface MenuItem {
   label: string;
@@ -225,40 +271,7 @@ export function showContextMenu(
       danger: true,
       // IDEA DeleteBranchAction：当前分支禁用删除
       disabled: branch.isCurrent,
-      action: async () => {
-        console.debug(JSON.stringify({ prefix: '[context-menu]', event: 'branch_delete_start', branch: branch.name }));
-        try {
-          // 对齐 IDEA：无确认直接删除，仅服务端返回 NOT_MERGED 时才弹强制删除对话框
-          const res = await service.deleteBranch(directory, branch.name);
-          await onBranchDeleted(res, branch, service, directory);
-        } catch (e) {
-          const { code, message } = parseDeleteBranchError(e);
-          console.debug(JSON.stringify({
-            prefix: '[context-menu]',
-            event: 'branch_delete_failed',
-            branch: branch.name,
-            code: code ?? null,
-          }));
-          if (code === 'NOT_MERGED') {
-            // IDEA 未合并语义：仅此时打开强制删除对话框（打开即 force 模式）
-            showDeleteBranchDialog(branch.name, async (force) => {
-              const forceRes = await service.deleteBranch(directory, branch.name, force);
-              await onBranchDeleted(forceRes, branch, service, directory);
-            });
-          } else if (code === 'NOT_FOUND') {
-            void host.toast({ kind: 'error', message: t('branch.notFound', { name: branch.name }) })
-              .catch((toastErr) => {
-                console.error(JSON.stringify({ prefix: '[context-menu]', event: 'branch_delete_toast_error', error: String(toastErr) }));
-              });
-          } else {
-            // GIT_ERROR / 非 JSON（网络层等）：失败前缀 + 原始 message
-            void host.toast({ kind: 'error', message: `${t('branch.deleteFailed')}: ${message}` })
-              .catch((toastErr) => {
-                console.error(JSON.stringify({ prefix: '[context-menu]', event: 'branch_delete_toast_error', error: String(toastErr) }));
-              });
-          }
-        }
-      },
+      action: () => performBranchDelete(service, directory, branch),
     },
   ];
 
