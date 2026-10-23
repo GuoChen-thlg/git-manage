@@ -245,12 +245,12 @@ describe('sidebar', () => {
     }).not.toThrow();
   });
 
-  it('每个按钮应该渲染对应图标 svg，merge 按钮走自定义 svg 分支', () => {
+  it('每个按钮应该渲染对应图标 svg，merge 走自定义 svg，refresh 走 IDEA 更新图标', () => {
     createBar();
 
-    // 非 merge 按钮：走 getIcon(item.icon) 分支，逐个比对图形签名
+    // 非 merge/refresh 按钮：走 getIcon(item.icon) 分支，逐个比对图形签名
     for (const key of KEYS) {
-      if (key === 'merge') continue;
+      if (key === 'merge' || key === 'refresh') continue;
       const expected = getIcon(key);
       expect(expected, `图标表应包含 ${key}`).not.toBe('');
       const svg = btn(key).querySelector('svg');
@@ -267,6 +267,14 @@ describe('sidebar', () => {
     expect(svgSignature(mergeSvg!.outerHTML)).toEqual([
       'M4 2V14M12 2V14M4 8C4 8 8 8 12 8',
     ]);
+
+    // refresh 按钮：渲染 IDEA AllIcons.Actions.CheckOut 字形（更新所选）
+    const updateSvg = btn('refresh').querySelector('svg');
+    expect(updateSvg, 'refresh 按钮应包含 svg 元素').not.toBeNull();
+    expect(svgSignature(updateSvg!.outerHTML)).toEqual(
+      svgSignature(getIcon('updateSelected'))
+    );
+    expect(updateSvg!.outerHTML).toContain('#6E6E6E');
   });
 
   it('创建时应该清空容器旧内容且不残留任何文本节点', () => {
