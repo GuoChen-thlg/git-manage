@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/schema.json",
+  "packageManager": "pnpm",
+  "testRunner": "vitest",
+  "reporters": ["clear-text", "progress", "html", "json"],
+  "mutate": [
+    "packages/openchamber/panel/components/**/*.ts",
+    "packages/openchamber/panel/state.ts",
+    "packages/openchamber/panel/i18n.ts",
+    "packages/openchamber/panel/html.ts",
+    "packages/openchamber/panel/icons.ts",
+    "packages/openchamber/panel/service.ts"
+  ],
+  "coverageAnalysis": "perTest",
+  "timeoutFactor": 3,
+  "timeoutMS": 30000,
+  "htmlReport": {
+    "fileName": "mutation-report.html"
+  }
+}

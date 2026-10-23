@@ -1,0 +1,518 @@
+/**
+ * Git 管理面板入口
+ * 布局与交互参考 IntelliJ IDEA Git Log Tab
+ *
+ * 布局:
+ * ┌──────────┬───────────────────────────┬──────────────────┐
+ * │          │ [Toolbar: search + filters]│                  │
+ * │ Branch   │ +-------------------------+│  Commit Detail   │
+ * │ Panel    | |  Commit List            || (info + files)  │
+ * │ (220px)  | |  (graph + msg + branch  ||                  │
+ * │          | |   + time + author)      ||                  │
+ * │          | +-------------------------+│                  │
+ * └──────────┴───────────────────────────┴──────────────────┘
+ * │ Git | 控制台 | Worktrees ×                               │
+ * └──────────────────────────────────────────────────────────┘
+ */
+
+import { mountEmpty } from "@openchamber/sdk/ui";
+
+import { html } from './html';
+import { host } from './host';
+import { getState, setState, Branch } from './state';
+import { setLocale } from './i18n';
+import { createServiceClient } from './service';
+import {
+  createBranchPanel,
+  createCommitListPanel,
+  createFileDiffPanel,
+  createCommitDetailPanel,
+  createSidebar,
+  hideContextMenu,
+} from './components';
+import { showCreateBranchDialog } from './components/dialogs';
+import { showSettingsMenu } from './components/settings-menu';
+import { filterCommits } from './components/commit-list';
+
+const root = document.querySelector("#root")!;
+const service = createServiceClient(host);
+
+let disposables: Array<{ dispose: () => void }> = [];
+let directory: string | null = null;
+let rendering = false;
+/** loadData 进行中标志：防止连点刷新等并发触发重复加载 */
+let loadingData = false;
+/** clearBranchFilter 进行中标志：清除分支过滤期间重复点击空白直接跳过 */
+let clearingBranchFilter = false;
+
+function getDir(): string {
+  if (!directory) throw new Error("目录未初始化");
+  return directory;
+}
+
+function clearAll(): void {
+  for (const d of disposables) {
+    d.dispose();
+  }
+  disposables = [];
+  root.innerHTML = '';
+}
+
+/**
+ * 主渲染函数 - IntelliJ 三栏布局
+ * 仅用于结构性变更（初始化、目录切换）；业务数据更新由组件 subscribeFields 局部渲染
+ */
+async function render(): Promise<void> {
+  if (rendering) return;
+  rendering = true;
+  try {
+    clearAll();
+
+    if (!directory) {
+      const empty = mountEmpty(root, {
+        title: "等待初始化...",
+        body: "正在加载项目信息。",
+      });
+      disposables.push(empty);
+      return;
+    }
+
+    const isGit = await checkGitRepository();
+    if (!isGit) {
+      root.innerHTML = '';
+      const empty = mountEmpty(root, {
+        title: "非 Git 仓库",
+        body: "当前目录不是 Git 仓库。",
+      });
+      disposables.push(empty);
+      return;
+    }
+
+    // 主布局: 上下结构 (内容 + 底部Tab栏)
+    const mainLayout = html`
+      <div style="display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden;"></div>
+    `;
+
+    // 内容区域: 左中右三栏
+    const contentArea = html`
+      <div style="display: flex; flex: 1; width: 100%; overflow: hidden;"></div>
+    `;
+    mainLayout.appendChild(contentArea);
+
+    // 左侧图标工具栏 (IntelliJ 风格)：先占位保证三栏顺序，handlers 待依赖面板就绪后接线
+    const sidebarHost = html`
+      <div></div>
+    `;
+    contentArea.appendChild(sidebarHost);
+
+    // A 区域: 分支面板 (左侧 220px)
+    const branchPanel = html`
+      <div style="width: 220px; min-width: 220px; border-right: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e;"></div>
+    `;
+    // 会话级保留上次的显隐状态
+    branchPanel.style.display = getState().branchPanelHidden ? 'none' : '';
+    contentArea.appendChild(branchPanel);
+
+    const branchPanelComp = createBranchPanel(
+      branchPanel,
+      service,
+      getDir(),
+      (branch) => {
+        console.debug(JSON.stringify({ prefix: '[main]', event: 'on_branch_select_cb', branchName: branch.name }));
+        loadCommitsForBranch(branch.name);
+      },
+      // 点击分支面板空白区域：取消选中并清除分支过滤，恢复全部提交
+      () => { clearBranchFilter(); }
+    );
+    disposables.push(branchPanelComp);
+
+    // B 区域: 提交列表 (中间 - 占大部分空间)
+    const commitListPanel = html`
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #333;"></div>
+    `;
+    contentArea.appendChild(commitListPanel);
+
+    const commitListComp = createCommitListPanel(commitListPanel, service, getDir(), (commit) => {
+      loadCommitDetail(commit.hash);
+    });
+    disposables.push(commitListComp);
+
+    // 左侧图标工具栏：12 个图标全部接线（依赖分支面板、提交列表、分支面板组件）
+    const sidebarComp = createSidebar(sidebarHost, {
+      onToggleBranchPanel: () => {
+        setState(s => { s.branchPanelHidden = !s.branchPanelHidden; });
+        branchPanel.style.display = getState().branchPanelHidden ? 'none' : '';
+      },
+      onNewBranch: () => {
+        try {
+          // 选中提交时基于该提交建分支（IDEA 语义），否则基于当前 HEAD
+          showCreateBranchDialog(service, getDir(), getState().selectedCommit?.hash);
+        } catch (e) {
+          console.error(JSON.stringify({ prefix: '[sidebar]', event: 'new_branch_error', error: String(e) }));
+        }
+      },
+      onRefresh: () => { void loadData(); },
+      onCheckout: () => { void runSidebarCheckout(); },
+      onMerge: () => { void runSidebarMerge(); },
+      onSearch: () => {
+        // data-search-input 由 commit-list 搜索框提供，缺失时静默忽略
+        commitListPanel.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
+      },
+      onFavorite: () => { void runSidebarFavorite(); },
+      onSettings: (e) => { showSettingsMenu(e); },
+      onPull: () => { void runSidebarPull(); },
+      onExpandAll: () => { branchPanelComp.expandAll(); },
+      onSort: () => {
+        setState(s => {
+          s.sortMode = s.sortMode === 'default'
+            ? 'date-asc'
+            : s.sortMode === 'date-asc'
+              ? 'author-asc'
+              : s.sortMode === 'author-asc'
+                ? 'message-asc'
+                : 'default';
+        });
+      },
+      onClose: () => { void runSidebarClose(); },
+    });
+    disposables.push(sidebarComp);
+
+    // C 区域: 右侧详情面板 (固定宽度 300px)
+    const detailPanel = html`
+      <div style="width: 300px; min-width: 200px; display: flex; flex-direction: column; overflow: hidden;"></div>
+    `;
+    contentArea.appendChild(detailPanel);
+
+    // C1: 变更文件 (上半部分)
+    const fileDiffPanel = html`
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid #333;"></div>
+    `;
+    detailPanel.appendChild(fileDiffPanel);
+
+    const fileDiffComp = createFileDiffPanel(fileDiffPanel, service, getDir());
+    disposables.push(fileDiffComp);
+
+    // C2: 提交详情 (下半部分)
+    const commitDetailPanel = html`
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"></div>
+    `;
+    detailPanel.appendChild(commitDetailPanel);
+
+    const commitDetailComp = createCommitDetailPanel(commitDetailPanel, service, getDir());
+    disposables.push(commitDetailComp);
+
+    root.appendChild(mainLayout);
+
+    // 底部 Tab 栏
+    const tabBar = createTabBar();
+    root.appendChild(tabBar);
+  } finally {
+    rendering = false;
+  }
+}
+
+/** 底部 Tab 栏 */
+function createTabBar(): HTMLElement {
+  return html`
+    <div style="flex-shrink: 0; border-top: 1px solid #333;">
+      <div style="display: flex; background: #2d2d2d; padding: 0; align-items: center;">
+        <div style="padding: 4px 12px; font-size: 11px; color: #fff; background: #1e1e1e; border-right: 1px solid #333; cursor: pointer;">Git</div>
+        <div style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; border-right: 1px solid #333;">控制台</div>
+        <div style="display: flex; align-items: center; padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; gap: 4px;">
+          <span>Worktrees</span>
+          <span style="color: #666; font-size: 10px; cursor: pointer;">×</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 解析侧边栏分支操作目标
+ * 优先取选中分支，否则回退到当前分支
+ * @returns 目标分支，无可用分支时返回 null
+ */
+function resolveSidebarTarget(): Branch | null {
+  const state = getState();
+  return state.selectedBranch ?? state.branches.find(b => b.isCurrent) ?? null;
+}
+
+/** 侧边栏签出：选中分支优先，成功后刷新数据 */
+async function runSidebarCheckout(): Promise<void> {
+  const target = resolveSidebarTarget();
+  if (!target) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'checkout_no_branch' }));
+    return;
+  }
+  try {
+    await service.checkoutBranch(getDir(), target.name);
+    await loadData();
+  } catch (e) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'checkout_error', branchName: target.name, error: String(e) }));
+  }
+}
+
+/** 侧边栏合并：选中分支优先，成功后刷新数据 */
+async function runSidebarMerge(): Promise<void> {
+  const target = resolveSidebarTarget();
+  if (!target) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'merge_no_branch' }));
+    return;
+  }
+  try {
+    await service.mergeBranch(getDir(), target.name);
+    await loadData();
+  } catch (e) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'merge_error', branchName: target.name, error: String(e) }));
+  }
+}
+
+/** 侧边栏收藏切换：目标分支在收藏集间增删并持久化 */
+async function runSidebarFavorite(): Promise<void> {
+  const target = resolveSidebarTarget();
+  if (!target) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'favorite_no_branch' }));
+    return;
+  }
+  const next = new Set(getState().favorites);
+  if (next.has(target.name)) {
+    next.delete(target.name);
+  } else {
+    next.add(target.name);
+  }
+  setState(s => { s.favorites = next; });
+  try {
+    await service.saveFavorites(getDir(), [...next]);
+  } catch (e) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'save_favorites_error', error: String(e) }));
+  }
+}
+
+/** 侧边栏拉取远程更新，成功后刷新数据 */
+async function runSidebarPull(): Promise<void> {
+  try {
+    await service.pull(getDir());
+    await loadData();
+  } catch (e) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'pull_error', error: String(e) }));
+  }
+}
+
+/** 侧边栏关闭面板 */
+async function runSidebarClose(): Promise<void> {
+  try {
+    await host.close();
+  } catch (e) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'close_error', error: String(e) }));
+  }
+}
+
+async function loadCommitsForBranch(branchName: string): Promise<void> {
+  console.debug(JSON.stringify({ prefix: '[main]', event: 'load_branch_start', branchName }));
+  setState(s => {
+    s.logBranch = branchName;
+    s.selectedCommits = new Set<string>(); // 切换分支过滤时清空多选
+  });
+  console.debug(JSON.stringify({ prefix: '[main]', event: 'log_branch_set', branchName }));
+  try {
+    const commits = await service.getLog(getDir(), branchName, getState().filterPaths.length ? getState().filterPaths : undefined);
+    console.debug(JSON.stringify({ prefix: '[main]', event: 'get_log_done', count: commits.length }));
+    setState(s => {
+      s.allCommits = commits;
+      s.filteredCommits = commits;
+    });
+    console.debug(JSON.stringify({ prefix: '[main]', event: 'commits_set', count: commits.length }));
+  } catch (e) {
+    console.error(JSON.stringify({ prefix: '[main]', event: 'load_branch_error', branchName, error: String(e) }));
+  }
+}
+
+/**
+ * 清除分支过滤：点击分支面板空白区域时触发（对齐 IntelliJ IDEA 取消选中行为）
+ * 流程：
+ * 1. 防抖：进行中重复触发直接跳过并打 skipped 日志
+ * 2. 清空 selectedBranch/logBranch 与多选（与 loadCommitsForBranch 设过滤时的清理对称）
+ * 3. 不带分支参数拉取全部提交
+ * 4. 调 filterCommits 重应用搜索/作者/日期/路径过滤与排序，保留用户其他过滤条件
+ * 5. selectedCommit/commitDetail 不动：选中提交仍在新列表中
+ * @returns Promise
+ */
+async function clearBranchFilter(): Promise<void> {
+  if (clearingBranchFilter) {
+    console.debug(JSON.stringify({ prefix: '[main]', event: 'clear_branch_filter_skipped' }));
+    return;
+  }
+  clearingBranchFilter = true;
+  try {
+    setState(s => {
+      s.selectedBranch = null;
+      s.logBranch = null;
+      s.selectedCommits = new Set<string>(); // 与设置分支过滤时的多选清理对称
+    });
+    // 分支已清空（第 2 参 undefined），但保留用户已设置的路径过滤
+    const commits = await service.getLog(getDir(), undefined, getState().filterPaths.length ? getState().filterPaths : undefined);
+    setState(s => {
+      s.allCommits = commits;
+      s.filteredCommits = commits;
+    });
+    // 重应用活动过滤与排序，清除分支过滤不丢失用户的搜索/作者/日期/路径条件
+    filterCommits();
+    console.debug(JSON.stringify({ prefix: '[main]', event: 'branch_filter_cleared', count: commits.length }));
+  } catch (e) {
+    console.error(JSON.stringify({ prefix: '[main]', event: 'clear_branch_filter_error', error: String(e) }));
+  } finally {
+    clearingBranchFilter = false;
+  }
+}
+
+async function loadCommitDetail(hash: string): Promise<void> {
+  try {
+    const detail = await service.getCommitDetail(getDir(), hash);
+    const diffs = await service.getCommitDiffs(getDir(), hash);
+    setState(s => {
+      s.commitDetail = detail;
+      s.diffs = diffs;
+    });
+  } catch (e) {
+    console.error("[git-manager] 加载提交详情失败:", e);
+  }
+}
+
+async function loadBranches(): Promise<void> {
+  try {
+    const branches = await service.getBranches(getDir());
+    setState(s => { s.branches = branches; });
+  } catch (e) {
+    console.error("[git-manager] 加载分支失败:", e);
+  }
+}
+
+async function loadFavorites(): Promise<void> {
+  try {
+    const favorites = await service.getFavorites(getDir());
+    setState(s => { s.favorites = new Set(favorites); });
+  } catch (e) {
+    console.error("[git-manager] 加载收藏失败:", e);
+  }
+}
+
+async function checkGitRepository(): Promise<boolean> {
+  try {
+    return await service.isGitRepository(getDir());
+  } catch {
+    return false;
+  }
+}
+
+async function init(): Promise<void> {
+  // 菜单文案语言跟随宿主设置
+  host.onReady((context) => {
+    setLocale(context.locale);
+  });
+  host.onDirectory((dir) => {
+    directory = dir;
+    if (dir) {
+      // 目录切换：需要清空旧仓库状态并整体重建布局
+      loadData({ reset: true });
+    }
+  });
+}
+
+/**
+ * 加载面板数据
+ * @param options reset=true 为目录切换场景：清空全部状态、校验仓库并整体重建布局（render）；
+ *               默认 false 为刷新场景（刷新/签出/合并/拉取）：只替换数据并由订阅组件局部渲染，
+ *               保留用户的过滤条件与选中项，不调用 render() 以免整个三栏布局被销毁重建产生闪烁
+ * @returns Promise
+ */
+async function loadData(options: { reset?: boolean } = {}): Promise<void> {
+  if (!directory) return;
+  if (loadingData) {
+    console.debug(JSON.stringify({ prefix: '[main]', event: 'load_data_skipped' }));
+    return;
+  }
+  loadingData = true;
+  try {
+    const reset = options.reset === true;
+    const mode = reset ? 'reset' : 'refresh';
+    console.debug(JSON.stringify({ prefix: '[main]', event: 'load_data_start', directory, mode }));
+
+    if (reset) {
+      // 切换项目时重置旧状态，避免上一个仓库的提交/过滤条件残留
+      setState(s => {
+        s.branches = [];
+        s.allCommits = [];
+        s.filteredCommits = [];
+        s.logBranch = null;
+        s.selectedBranch = null;
+        s.selectedCommit = null;
+        s.selectedCommits = new Set<string>();
+        s.commitDetail = null;
+        s.diffs = [];
+        s.branchFilter = '';
+        s.commitSearch = '';
+        s.filterAuthor = '';
+        s.filterDateFrom = '';
+        s.filterDateTo = '';
+        s.filterPaths = [];
+      });
+
+      const isGit = await checkGitRepository();
+      if (!isGit) {
+        root.innerHTML = '';
+        const empty = mountEmpty(root, {
+          title: "非 Git 仓库",
+          body: "当前目录不是 Git 仓库。",
+        });
+        disposables.push(empty);
+        return;
+      }
+    }
+    // 刷新场景跳过 checkGitRepository：界面已存在，省一次往返
+
+    await Promise.all([
+      loadBranches(),
+      loadFavorites(),
+    ]);
+
+    // 无条件加载提交历史（不依赖 currentBranch 是否找到）；
+    // 刷新场景保留 logBranch，与 commit-list 的 refreshCommits 同模式以维持分支过滤一致
+    try {
+      const branch = getState().logBranch || undefined;
+      // reset 分支已在上方清空 filterPaths，此处取值发生在清空之后（刷新场景保留路径过滤）
+      const commits = await service.getLog(getDir(), branch, getState().filterPaths.length ? getState().filterPaths : undefined);
+      console.debug(JSON.stringify({ prefix: '[main]', event: 'load_data_commits', count: commits.length }));
+      setState(s => {
+        s.allCommits = commits;
+        s.filteredCommits = commits;
+        // 清理悬空选择：新列表里已不存在的选中项一并移除，仍在的保留
+        const hashes = new Set(commits.map(c => c.hash));
+        if (s.selectedCommit && !hashes.has(s.selectedCommit.hash)) {
+          s.selectedCommit = null;
+          s.commitDetail = null;
+          s.diffs = [];
+        }
+        if (s.selectedCommits.size > 0) {
+          s.selectedCommits = new Set([...s.selectedCommits].filter(h => hashes.has(h)));
+        }
+      });
+      // 重应用活动过滤与排序（reset 场景过滤条件已清空，等价于按当前排序模式输出）
+      filterCommits();
+    } catch (e) {
+      console.error(JSON.stringify({ prefix: '[main]', event: 'load_data_commits_error', error: String(e) }));
+    }
+
+    if (reset) {
+      await render();
+    }
+    console.debug(JSON.stringify({ prefix: '[main]', event: 'load_data_done' }));
+  } finally {
+    loadingData = false;
+  }
+}
+
+document.addEventListener("click", () => {
+  hideContextMenu();
+});
+
+init();

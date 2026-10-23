@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Mutation testing（Stryker 产物与沙盒临时目录）
+reports/
+.stryker-tmp/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+PLAN.md
+AGENTS.md
+CLAUDE.md
+.planning/
+.gsd/
+.opencode/
+.claude/
+.cursor/

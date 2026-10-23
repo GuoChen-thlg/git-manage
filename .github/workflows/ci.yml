@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm 版本取自根 package.json 的 packageManager 字段
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 构建必须先于类型检查：openchamber service 引用 core 的构建产物 dist，类型解析依赖它
+      - name: 构建
+        run: pnpm build
+
+      - name: 类型检查（core + openchamber 全量）
+        run: pnpm typecheck
+
+      - name: 单元测试
+        run: pnpm exec vitest run --dir packages

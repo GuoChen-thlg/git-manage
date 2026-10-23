@@ -1,0 +1,2 @@
+# commit-msg 用 commitlint 校验 Conventional Commits 格式
+pnpm exec commitlint --edit "$1"
