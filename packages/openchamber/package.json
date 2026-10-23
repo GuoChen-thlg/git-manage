@@ -19,7 +19,7 @@
         "id": "git-manager",
         "name": "Git Manager",
         "icon": "git-branch",
-        "entry": "dist/panel/index.html"
+        "entry": "panel/index.html"
       },
       "service": {
         "entry": "dist/service/main.js",
