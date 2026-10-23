@@ -1422,6 +1422,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "Show Git Branches",
     "sidebar.newBranch": "New Branch",
     "sidebar.refresh": "Refresh",
+    "sidebar.update": "Update Selected",
     "sidebar.checkout": "Checkout",
     "sidebar.merge": "Merge",
     "sidebar.search": "Search",
@@ -1523,6 +1524,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "\u663E\u793A Git \u5206\u652F",
     "sidebar.newBranch": "\u65B0\u5EFA\u5206\u652F",
     "sidebar.refresh": "\u5237\u65B0",
+    "sidebar.update": "\u66F4\u65B0\u6240\u9009",
     "sidebar.checkout": "\u7B7E\u51FA",
     "sidebar.merge": "\u5408\u5E76",
     "sidebar.search": "\u641C\u7D22",
@@ -1624,6 +1626,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "\u986F\u793A Git \u5206\u652F",
     "sidebar.newBranch": "\u65B0\u5EFA\u5206\u652F",
     "sidebar.refresh": "\u91CD\u65B0\u6574\u7406",
+    "sidebar.update": "\u66F4\u65B0",
     "sidebar.checkout": "\u7C3D\u51FA",
     "sidebar.merge": "\u5408\u4F75",
     "sidebar.search": "\u641C\u5C0B",
@@ -1725,6 +1728,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "Git-Branches anzeigen",
     "sidebar.newBranch": "Neue Branch",
     "sidebar.refresh": "Aktualisieren",
+    "sidebar.update": "Aktualisieren",
     "sidebar.checkout": "Auschecken",
     "sidebar.merge": "Zusammenf\xFChren",
     "sidebar.search": "Suchen",
@@ -1826,6 +1830,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "Afficher les branches Git",
     "sidebar.newBranch": "Nouvelle branche",
     "sidebar.refresh": "Actualiser",
+    "sidebar.update": "Mettre \xE0 jour",
     "sidebar.checkout": "Checkout",
     "sidebar.merge": "Fusionner",
     "sidebar.search": "Rechercher",
@@ -1927,6 +1932,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u0438 \u0433\u0456\u043B\u043A\u0438 Git",
     "sidebar.newBranch": "\u041D\u043E\u0432\u0430 \u0433\u0456\u043B\u043A\u0430",
     "sidebar.refresh": "\u041E\u043D\u043E\u0432\u0438\u0442\u0438",
+    "sidebar.update": "\u041E\u043D\u043E\u0432\u0438\u0442\u0438",
     "sidebar.checkout": "\u041F\u0435\u0440\u0435\u0439\u0442\u0438",
     "sidebar.merge": "\u0417\u043B\u0438\u0442\u0438",
     "sidebar.search": "\u041F\u043E\u0448\u0443\u043A",
@@ -2028,6 +2034,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "Mostrar ramas de Git",
     "sidebar.newBranch": "Nueva rama",
     "sidebar.refresh": "Actualizar",
+    "sidebar.update": "Actualizar",
     "sidebar.checkout": "Checkout",
     "sidebar.merge": "Fusionar",
     "sidebar.search": "Buscar",
@@ -2129,6 +2136,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "Mostrar branches do Git",
     "sidebar.newBranch": "Novo branch",
     "sidebar.refresh": "Atualizar",
+    "sidebar.update": "Atualizar",
     "sidebar.checkout": "Checkout",
     "sidebar.merge": "Merge",
     "sidebar.search": "Buscar",
@@ -2230,6 +2238,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "Git \uBE0C\uB79C\uCE58 \uD45C\uC2DC",
     "sidebar.newBranch": "\uC0C8 \uBE0C\uB79C\uCE58",
     "sidebar.refresh": "\uC0C8\uB85C\uACE0\uCE68",
+    "sidebar.update": "\uC5C5\uB370\uC774\uD2B8",
     "sidebar.checkout": "\uCCB4\uD06C\uC544\uC6C3",
     "sidebar.merge": "\uBCD1\uD569",
     "sidebar.search": "\uAC80\uC0C9",
@@ -2331,6 +2340,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "Poka\u017C ga\u0142\u0119zie Git",
     "sidebar.newBranch": "Nowa ga\u0142\u0105\u017A",
     "sidebar.refresh": "Od\u015Bwie\u017C",
+    "sidebar.update": "Aktualizuj",
     "sidebar.checkout": "Przejd\u017A",
     "sidebar.merge": "Scal",
     "sidebar.search": "Szukaj",
@@ -2432,6 +2442,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "Git \u30D6\u30E9\u30F3\u30C1\u3092\u8868\u793A",
     "sidebar.newBranch": "\u65B0\u3057\u3044\u30D6\u30E9\u30F3\u30C1",
     "sidebar.refresh": "\u66F4\u65B0",
+    "sidebar.update": "\u66F4\u65B0",
     "sidebar.checkout": "\u30C1\u30A7\u30C3\u30AF\u30A2\u30A6\u30C8",
     "sidebar.merge": "\u30DE\u30FC\u30B8",
     "sidebar.search": "\u691C\u7D22",
@@ -2533,6 +2544,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.showBranches": "Git dallar\u0131n\u0131 g\xF6ster",
     "sidebar.newBranch": "Yeni dal",
     "sidebar.refresh": "Yenile",
+    "sidebar.update": "G\xFCncelle",
     "sidebar.checkout": "Checkout",
     "sidebar.merge": "Birle\u015Ftir",
     "sidebar.search": "Ara",
@@ -5890,7 +5902,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
   var ITEMS = [
     { key: "hideBranches", icon: "hideBranches", titleKey: "sidebar.hideBranches", handler: "onToggleBranchPanel" },
     { key: "newBranch", icon: "newBranch", titleKey: "sidebar.newBranch", handler: "onNewBranch" },
-    { key: "refresh", icon: "refresh", titleKey: "sidebar.refresh", handler: "onRefresh" },
+    { key: "refresh", icon: "refresh", titleKey: "sidebar.update", handler: "onRefresh" },
     { key: "checkout", icon: "checkout", titleKey: "sidebar.checkout", handler: "onCheckout" },
     {
       key: "merge",
@@ -6055,7 +6067,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
           }
         },
         onRefresh: () => {
-          void loadData();
+          void runSidebarUpdate();
         },
         onCheckout: () => {
           void runSidebarCheckout();
@@ -6174,6 +6186,14 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       await service.saveFavorites(getDir(), [...next]);
     } catch (e) {
       console.error(JSON.stringify({ prefix: "[sidebar]", event: "save_favorites_error", error: String(e) }));
+    }
+  }
+  async function runSidebarUpdate() {
+    try {
+      await service.fetch(getDir());
+      await loadData();
+    } catch (e) {
+      console.error(JSON.stringify({ prefix: "[sidebar]", event: "fetch_error", error: String(e) }));
     }
   }
   async function runSidebarPull() {

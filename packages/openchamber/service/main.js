@@ -820,7 +820,7 @@ async function handleRequest(request) {
         const { execFile: execFile2 } = await import("child_process");
         const { promisify: promisify2 } = await import("util");
         const execFileAsync2 = promisify2(execFile2);
-        await execFileAsync2("git", ["fetch", "--all"], { cwd: directory });
+        await execFileAsync2("git", ["fetch", "origin", "--prune"], { cwd: directory });
         return Response.json({ success: true });
       }
       case "/git-reset": {
