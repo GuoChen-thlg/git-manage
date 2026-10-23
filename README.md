@@ -1,3 +1,5 @@
+**语言**: 简体中文 | [繁體中文](README.zh-TW.md) | [English](README.en.md)
+
 # Git Manage
 
 [![CI](https://github.com/GuoChen-thlg/git-manage/actions/workflows/ci.yml/badge.svg)](https://github.com/GuoChen-thlg/git-manage/actions/workflows/ci.yml)
@@ -12,7 +14,7 @@
 - **提交历史**：提交列表与提交图、提交详情查看，支持 cherry-pick、revert、stash 等常用提交操作
 - **差异对比**：文件级与提交级差异查看，直观的暂存区管理
 - **智能过滤**：大小写、正则、分支、作者、日期、路径等多条件组合过滤，路径支持 IDEA 风格的树形多选
-- **多语言界面**：内置 12 种语言，覆盖中文、英语、日语、韩语、德语、法语等主流语种
+- **多语言界面**：内置 12 种语言，覆盖中文、英语、日语、韩语、德语、法语等主流语种，界面文案与日期格式随系统语言自动切换，详见 [多语言说明](packages/openchamber/I18N.md)
 
 ![面板截图](docs/images/panel.png)
 
