@@ -20,7 +20,7 @@ import { mountEmpty } from "@openchamber/sdk/ui";
 import { html } from './html';
 import { host } from './host';
 import { getState, setState, Branch } from './state';
-import { setLocale } from './i18n';
+import { setLocale, t } from './i18n';
 import { createServiceClient } from './service';
 import {
   createBranchPanel,
@@ -29,6 +29,7 @@ import {
   createCommitDetailPanel,
   createSidebar,
   hideContextMenu,
+  performBranchDelete,
 } from './components';
 import { showCreateBranchDialog } from './components/dialogs';
 import { showSettingsMenu } from './components/settings-menu';
@@ -154,7 +155,23 @@ async function render(): Promise<void> {
         }
       },
       onRefresh: () => { void runSidebarUpdate(); },
-      onCheckout: () => { void runSidebarCheckout(); },
+      onDeleteBranch: () => {
+        // IDEA DeleteBranchAction 语义：仅作用于选中分支，未选中或当前分支时 toast 提示
+        const branch = getState().selectedBranch;
+        if (!branch) {
+          void host.toast({ kind: 'error', message: t('branch.selectBranch') }).catch((toastErr) => {
+            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'delete_branch_toast_error', error: String(toastErr) }));
+          });
+          return;
+        }
+        if (branch.isCurrent) {
+          void host.toast({ kind: 'error', message: t('branch.deleteCurrent') }).catch((toastErr) => {
+            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'delete_branch_toast_error', error: String(toastErr) }));
+          });
+          return;
+        }
+        void performBranchDelete(service, getDir(), branch);
+      },
       onMerge: () => { void runSidebarMerge(); },
       onSearch: () => {
         // data-search-input 由 commit-list 搜索框提供，缺失时静默忽略
@@ -237,21 +254,6 @@ function createTabBar(): HTMLElement {
 function resolveSidebarTarget(): Branch | null {
   const state = getState();
   return state.selectedBranch ?? state.branches.find(b => b.isCurrent) ?? null;
-}
-
-/** 侧边栏签出：选中分支优先，成功后刷新数据 */
-async function runSidebarCheckout(): Promise<void> {
-  const target = resolveSidebarTarget();
-  if (!target) {
-    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'checkout_no_branch' }));
-    return;
-  }
-  try {
-    await service.checkoutBranch(getDir(), target.name);
-    await loadData();
-  } catch (e) {
-    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'checkout_error', branchName: target.name, error: String(e) }));
-  }
 }
 
 /** 侧边栏合并：选中分支优先，成功后刷新数据 */

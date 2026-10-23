@@ -17,8 +17,8 @@ export interface SidebarHandlers {
   onNewBranch: () => void;
   /** 刷新数据 */
   onRefresh: () => void;
-  /** 签出目标分支 */
-  onCheckout: () => void;
+  /** 删除所选分支 */
+  onDeleteBranch: () => void;
   /** 合并目标分支 */
   onMerge: () => void;
   /** 聚焦提交搜索框 */
@@ -64,7 +64,7 @@ const ITEMS: readonly SidebarItem[] = [
   { key: 'hideBranches', icon: 'hideBranches', titleKey: 'sidebar.hideBranches', handler: 'onToggleBranchPanel' },
   { key: 'newBranch', icon: 'newBranch', titleKey: 'sidebar.newBranch', handler: 'onNewBranch' },
   { key: 'refresh', icon: 'updateSelected', titleKey: 'sidebar.update', handler: 'onRefresh' },
-  { key: 'checkout', icon: 'checkout', titleKey: 'sidebar.checkout', handler: 'onCheckout' },
+  { key: 'delete', icon: 'deleteBranch', titleKey: 'sidebar.deleteBranch', handler: 'onDeleteBranch' },
   {
     key: 'merge',
     icon: 'merge',

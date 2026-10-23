@@ -20,6 +20,10 @@ export const ICONS: Record<string, Icon> = {
   showBranches: {
     svg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 13L11 8L6 3" stroke="#6E6E6E" stroke-width="2"/></svg>`,
   },
+  // 删除所选分支（IDEA AllIcons.Actions.GC 垃圾桶字形，新 UI 灰色）
+  deleteBranch: {
+    svg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="#6E6E6E" d="M6,2 L6,1 L10,1 L10,2 L13,2 L13,4 L3,4 L3,2 L6,2 Z M4,12.7142858 L4,5 L12,5 L12,12.7142858 C12,13.4214286 11.4,14 10.6666667,14 L5.33333333,14 C4.6,14 4,13.4214286 4,12.7142858 Z"/></svg>`,
+  },
   // 新建分支 (+)
   newBranch: {
     svg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2V14M2 8H14" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round"/></svg>`,

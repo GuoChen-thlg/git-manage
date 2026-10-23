@@ -1387,6 +1387,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "Force Delete",
     "branch.notFound": "Branch {name} does not exist",
     "branch.deleteFailed": "Failed to delete branch",
+    "sidebar.deleteBranch": "Delete Branch",
+    "branch.selectBranch": "Please select a branch first",
+    "branch.deleteCurrent": "Cannot delete the current branch",
     "branch.notifyDeleted": "Deleted branch: {name}",
     "branch.restore": "Restore",
     "branch.deleteTracking": "Delete Tracking Branch",
@@ -1489,6 +1492,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "\u5F3A\u5236\u5220\u9664",
     "branch.notFound": "\u5206\u652F {name} \u4E0D\u5B58\u5728",
     "branch.deleteFailed": "\u5220\u9664\u5206\u652F\u5931\u8D25",
+    "sidebar.deleteBranch": "\u5220\u9664\u5206\u652F",
+    "branch.selectBranch": "\u8BF7\u5148\u9009\u62E9\u5206\u652F",
+    "branch.deleteCurrent": "\u5F53\u524D\u5206\u652F\u4E0D\u80FD\u5220\u9664",
     "branch.notifyDeleted": "\u5DF2\u5220\u9664\u7684\u5206\u652F: {name}",
     "branch.restore": "\u8FD8\u539F",
     "branch.deleteTracking": "\u5220\u9664\u8DDF\u8E2A\u7684\u5206\u652F",
@@ -1591,6 +1597,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "\u5F37\u5236\u522A\u9664",
     "branch.notFound": "\u5206\u652F {name} \u4E0D\u5B58\u5728",
     "branch.deleteFailed": "\u522A\u9664\u5206\u652F\u5931\u6557",
+    "sidebar.deleteBranch": "\u522A\u9664\u5206\u652F",
+    "branch.selectBranch": "\u8ACB\u5148\u9078\u64C7\u5206\u652F",
+    "branch.deleteCurrent": "\u76EE\u524D\u5206\u652F\u4E0D\u80FD\u522A\u9664",
     "branch.notifyDeleted": "\u5DF2\u522A\u9664\u7684\u5206\u652F: {name}",
     "branch.restore": "\u9084\u539F",
     "branch.deleteTracking": "\u522A\u9664\u8FFD\u8E64\u7684\u5206\u652F",
@@ -1693,6 +1702,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "Erzwungenes L\xF6schen",
     "branch.notFound": "Branch {name} existiert nicht",
     "branch.deleteFailed": "Branch konnte nicht gel\xF6scht werden",
+    "sidebar.deleteBranch": "Branch l\xF6schen",
+    "branch.selectBranch": "Bitte zuerst einen Branch ausw\xE4hlen",
+    "branch.deleteCurrent": "Den aktuellen Branch kann man nicht l\xF6schen",
     "branch.notifyDeleted": "Gel\xF6schter Branch: {name}",
     "branch.restore": "Wiederherstellen",
     "branch.deleteTracking": "Tracking-Branch l\xF6schen",
@@ -1795,6 +1807,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "Suppression forc\xE9e",
     "branch.notFound": "La branche {name} n'existe pas",
     "branch.deleteFailed": "\xC9chec de la suppression de la branche",
+    "sidebar.deleteBranch": "Supprimer la branche",
+    "branch.selectBranch": "Veuillez d\u2019abord s\xE9lectionner une branche",
+    "branch.deleteCurrent": "Impossible de supprimer la branche actuelle",
     "branch.notifyDeleted": "Branche supprim\xE9e : {name}",
     "branch.restore": "Restaurer",
     "branch.deleteTracking": "Supprimer la branche de suivi",
@@ -1897,6 +1912,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "\u041F\u0440\u0438\u043C\u0443\u0441\u043E\u0432\u043E \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438",
     "branch.notFound": "\u0413\u0456\u043B\u043A\u0443 {name} \u043D\u0435 \u0456\u0441\u043D\u0443\u0454",
     "branch.deleteFailed": "\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0433\u0456\u043B\u043A\u0443",
+    "sidebar.deleteBranch": "\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0433\u0456\u043B\u043A\u0443",
+    "branch.selectBranch": "\u0421\u043F\u043E\u0447\u0430\u0442\u043A\u0443 \u0432\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0433\u0456\u043B\u043A\u0443",
+    "branch.deleteCurrent": "\u041D\u0435\u043C\u043E\u0436\u043B\u0438\u0432\u043E \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u043F\u043E\u0442\u043E\u0447\u043D\u0443 \u0433\u0456\u043B\u043A\u0443",
     "branch.notifyDeleted": "\u0412\u0438\u0434\u0430\u043B\u0435\u043D\u0430 \u0433\u0456\u043B\u043A\u0430: {name}",
     "branch.restore": "\u0412\u0456\u0434\u043D\u043E\u0432\u0438\u0442\u0438",
     "branch.deleteTracking": "\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0433\u0456\u043B\u043A\u0443 \u0432\u0456\u0434\u0441\u0442\u0435\u0436\u0435\u043D\u043D\u044F",
@@ -1999,6 +2017,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "Eliminar de forma forzada",
     "branch.notFound": "La rama {name} no existe",
     "branch.deleteFailed": "Error al eliminar la rama",
+    "sidebar.deleteBranch": "Eliminar rama",
+    "branch.selectBranch": "Primero seleccione una rama",
+    "branch.deleteCurrent": "No se puede eliminar la rama actual",
     "branch.notifyDeleted": "Rama eliminada: {name}",
     "branch.restore": "Restaurar",
     "branch.deleteTracking": "Eliminar rama de seguimiento",
@@ -2101,6 +2122,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "Exclus\xE3o for\xE7ada",
     "branch.notFound": "O branch {name} n\xE3o existe",
     "branch.deleteFailed": "Falha ao excluir o branch",
+    "sidebar.deleteBranch": "Excluir branch",
+    "branch.selectBranch": "Selecione uma branch primeiro",
+    "branch.deleteCurrent": "N\xE3o \xE9 poss\xEDvel excluir a branch atual",
     "branch.notifyDeleted": "Branch exclu\xEDdo: {name}",
     "branch.restore": "Restaurar",
     "branch.deleteTracking": "Excluir branch de rastreamento",
@@ -2203,6 +2227,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "\uAC15\uC81C \uC0AD\uC81C",
     "branch.notFound": "{name} \uBE0C\uB79C\uCE58\uAC00 \uC874\uC7AC\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
     "branch.deleteFailed": "\uBE0C\uB79C\uCE58 \uC0AD\uC81C \uC2E4\uD328",
+    "sidebar.deleteBranch": "\uBE0C\uB79C\uCE58 \uC0AD\uC81C",
+    "branch.selectBranch": "\uBA3C\uC800 \uBE0C\uB79C\uCE58\uB97C \uC120\uD0DD\uD558\uC138\uC694",
+    "branch.deleteCurrent": "\uD604\uC7AC \uBE0C\uB79C\uCE58\uB294 \uC0AD\uC81C\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
     "branch.notifyDeleted": "\uC0AD\uC81C\uB41C \uBE0C\uB79C\uCE58: {name}",
     "branch.restore": "\uBCF5\uC6D0",
     "branch.deleteTracking": "\uCD94\uC801 \uBE0C\uB79C\uCE58 \uC0AD\uC81C",
@@ -2305,6 +2332,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "Usu\u0144 wymuszenie",
     "branch.notFound": "Ga\u0142\u0105\u017A {name} nie istnieje",
     "branch.deleteFailed": "Nie uda\u0142o si\u0119 usun\u0105\u0107 ga\u0142\u0119zi",
+    "sidebar.deleteBranch": "Usu\u0144 ga\u0142\u0105\u017A",
+    "branch.selectBranch": "Najpierw wybierz ga\u0142\u0105\u017A",
+    "branch.deleteCurrent": "Nie mo\u017Cna usun\u0105\u0107 bie\u017C\u0105cej ga\u0142\u0119zi",
     "branch.notifyDeleted": "Usuni\u0119ta ga\u0142\u0105\u017A: {name}",
     "branch.restore": "Przywr\xF3\u0107",
     "branch.deleteTracking": "Usu\u0144 ga\u0142\u0105\u017A \u015Bledzenia",
@@ -2407,6 +2437,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "\u5F37\u5236\u524A\u9664",
     "branch.notFound": "\u30D6\u30E9\u30F3\u30C1 {name} \u306F\u5B58\u5728\u3057\u307E\u305B\u3093",
     "branch.deleteFailed": "\u30D6\u30E9\u30F3\u30C1\u306E\u524A\u9664\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    "sidebar.deleteBranch": "\u30D6\u30E9\u30F3\u30C1\u3092\u524A\u9664",
+    "branch.selectBranch": "\u307E\u305A\u30D6\u30E9\u30F3\u30C1\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044",
+    "branch.deleteCurrent": "\u73FE\u5728\u306E\u30D6\u30E9\u30F3\u30C1\u306F\u524A\u9664\u3067\u304D\u307E\u305B\u3093",
     "branch.notifyDeleted": "\u524A\u9664\u3057\u305F\u30D6\u30E9\u30F3\u30C1: {name}",
     "branch.restore": "\u5143\u306B\u623B\u3059",
     "branch.deleteTracking": "\u8FFD\u8DE1\u30D6\u30E9\u30F3\u30C1\u3092\u524A\u9664",
@@ -2509,6 +2542,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "branch.forceDeleteButton": "Zorla sil",
     "branch.notFound": "{name} dal\u0131 mevcut de\u011Fil",
     "branch.deleteFailed": "Dal silinemedi",
+    "sidebar.deleteBranch": "Dal\u0131 sil",
+    "branch.selectBranch": "\xD6nce bir dal se\xE7in",
+    "branch.deleteCurrent": "Ge\xE7erli dal silinemez",
     "branch.notifyDeleted": "Silinen dal: {name}",
     "branch.restore": "Geri y\xFCkle",
     "branch.deleteTracking": "\u0130zleme dal\u0131n\u0131 sil",
@@ -2830,6 +2866,10 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     // 显示分支面板 (>)：分支面板隐藏时显示，点击可展开
     showBranches: {
       svg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 13L11 8L6 3" stroke="#6E6E6E" stroke-width="2"/></svg>`
+    },
+    // 删除所选分支（IDEA AllIcons.Actions.GC 垃圾桶字形，新 UI 灰色）
+    deleteBranch: {
+      svg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="#6E6E6E" d="M6,2 L6,1 L10,1 L10,2 L13,2 L13,4 L3,4 L3,2 L6,2 Z M4,12.7142858 L4,5 L12,5 L12,12.7142858 C12,13.4214286 11.4,14 10.6666667,14 L5.33333333,14 C4.6,14 4,13.4214286 4,12.7142858 Z"/></svg>`
     },
     // 新建分支 (+)
     newBranch: {
@@ -3745,6 +3785,35 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     }
     console.debug(JSON.stringify({ prefix: "[context-menu]", event: "branch_delete_success", branch: branch.name, kind: res.kind }));
   }
+  async function performBranchDelete(service2, directory2, branch) {
+    console.debug(JSON.stringify({ prefix: "[context-menu]", event: "branch_delete_start", branch: branch.name }));
+    try {
+      const res = await service2.deleteBranch(directory2, branch.name);
+      await onBranchDeleted(res, branch, service2, directory2);
+    } catch (e) {
+      const { code, message } = parseDeleteBranchError(e);
+      console.debug(JSON.stringify({
+        prefix: "[context-menu]",
+        event: "branch_delete_failed",
+        branch: branch.name,
+        code: code ?? null
+      }));
+      if (code === "NOT_MERGED") {
+        showDeleteBranchDialog(branch.name, async (force) => {
+          const forceRes = await service2.deleteBranch(directory2, branch.name, force);
+          await onBranchDeleted(forceRes, branch, service2, directory2);
+        });
+      } else if (code === "NOT_FOUND") {
+        void host.toast({ kind: "error", message: t("branch.notFound", { name: branch.name }) }).catch((toastErr) => {
+          console.error(JSON.stringify({ prefix: "[context-menu]", event: "branch_delete_toast_error", error: String(toastErr) }));
+        });
+      } else {
+        void host.toast({ kind: "error", message: `${t("branch.deleteFailed")}: ${message}` }).catch((toastErr) => {
+          console.error(JSON.stringify({ prefix: "[context-menu]", event: "branch_delete_toast_error", error: String(toastErr) }));
+        });
+      }
+    }
+  }
   function showContextMenu(e, branch, service2, directory2) {
     hideContextMenu();
     const state = getState();
@@ -3846,35 +3915,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
         danger: true,
         // IDEA DeleteBranchAction：当前分支禁用删除
         disabled: branch.isCurrent,
-        action: async () => {
-          console.debug(JSON.stringify({ prefix: "[context-menu]", event: "branch_delete_start", branch: branch.name }));
-          try {
-            const res = await service2.deleteBranch(directory2, branch.name);
-            await onBranchDeleted(res, branch, service2, directory2);
-          } catch (e2) {
-            const { code, message } = parseDeleteBranchError(e2);
-            console.debug(JSON.stringify({
-              prefix: "[context-menu]",
-              event: "branch_delete_failed",
-              branch: branch.name,
-              code: code ?? null
-            }));
-            if (code === "NOT_MERGED") {
-              showDeleteBranchDialog(branch.name, async (force) => {
-                const forceRes = await service2.deleteBranch(directory2, branch.name, force);
-                await onBranchDeleted(forceRes, branch, service2, directory2);
-              });
-            } else if (code === "NOT_FOUND") {
-              void host.toast({ kind: "error", message: t("branch.notFound", { name: branch.name }) }).catch((toastErr) => {
-                console.error(JSON.stringify({ prefix: "[context-menu]", event: "branch_delete_toast_error", error: String(toastErr) }));
-              });
-            } else {
-              void host.toast({ kind: "error", message: `${t("branch.deleteFailed")}: ${message}` }).catch((toastErr) => {
-                console.error(JSON.stringify({ prefix: "[context-menu]", event: "branch_delete_toast_error", error: String(toastErr) }));
-              });
-            }
-          }
-        }
+        action: () => performBranchDelete(service2, directory2, branch)
       }
     ];
     const findItemByLabel = (label) => items.find((i) => !("type" in i) && i.label === label);
@@ -5907,7 +5948,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     { key: "hideBranches", icon: "hideBranches", titleKey: "sidebar.hideBranches", handler: "onToggleBranchPanel" },
     { key: "newBranch", icon: "newBranch", titleKey: "sidebar.newBranch", handler: "onNewBranch" },
     { key: "refresh", icon: "updateSelected", titleKey: "sidebar.update", handler: "onRefresh" },
-    { key: "checkout", icon: "checkout", titleKey: "sidebar.checkout", handler: "onCheckout" },
+    { key: "delete", icon: "deleteBranch", titleKey: "sidebar.deleteBranch", handler: "onDeleteBranch" },
     {
       key: "merge",
       icon: "merge",
@@ -6073,8 +6114,21 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
         onRefresh: () => {
           void runSidebarUpdate();
         },
-        onCheckout: () => {
-          void runSidebarCheckout();
+        onDeleteBranch: () => {
+          const branch = getState().selectedBranch;
+          if (!branch) {
+            void host.toast({ kind: "error", message: t("branch.selectBranch") }).catch((toastErr) => {
+              console.error(JSON.stringify({ prefix: "[sidebar]", event: "delete_branch_toast_error", error: String(toastErr) }));
+            });
+            return;
+          }
+          if (branch.isCurrent) {
+            void host.toast({ kind: "error", message: t("branch.deleteCurrent") }).catch((toastErr) => {
+              console.error(JSON.stringify({ prefix: "[sidebar]", event: "delete_branch_toast_error", error: String(toastErr) }));
+            });
+            return;
+          }
+          void performBranchDelete(service, getDir(), branch);
         },
         onMerge: () => {
           void runSidebarMerge();
@@ -6144,19 +6198,6 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
   function resolveSidebarTarget() {
     const state = getState();
     return state.selectedBranch ?? state.branches.find((b) => b.isCurrent) ?? null;
-  }
-  async function runSidebarCheckout() {
-    const target = resolveSidebarTarget();
-    if (!target) {
-      console.error(JSON.stringify({ prefix: "[sidebar]", event: "checkout_no_branch" }));
-      return;
-    }
-    try {
-      await service.checkoutBranch(getDir(), target.name);
-      await loadData();
-    } catch (e) {
-      console.error(JSON.stringify({ prefix: "[sidebar]", event: "checkout_error", branchName: target.name, error: String(e) }));
-    }
   }
   async function runSidebarMerge() {
     const target = resolveSidebarTarget();
