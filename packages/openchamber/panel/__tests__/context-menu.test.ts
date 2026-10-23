@@ -776,7 +776,7 @@ describe('context-menu', () => {
       document.getElementById('branch-ok')!.click();
       await flush();
 
-      expect(service.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature/x');
+      expect(service.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature/x', 'abc123');
       expect(getState().branches).toEqual([
         { name: 'feature', isCurrent: false, isRemote: false },
       ]);
@@ -1282,7 +1282,7 @@ describe('context-menu', () => {
       // Enter 按键：创建分支并关闭对话框
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       await flush();
-      expect(service.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature/enter');
+      expect(service.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature/enter', 'abc123');
       expect(document.getElementById('new-branch-from-commit')).toBeNull();
     });
   });

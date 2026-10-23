@@ -352,9 +352,16 @@ export async function checkout(branch: string, options: GitCommandOptions): Prom
  * 创建并切换到新分支
  * @param branch - 分支名称
  * @param options - Git 命令选项
+ * @param startPoint - 起点引用（如提交 sha），指定后从该起点创建；
+ *   省略时行为不变（基于当前 HEAD）
  */
-export async function checkoutNew(branch: string, options: GitCommandOptions): Promise<void> {
-  await gitExecStrict(`checkout -b ${branch}`, options);
+export async function checkoutNew(
+  branch: string,
+  options: GitCommandOptions,
+  startPoint?: string
+): Promise<void> {
+  const args = startPoint ? ['checkout', '-b', branch, startPoint] : ['checkout', '-b', branch];
+  await gitExecStrict(args, options);
 }
 
 /**

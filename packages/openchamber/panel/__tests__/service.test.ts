@@ -580,6 +580,21 @@ describe('service', () => {
         body: JSON.stringify({ directory: '/path/to/repo', name: 'feature/new' }),
       });
     });
+
+    it('带起点提交时应把 startPoint 放入请求体', async () => {
+      mockHost.serviceRequest.mockResolvedValue({
+        status: 200,
+        body: JSON.stringify(true),
+      });
+
+      await service.checkoutNewBranch('/path/to/repo', 'feature/new', 'a004346789abcdef');
+
+      expect(mockHost.serviceRequest).toHaveBeenCalledWith({
+        method: 'POST',
+        path: '/git-checkout-new',
+        body: JSON.stringify({ directory: '/path/to/repo', name: 'feature/new', startPoint: 'a004346789abcdef' }),
+      });
+    });
   });
 
   describe('rebaseBranch', () => {

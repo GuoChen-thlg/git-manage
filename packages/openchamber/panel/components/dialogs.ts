@@ -84,6 +84,7 @@ export function showCreateBranchDialog(service: ServiceClient, directory: string
   const doCreate = async () => {
     const name = input.value.trim();
     if (!name) return;
+    void service.debugLog?.('create-branch-submit', { name, startPoint: startPoint ?? null });
     try {
       await service.createNewBranch(directory, name, startPoint);
       const branches = await service.getBranches(directory);

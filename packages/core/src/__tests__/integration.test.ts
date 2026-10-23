@@ -179,6 +179,15 @@ describe('分支管理', () => {
     expect(await getCurrentBranch({ cwd: repoDir })).toBe('experiment');
   });
 
+  it('checkoutNew 带起点时应从该起点创建并切换', async () => {
+    await checkoutNew('from-login', { cwd: repoDir }, 'feature/login');
+    expect(await getCurrentBranch({ cwd: repoDir })).toBe('from-login');
+    // 新分支应与起点分支指向同一提交
+    const branches = await listBranches({ cwd: repoDir });
+    expect(branches.find(b => b.name === 'from-login')?.commit)
+      .toBe(branches.find(b => b.name === 'feature/login')?.commit);
+  });
+
   it('renameBranch 应重命名分支', async () => {
     await renameBranch('main', 'main-renamed', { cwd: repoDir });
     const names = (await listBranches({ cwd: repoDir })).map(b => b.name);

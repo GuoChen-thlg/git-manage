@@ -36,6 +36,8 @@ import {
 /** 获取环境变量 */
 const PORT = parseInt(process.env.OPENCHAMBER_SERVICE_PORT || "0", 10);
 const TOKEN = process.env.OPENCHAMBER_SERVICE_TOKEN || "";
+/** 面板调试日志落盘路径（排查起点链路用，*.log 已被 gitignore） */
+const DEBUG_LOG_PATH = "/Users/guochen/workingarea/node-projects/git-manage/gitpanel-debug.log";
 
 /** 验证请求 Token */
 function verifyToken(request: Request): boolean {
@@ -169,6 +171,17 @@ async function handleRequest(request: Request): Promise<Response> {
           return Response.json({ code: "GIT_ERROR", message: stderr }, { status: 500 });
         }
       }
+      case "/git-debug-log": {
+        // 面板调试日志落盘（排查起点链路用），写失败不影响返回
+        const line = JSON.stringify({ ts: new Date().toISOString(), event: body.event, data: body.data }) + "\n";
+        try {
+          const { appendFile } = await import("fs/promises");
+          await appendFile(DEBUG_LOG_PATH, line, "utf8");
+        } catch (e) {
+          console.error(`[git-manager-service] ${JSON.stringify({ event: "debug-log-write-error", message: String(e) })}`);
+        }
+        return Response.json({ success: true });
+      }
       case "/git-create-branch": {
         // startPoint 可选：选中提交时基于该提交建分支，省略则基于当前 HEAD
         const startPoint = body.startPoint as string | undefined;
@@ -225,7 +238,9 @@ async function handleRequest(request: Request): Promise<Response> {
         }
       }
       case "/git-checkout-new": {
-        await checkoutNew(body.name as string, { cwd: directory });
+        // startPoint 可选：从右键选中的提交创建并切换，省略则基于当前 HEAD
+        const startPoint = body.startPoint as string | undefined;
+        await checkoutNew(body.name as string, { cwd: directory }, startPoint);
         return Response.json({ success: true });
       }
       case "/git-rename-branch": {

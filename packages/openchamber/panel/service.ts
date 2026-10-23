@@ -144,9 +144,12 @@ export function createServiceClient(host: HostClient) {
     return serviceCall<{ success: boolean }>('git-delete-remote-branch', { directory, remote, branch });
   }
 
-  /** 创建并切换到新分支 */
-  async function checkoutNewBranch(directory: string, name: string) {
-    return serviceCall('git-checkout-new', { directory, name });
+  /**
+   * 创建并切换到新分支
+   * @param startPoint 起点提交（可选）：右键选中提交时基于该提交创建，省略则基于当前 HEAD
+   */
+  async function checkoutNewBranch(directory: string, name: string, startPoint?: string) {
+    return serviceCall('git-checkout-new', { directory, name, startPoint });
   }
 
   /**
@@ -155,6 +158,15 @@ export function createServiceClient(host: HostClient) {
    */
   async function createNewBranch(directory: string, name: string, startPoint?: string) {
     return serviceCall('git-create-branch', { directory, name, startPoint });
+  }
+
+  /** 调试日志：上报事件到 service 落盘排查链路，失败静默不影响业务 */
+  async function debugLog(event: string, data: Record<string, unknown> = {}): Promise<void> {
+    try {
+      await serviceCall('git-debug-log', { event, data });
+    } catch {
+      // 日志通道失败静默
+    }
   }
 
   /** 重命名分支 */
@@ -307,6 +319,7 @@ export function createServiceClient(host: HostClient) {
     deleteRemoteBranch,
     checkoutNewBranch,
     createNewBranch,
+    debugLog,
     renameBranch,
     rebaseBranch,
     rebaseAbort,

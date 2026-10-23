@@ -146,7 +146,9 @@ async function render(): Promise<void> {
       onNewBranch: () => {
         try {
           // 选中提交时基于该提交建分支（IDEA 语义），否则基于当前 HEAD
-          showCreateBranchDialog(service, getDir(), getState().selectedCommit?.hash);
+          const selected = getState().selectedCommit?.hash ?? null;
+          void service.debugLog('new-branch-dialog-open', { selectedCommit: selected });
+          showCreateBranchDialog(service, getDir(), selected ?? undefined);
         } catch (e) {
           console.error(JSON.stringify({ prefix: '[sidebar]', event: 'new_branch_error', error: String(e) }));
         }
@@ -516,3 +518,6 @@ document.addEventListener("click", () => {
 });
 
 init();
+
+// 调试日志：页面加载新 bundle 即上报（日志文件中出现此条 = 页面已刷新为新版 JS）
+void service.debugLog('panel-loaded', { ts: new Date().toISOString() });
