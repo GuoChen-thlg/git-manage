@@ -153,7 +153,7 @@ async function render(): Promise<void> {
           console.error(JSON.stringify({ prefix: '[sidebar]', event: 'new_branch_error', error: String(e) }));
         }
       },
-      onRefresh: () => { void loadData(); },
+      onRefresh: () => { void runSidebarUpdate(); },
       onCheckout: () => { void runSidebarCheckout(); },
       onMerge: () => { void runSidebarMerge(); },
       onSearch: () => {
@@ -287,6 +287,16 @@ async function runSidebarFavorite(): Promise<void> {
     await service.saveFavorites(getDir(), [...next]);
   } catch (e) {
     console.error(JSON.stringify({ prefix: '[sidebar]', event: 'save_favorites_error', error: String(e) }));
+  }
+}
+
+/** 侧边栏更新：先从远程获取最新引用（fetch origin --prune，IDEA 语义），成功后刷新数据 */
+async function runSidebarUpdate(): Promise<void> {
+  try {
+    await service.fetch(getDir());
+    await loadData();
+  } catch (e) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_error', error: String(e) }));
   }
 }
 

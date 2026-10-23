@@ -63,7 +63,7 @@ const BUTTON_STYLE =
 const ITEMS: readonly SidebarItem[] = [
   { key: 'hideBranches', icon: 'hideBranches', titleKey: 'sidebar.hideBranches', handler: 'onToggleBranchPanel' },
   { key: 'newBranch', icon: 'newBranch', titleKey: 'sidebar.newBranch', handler: 'onNewBranch' },
-  { key: 'refresh', icon: 'refresh', titleKey: 'sidebar.refresh', handler: 'onRefresh' },
+  { key: 'refresh', icon: 'refresh', titleKey: 'sidebar.update', handler: 'onRefresh' },
   { key: 'checkout', icon: 'checkout', titleKey: 'sidebar.checkout', handler: 'onCheckout' },
   {
     key: 'merge',

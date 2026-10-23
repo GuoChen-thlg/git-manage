@@ -203,7 +203,7 @@ export function createServiceClient(host: HostClient) {
 
   // ── 远程操作 API ──
 
-  /** 拉取远程更新 */
+  /** 从远程获取最新引用（fetch origin --prune） */
   async function fetch(directory: string) {
     return serviceCall('git-fetch', { directory });
   }

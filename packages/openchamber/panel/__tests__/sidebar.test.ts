@@ -20,13 +20,13 @@ const KEYS = [
 
 /** 简体中文 tooltip（branchPanelHidden=false 初始态） */
 const TITLES_ZH = [
-  '隐藏 Git 分支', '新建分支', '刷新', '签出', '合并', '搜索',
+  '隐藏 Git 分支', '新建分支', '更新所选', '签出', '合并', '搜索',
   '收藏', '设置', '拉取', '展开全部', '排序', '关闭',
 ];
 
 /** 英文 tooltip（branchPanelHidden=false 初始态） */
 const TITLES_EN = [
-  'Hide Git Branches', 'New Branch', 'Refresh', 'Checkout', 'Merge', 'Search',
+  'Hide Git Branches', 'New Branch', 'Update Selected', 'Checkout', 'Merge', 'Search',
   'Favorite', 'Settings', 'Pull', 'Expand All', 'Sort', 'Close',
 ];
 
