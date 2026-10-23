@@ -569,26 +569,26 @@ function showResetDialog(commit: CommitInfo, service: ServiceClient, directory: 
   const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">Reset Current Branch to Here</div>
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('reset.title')}</div>
         <div style="font-size: 12px; color: #888; margin-bottom: 12px; word-break: break-all;">
           ${commit.shortHash} - ${commit.message}
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
           <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; cursor: pointer;">
             <input type="radio" name="reset-mode" value="soft" checked />
-            <span><b>--soft</b> 保留工作区和暂存区</span>
+            <span><b>--soft</b> ${t('reset.softDesc')}</span>
           </label>
           <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; cursor: pointer;">
             <input type="radio" name="reset-mode" value="mixed" />
-            <span><b>--mixed</b> 保留工作区，重置暂存区</span>
+            <span><b>--mixed</b> ${t('reset.mixedDesc')}</span>
           </label>
           <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; cursor: pointer;">
             <input type="radio" name="reset-mode" value="hard" />
-            <span><b>--hard</b> 丢弃所有更改</span>
+            <span><b>--hard</b> ${t('reset.hardDesc')}</span>
           </label>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="reset-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
+          <button id="reset-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
           <button id="reset-ok" style="padding: 4px 12px; background: #d32f2f; border: 1px solid #f44336; border-radius: 3px; color: #fff; cursor: pointer;">Reset</button>
         </div>
       </div>
@@ -621,14 +621,14 @@ function showCreateBranchFromCommitDialog(commit: CommitInfo, service: ServiceCl
   const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">从提交创建分支</div>
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.branchFromCommit')}</div>
         <div style="font-size: 11px; color: #888; margin-bottom: 8px; word-break: break-all;">
-          基于: ${commit.shortHash} - ${commit.message}
+          ${t('dialog.basedOn', { info: `${commit.shortHash} - ${commit.message}` })}
         </div>
-        <input id="new-branch-from-commit" type="text" placeholder="输入分支名称..." style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
+        <input id="new-branch-from-commit" type="text" placeholder="${t('dialog.inputBranchName')}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="branch-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
-          <button id="branch-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">创建</button>
+          <button id="branch-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
+          <button id="branch-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.create')}</button>
         </div>
       </div>
     </div>

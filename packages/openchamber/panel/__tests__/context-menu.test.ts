@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { showContextMenu, showCommitContextMenu, hideContextMenu } from '../components/context-menu';
 import { host } from '../host';
 import { getState, setState, createInitialState, Branch, CommitInfo, FileDiff } from '../state';
-import { setLocale } from '../i18n';
+import { setLocale, t } from '../i18n';
 import { ServiceClient, DeleteBranchResult } from '../service';
 
 // 宿主模块打桩：避免真实 connectHost 握手，并在用例中断言 toast 调用
@@ -1174,7 +1174,7 @@ describe('context-menu', () => {
       const overlay = await openResetDialog(createMockService());
 
       const title = Array.from(overlay.querySelectorAll('div'))
-        .find(el => el.textContent === 'Reset Current Branch to Here');
+        .find(el => el.textContent === t('reset.title'));
       expect(title).toBeTruthy();
       title!.click();
       expect(document.getElementById('reset-ok')).toBeTruthy();

@@ -13,11 +13,11 @@ export function showRenameDialog(branch: Branch, service: ServiceClient, directo
   const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">重命名分支: ${branch.name}</div>
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.renameBranch')}: ${branch.name}</div>
         <input id="rename-input" type="text" value="${branch.name}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="rename-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
-          <button id="rename-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">确定</button>
+          <button id="rename-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
+          <button id="rename-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
         </div>
       </div>
     </div>
@@ -58,12 +58,12 @@ export function showCreateBranchDialog(service: ServiceClient, directory: string
   const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">新建分支</div>
-        <div style="font-size: 11px; color: #888; margin-bottom: 8px;">起点：${startPoint ? startPoint.slice(0, 8) : '当前 HEAD'}</div>
-        <input id="new-branch-input" type="text" placeholder="输入分支名称..." style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.createBranchTitle')}</div>
+        <div style="font-size: 11px; color: #888; margin-bottom: 8px;">${t('dialog.startPoint')}：${startPoint ? startPoint.slice(0, 8) : t('dialog.currentHead')}</div>
+        <input id="new-branch-input" type="text" placeholder="${t('dialog.inputBranchName')}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="create-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
-          <button id="create-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">创建</button>
+          <button id="create-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
+          <button id="create-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.create')}</button>
         </div>
       </div>
     </div>
@@ -108,19 +108,19 @@ export function showDateFilterDialog(): void {
   const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">按日期过滤</div>
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.dateFilter')}</div>
         <div style="margin-bottom: 8px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">开始日期</div>
+          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('dialog.startDate')}</div>
           <input id="date-from" type="date" value="${state.filterDateFrom}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
         </div>
         <div style="margin-bottom: 12px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">结束日期</div>
+          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('dialog.endDate')}</div>
           <input id="date-to" type="date" value="${state.filterDateTo}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="date-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
-          <button id="date-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">清除</button>
-          <button id="date-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">确定</button>
+          <button id="date-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
+          <button id="date-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.clear')}</button>
+          <button id="date-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
         </div>
       </div>
     </div>
@@ -162,25 +162,25 @@ export function showResetDialog(hash: string, service: ServiceClient, directory:
   const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">重置分支到 ${hash}</div>
-        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">选择重置模式:</div>
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.resetTo', { hash })}</div>
+        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">${t('dialog.selectResetMode')}</div>
         <div id="reset-modes" style="margin-bottom: 12px;">
           <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; padding: 4px 0; cursor: pointer;">
             <input type="radio" name="reset-mode" value="soft" style="margin: 0;" />
-            Soft - 仅移动 HEAD
+            ${t('dialog.resetSoft')}
           </label>
           <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; padding: 4px 0; cursor: pointer;">
             <input type="radio" name="reset-mode" value="mixed" checked style="margin: 0;" />
-            Mixed - 移动 HEAD + 重置索引 (默认)
+            ${t('dialog.resetMixed')}
           </label>
           <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; padding: 4px 0; cursor: pointer;">
             <input type="radio" name="reset-mode" value="hard" style="margin: 0;" />
-            Hard - 移动 HEAD + 重置索引 + 重置工作树
+            ${t('dialog.resetHard')}
           </label>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="reset-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
-          <button id="reset-ok" style="padding: 4px 12px; background: #b71c1c; border: 1px solid #c62828; border-radius: 3px; color: #fff; cursor: pointer;">重置</button>
+          <button id="reset-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
+          <button id="reset-ok" style="padding: 4px 12px; background: #b71c1c; border: 1px solid #c62828; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.reset')}</button>
         </div>
       </div>
     </div>
@@ -229,7 +229,7 @@ export function showGotoDialog(onSubmit: (query: string) => boolean): void {
         <input id="goto-input" type="text" placeholder="${t('goto.placeholder')}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px;" />
         <div id="goto-error" style="display: none; font-size: 11px; color: #f44336; margin-bottom: 8px;"></div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="goto-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
+          <button id="goto-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
           <button id="goto-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('goto.ok')}</button>
         </div>
       </div>
@@ -391,7 +391,7 @@ export function showPathFilterDialog(
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
         <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('filter.path')}</div>
         <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('filter.editPaths')}</div>
-        <textarea id="pathfilter-input" placeholder="src/ 或 packages/core" style="width: 100%; height: 120px; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px; resize: vertical; font-family: inherit;">${selected.join('\n')}</textarea>
+        <textarea id="pathfilter-input" placeholder="${t('dialog.pathPlaceholder')}" style="width: 100%; height: 120px; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px; resize: vertical; font-family: inherit;">${selected.join('\n')}</textarea>
         <div id="pathfilter-hint" style="display: none; font-size: 11px; color: #ffb300; margin-bottom: 8px;"></div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button id="pathfilter-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('filter.ok')}</button>

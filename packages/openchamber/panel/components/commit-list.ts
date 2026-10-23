@@ -20,7 +20,7 @@ import {
   PanelState,
 } from '../state';
 import { ServiceClient } from '../service';
-import { t } from '../i18n';
+import { t, getLang } from '../i18n';
 import { getIcon } from '../icons';
 import { showCommitContextMenu } from './context-menu';
 import { showSettingsMenu } from './settings-menu';
@@ -216,7 +216,7 @@ export function createCommitListPanel(
           <span style="color: #888; font-size: 12px; margin-right: 4px;">${getIcon('search')}</span>
           <input 
             type="text" 
-            placeholder="文本或哈希" 
+            placeholder="${t('commit.searchPlaceholder')}" 
             data-search-input
             style="flex: 1; padding: 3px 0; background: transparent; border: none; color: #ccc; font-size: 12px; outline: none; min-width: 80px;"
           />
@@ -231,7 +231,7 @@ export function createCommitListPanel(
         <button data-action="btn-filter-user" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.user')} ▾</button>
         <button data-action="btn-filter-date" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.date')} ▾</button>
         <button data-action="btn-filter-path" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.path')} ▾</button>
-        <button data-action="btn-select-all" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;" title="全选/取消全选当前列表">${t('filter.selectAll')}</button>
+        <button data-action="btn-select-all" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;" title="${t('filter.selectAllToggle')}">${t('filter.selectAll')}</button>
         <!-- 分隔线 -->
         <div style="width: 1px; height: 16px; background: #444; margin: 0 3px;"></div>
         <!-- 操作按钮 -->
@@ -735,7 +735,7 @@ export function createCommitListPanel(
 
     const commits = state.filteredCommits;
     if (commits.length === 0) {
-      listContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">暂无提交记录</div>';
+      listContainer.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">${t('commit.empty')}</div>`;
       return;
     }
 
@@ -1073,10 +1073,10 @@ function formatDate(dateStr: string): string {
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
 
-  if (diffMin < 1) return '刚刚';
-  if (diffMin < 60) return `${diffMin}分钟前`;
-  if (diffHour < 24) return `${diffHour}小时前`;
-  if (diffDay < 7) return `${diffDay}天前`;
+  if (diffMin < 1) return t('time.justNow');
+  if (diffMin < 60) return t('time.minutesAgo', { n: diffMin });
+  if (diffHour < 24) return t('time.hoursAgo', { n: diffHour });
+  if (diffDay < 7) return t('time.daysAgo', { n: diffDay });
 
-  return date.toLocaleDateString('zh-CN');
+  return date.toLocaleDateString(getLang());
 }

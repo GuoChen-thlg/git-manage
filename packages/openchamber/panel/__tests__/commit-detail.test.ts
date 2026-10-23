@@ -230,7 +230,7 @@ describe('commit-detail', () => {
       const [hashField, authorField, dateField] = Array.from(content.children) as HTMLElement[];
 
       // 标题里也含“提交”字样，必须按字段块精确断言
-      expect(hashField.children[0].textContent).toBe('提交');
+      expect(hashField.children[0].textContent).toBe('哈希');
       expect(authorField.children[0].textContent).toBe('作者');
       expect(dateField.children[0].textContent).toBe('日期');
 
