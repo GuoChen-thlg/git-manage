@@ -12,8 +12,12 @@ export interface Icon {
 
 /** 图标集合 */
 export const ICONS: Record<string, Icon> = {
-  // 隐藏分支面板 (←)
+  // 隐藏分支面板 (←)：分支面板展开时显示，点击可收起
   hideBranches: {
+    svg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 13L5 8L10 3" stroke="#6E6E6E" stroke-width="2"/></svg>`,
+  },
+  // 显示分支面板 (>)：分支面板隐藏时显示，点击可展开
+  showBranches: {
     svg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 13L11 8L6 3" stroke="#6E6E6E" stroke-width="2"/></svg>`,
   },
   // 新建分支 (+)

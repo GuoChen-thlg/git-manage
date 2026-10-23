@@ -2811,8 +2811,12 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
 
   // panel/icons.ts
   var ICONS = {
-    // 隐藏分支面板 (←)
+    // 隐藏分支面板 (←)：分支面板展开时显示，点击可收起
     hideBranches: {
+      svg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 13L5 8L10 3" stroke="#6E6E6E" stroke-width="2"/></svg>`
+    },
+    // 显示分支面板 (>)：分支面板隐藏时显示，点击可展开
+    showBranches: {
       svg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 13L11 8L6 3" stroke="#6E6E6E" stroke-width="2"/></svg>`
     },
     // 新建分支 (+)
@@ -5906,6 +5910,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
   function buildToggleTitle() {
     return getState().branchPanelHidden ? t("sidebar.showBranches") : t("sidebar.hideBranches");
   }
+  function buildToggleIcon() {
+    return getState().branchPanelHidden ? getIcon("showBranches") : getIcon("hideBranches");
+  }
   function createSidebar(container, handlers) {
     let disposed = false;
     let toggleBtn = null;
@@ -5916,7 +5923,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       const title = isToggle ? buildToggleTitle() : t(item.titleKey);
       const btn = html`
       <div data-sidebar="${item.key}" style="${BUTTON_STYLE}" title="${title}">
-        ${item.customSvg ?? getIcon(item.icon)}
+        ${isToggle ? buildToggleIcon() : item.customSvg ?? getIcon(item.icon)}
       </div>
     `;
       btn.addEventListener("mouseenter", () => {
@@ -5939,6 +5946,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     const unsubscribe = subscribeFields(["branchPanelHidden"], () => {
       if (disposed || !toggleBtn) return;
       toggleBtn.title = buildToggleTitle();
+      toggleBtn.innerHTML = buildToggleIcon();
     });
     const dispose = () => {
       if (disposed) return;

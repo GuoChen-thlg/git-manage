@@ -2,7 +2,7 @@
  * 左侧图标工具栏组件单元测试
  * 覆盖：12 个图标渲染顺序与 tooltip（中/英）、逐个点击回调分发、
  * 每个按钮的 svg 图标内容（getIcon 分支与 merge 自定义 svg 分支）、
- * 首个按钮 title 随 branchPanelHidden 订阅更新、hover 背景切换、
+ * 首个按钮 title 与箭头图标随 branchPanelHidden 订阅更新、hover 背景切换、
  * 创建时清空容器旧内容、dispose 取消订阅并停用点击（含重复调用幂等）
  */
 
@@ -179,6 +179,21 @@ describe('sidebar', () => {
     expect(btn('hideBranches').title).toBe('隐藏 Git 分支');
   });
 
+  it('branchPanelHidden 变化应该把首个按钮图标在左右箭头间切换', () => {
+    createBar();
+
+    // 展开态：箭头向左（表示可收起）
+    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M10 13L5 8L10 3']);
+
+    // 隐藏态：箭头向右（表示可展开）
+    setState(s => { s.branchPanelHidden = true; });
+    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M6 13L11 8L6 3']);
+
+    // 翻回展开态：箭头回到向左
+    setState(s => { s.branchPanelHidden = false; });
+    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M10 13L5 8L10 3']);
+  });
+
   it('hover 应该切换按钮背景色', () => {
     createBar();
     const refresh = btn('refresh');
@@ -210,12 +225,14 @@ describe('sidebar', () => {
     createBar();
     const toggle = btn('hideBranches');
     expect(toggle.title).toBe('隐藏 Git 分支');
+    const iconBefore = toggle.innerHTML;
 
     dispose?.();
     setState(s => { s.branchPanelHidden = true; });
 
-    // 订阅已取消：旧按钮 title 保持不变
+    // 订阅已取消：旧按钮 title 与图标保持不变
     expect(toggle.title).toBe('隐藏 Git 分支');
+    expect(toggle.innerHTML).toBe(iconBefore);
   });
 
   it('重复 dispose 应该安全无副作用', () => {
@@ -280,10 +297,13 @@ describe('sidebar', () => {
     createBar();
 
     expect(btn('hideBranches').title).toBe('显示 Git 分支');
+    // 隐藏态初始渲染即为向右箭头
+    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M6 13L11 8L6 3']);
 
-    // 翻回 false，订阅应继续同步标题
+    // 翻回 false，订阅应继续同步标题与图标
     setState(s => { s.branchPanelHidden = false; });
     expect(btn('hideBranches').title).toBe('隐藏 Git 分支');
+    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M10 13L5 8L10 3']);
   });
 
   it('反复创建并翻转两次应该保持订阅独立且标题同步', () => {

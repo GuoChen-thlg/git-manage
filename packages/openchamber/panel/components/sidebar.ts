@@ -1,7 +1,7 @@
 /**
  * 左侧图标工具栏组件
  * 40px 宽 IntelliJ 风格图标栏，渲染 12 个 Git 快捷操作按钮
- * 图标顺序沿用原 main.ts createSidebar，首个按钮文案随 branchPanelHidden 动态切换
+ * 图标顺序沿用原 main.ts createSidebar，首个按钮文案与箭头方向随 branchPanelHidden 动态切换
  */
 
 import { html } from '../html';
@@ -92,6 +92,17 @@ function buildToggleTitle(): string {
 }
 
 /**
+ * 首个按钮（隐藏/显示分支）的动态 icon
+ * 展开时箭头向左（表示可收起），隐藏时箭头向右（表示可展开）
+ * @returns 当前状态对应的 svg 图标
+ */
+function buildToggleIcon(): string {
+  return getState().branchPanelHidden
+    ? getIcon('showBranches')
+    : getIcon('hideBranches');
+}
+
+/**
  * 创建左侧图标工具栏
  * @param container 侧边栏挂载容器（会被设为 40px 图标栏并清空旧内容）
  * @param handlers 12 个图标按钮的点击处理器
@@ -114,7 +125,7 @@ export function createSidebar(
 
     const btn = html`
       <div data-sidebar="${item.key}" style="${BUTTON_STYLE}" title="${title}">
-        ${item.customSvg ?? getIcon(item.icon)}
+        ${isToggle ? buildToggleIcon() : (item.customSvg ?? getIcon(item.icon))}
       </div>
     `;
 
@@ -139,10 +150,11 @@ export function createSidebar(
     container.appendChild(btn);
   }
 
-  // 首个按钮 title 跟随 branchPanelHidden 变化
+  // 首个按钮 title 与 icon 跟随 branchPanelHidden 变化
   const unsubscribe = subscribeFields(['branchPanelHidden'], () => {
     if (disposed || !toggleBtn) return;
     toggleBtn.title = buildToggleTitle();
+    toggleBtn.innerHTML = buildToggleIcon();
   });
 
   const dispose = (): void => {
