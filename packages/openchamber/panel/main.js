@@ -1390,6 +1390,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Delete Branch",
     "branch.selectBranch": "Please select a branch first",
     "branch.deleteCurrent": "Cannot delete the current branch",
+    "branch.searchPlaceholder": "Branch or tag",
     "branch.notifyDeleted": "Deleted branch: {name}",
     "branch.restore": "Restore",
     "branch.deleteTracking": "Delete Tracking Branch",
@@ -1495,6 +1496,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\u5220\u9664\u5206\u652F",
     "branch.selectBranch": "\u8BF7\u5148\u9009\u62E9\u5206\u652F",
     "branch.deleteCurrent": "\u5F53\u524D\u5206\u652F\u4E0D\u80FD\u5220\u9664",
+    "branch.searchPlaceholder": "\u5206\u652F\u6216\u6807\u7B7E",
     "branch.notifyDeleted": "\u5DF2\u5220\u9664\u7684\u5206\u652F: {name}",
     "branch.restore": "\u8FD8\u539F",
     "branch.deleteTracking": "\u5220\u9664\u8DDF\u8E2A\u7684\u5206\u652F",
@@ -1600,6 +1602,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\u522A\u9664\u5206\u652F",
     "branch.selectBranch": "\u8ACB\u5148\u9078\u64C7\u5206\u652F",
     "branch.deleteCurrent": "\u76EE\u524D\u5206\u652F\u4E0D\u80FD\u522A\u9664",
+    "branch.searchPlaceholder": "\u5206\u652F\u6216\u6A19\u7C64",
     "branch.notifyDeleted": "\u5DF2\u522A\u9664\u7684\u5206\u652F: {name}",
     "branch.restore": "\u9084\u539F",
     "branch.deleteTracking": "\u522A\u9664\u8FFD\u8E64\u7684\u5206\u652F",
@@ -1705,6 +1708,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Branch l\xF6schen",
     "branch.selectBranch": "Bitte zuerst einen Branch ausw\xE4hlen",
     "branch.deleteCurrent": "Den aktuellen Branch kann man nicht l\xF6schen",
+    "branch.searchPlaceholder": "Branch oder Tag",
     "branch.notifyDeleted": "Gel\xF6schter Branch: {name}",
     "branch.restore": "Wiederherstellen",
     "branch.deleteTracking": "Tracking-Branch l\xF6schen",
@@ -1810,6 +1814,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Supprimer la branche",
     "branch.selectBranch": "Veuillez d\u2019abord s\xE9lectionner une branche",
     "branch.deleteCurrent": "Impossible de supprimer la branche actuelle",
+    "branch.searchPlaceholder": "Branche ou tag",
     "branch.notifyDeleted": "Branche supprim\xE9e : {name}",
     "branch.restore": "Restaurer",
     "branch.deleteTracking": "Supprimer la branche de suivi",
@@ -1915,6 +1920,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0433\u0456\u043B\u043A\u0443",
     "branch.selectBranch": "\u0421\u043F\u043E\u0447\u0430\u0442\u043A\u0443 \u0432\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0433\u0456\u043B\u043A\u0443",
     "branch.deleteCurrent": "\u041D\u0435\u043C\u043E\u0436\u043B\u0438\u0432\u043E \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u043F\u043E\u0442\u043E\u0447\u043D\u0443 \u0433\u0456\u043B\u043A\u0443",
+    "branch.searchPlaceholder": "\u0413\u0456\u043B\u043A\u0430 \u0430\u0431\u043E \u0442\u0435\u0433",
     "branch.notifyDeleted": "\u0412\u0438\u0434\u0430\u043B\u0435\u043D\u0430 \u0433\u0456\u043B\u043A\u0430: {name}",
     "branch.restore": "\u0412\u0456\u0434\u043D\u043E\u0432\u0438\u0442\u0438",
     "branch.deleteTracking": "\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0433\u0456\u043B\u043A\u0443 \u0432\u0456\u0434\u0441\u0442\u0435\u0436\u0435\u043D\u043D\u044F",
@@ -2020,6 +2026,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Eliminar rama",
     "branch.selectBranch": "Primero seleccione una rama",
     "branch.deleteCurrent": "No se puede eliminar la rama actual",
+    "branch.searchPlaceholder": "Rama o etiqueta",
     "branch.notifyDeleted": "Rama eliminada: {name}",
     "branch.restore": "Restaurar",
     "branch.deleteTracking": "Eliminar rama de seguimiento",
@@ -2125,6 +2132,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Excluir branch",
     "branch.selectBranch": "Selecione uma branch primeiro",
     "branch.deleteCurrent": "N\xE3o \xE9 poss\xEDvel excluir a branch atual",
+    "branch.searchPlaceholder": "Branch ou tag",
     "branch.notifyDeleted": "Branch exclu\xEDdo: {name}",
     "branch.restore": "Restaurar",
     "branch.deleteTracking": "Excluir branch de rastreamento",
@@ -2230,6 +2238,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\uBE0C\uB79C\uCE58 \uC0AD\uC81C",
     "branch.selectBranch": "\uBA3C\uC800 \uBE0C\uB79C\uCE58\uB97C \uC120\uD0DD\uD558\uC138\uC694",
     "branch.deleteCurrent": "\uD604\uC7AC \uBE0C\uB79C\uCE58\uB294 \uC0AD\uC81C\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
+    "branch.searchPlaceholder": "\uBE0C\uB79C\uCE58 \uB610\uB294 \uD0DC\uADF8",
     "branch.notifyDeleted": "\uC0AD\uC81C\uB41C \uBE0C\uB79C\uCE58: {name}",
     "branch.restore": "\uBCF5\uC6D0",
     "branch.deleteTracking": "\uCD94\uC801 \uBE0C\uB79C\uCE58 \uC0AD\uC81C",
@@ -2335,6 +2344,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Usu\u0144 ga\u0142\u0105\u017A",
     "branch.selectBranch": "Najpierw wybierz ga\u0142\u0105\u017A",
     "branch.deleteCurrent": "Nie mo\u017Cna usun\u0105\u0107 bie\u017C\u0105cej ga\u0142\u0119zi",
+    "branch.searchPlaceholder": "Ga\u0142\u0105\u017A lub tag",
     "branch.notifyDeleted": "Usuni\u0119ta ga\u0142\u0105\u017A: {name}",
     "branch.restore": "Przywr\xF3\u0107",
     "branch.deleteTracking": "Usu\u0144 ga\u0142\u0105\u017A \u015Bledzenia",
@@ -2440,6 +2450,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\u30D6\u30E9\u30F3\u30C1\u3092\u524A\u9664",
     "branch.selectBranch": "\u307E\u305A\u30D6\u30E9\u30F3\u30C1\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044",
     "branch.deleteCurrent": "\u73FE\u5728\u306E\u30D6\u30E9\u30F3\u30C1\u306F\u524A\u9664\u3067\u304D\u307E\u305B\u3093",
+    "branch.searchPlaceholder": "\u30D6\u30E9\u30F3\u30C1\u307E\u305F\u306F\u30BF\u30B0",
     "branch.notifyDeleted": "\u524A\u9664\u3057\u305F\u30D6\u30E9\u30F3\u30C1: {name}",
     "branch.restore": "\u5143\u306B\u623B\u3059",
     "branch.deleteTracking": "\u8FFD\u8DE1\u30D6\u30E9\u30F3\u30C1\u3092\u524A\u9664",
@@ -2545,6 +2556,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Dal\u0131 sil",
     "branch.selectBranch": "\xD6nce bir dal se\xE7in",
     "branch.deleteCurrent": "Ge\xE7erli dal silinemez",
+    "branch.searchPlaceholder": "Dal veya etiket",
     "branch.notifyDeleted": "Silinen dal: {name}",
     "branch.restore": "Geri y\xFCkle",
     "branch.deleteTracking": "\u0130zleme dal\u0131n\u0131 sil",
@@ -4280,7 +4292,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
           <span style="color: #888; font-size: 12px; margin-right: 4px;">${getIcon("search")}</span>
           <input 
             type="text" 
-            placeholder="Branch or tag" 
+            placeholder="${t("branch.searchPlaceholder")}" 
             style="flex: 1; padding: 4px 0; background: transparent; border: none; color: #ccc; font-size: 12px; outline: none;"
           />
         </div>

@@ -10,6 +10,7 @@ import { createBranchPanel } from '../components/branch-panel';
 import { showContextMenu } from '../components/context-menu';
 import { createInitialState, getState, setState, stateManager, Branch } from '../state';
 import { ServiceClient } from '../service';
+import { setLocale, t } from '../i18n';
 
 // 右键菜单模块打桩：分支面板只关心是否以正确参数触发 showContextMenu，菜单自身渲染由 context-menu 测试覆盖
 vi.mock('../components/context-menu', () => ({
@@ -124,7 +125,7 @@ describe('branch-panel', () => {
     createPanel();
 
     // 搜索框存在
-    expect(container.querySelector('input[placeholder="Branch or tag"]')).toBeTruthy();
+    expect(container.querySelector(`input[placeholder="${t('branch.searchPlaceholder')}"]`)).toBeTruthy();
 
     // HEAD(当前分支) 默认展开
     expect(groupHeader('HEAD(当前分支)')).toBeTruthy();
@@ -318,7 +319,7 @@ describe('branch-panel', () => {
     expect(container.firstChild?.nodeType).toBe(Node.ELEMENT_NODE);
     expect(container.textContent).not.toContain('旧内容');
     expect(
-      container.firstElementChild?.querySelector('input[placeholder="Branch or tag"]')
+      container.firstElementChild?.querySelector(`input[placeholder="${t('branch.searchPlaceholder')}"]`)
     ).toBeTruthy();
   });
 
@@ -783,12 +784,29 @@ describe('branch-panel', () => {
     setState(s => { s.branches = makeBranches(); });
     createPanel();
 
-    const input = container.querySelector('input[placeholder="Branch or tag"]') as HTMLInputElement;
+    const input = container.querySelector(`input[placeholder="${t('branch.searchPlaceholder')}"]`) as HTMLInputElement;
     const iconBox = input.parentElement as HTMLElement;
 
     // 图标 SVG 挂在输入框左侧的 span 内；图标名取错或返回空串都会导致 svg 缺失
     expect(iconBox.querySelector('svg')).toBeTruthy();
     expect(iconBox.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 16 16');
+  });
+
+  it('搜索框 placeholder 应随 locale 切换（zh-CN 分支或标签 / en Branch or tag）', () => {
+    setState(s => { s.branches = makeBranches(); });
+
+    // 默认 zh-CN
+    createPanel();
+    expect(container.querySelector('input[placeholder="分支或标签"]')).toBeTruthy();
+
+    // 切 en 后重建面板：placeholder 应为英文文案
+    dispose?.();
+    setLocale('en');
+    createPanel();
+    expect(container.querySelector('input[placeholder="Branch or tag"]')).toBeTruthy();
+
+    // 还原 locale，避免影响后续用例
+    setLocale('zh-CN');
   });
 
   it('expandAll 应输出含精确分组计数的 expand_all 日志（文件夹 key 只取首段、根分支不入集合）', () => {

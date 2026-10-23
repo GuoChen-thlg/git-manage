@@ -8,6 +8,7 @@ import { html } from '../html';
 import { getState, setState, subscribeFields, Branch } from '../state';
 import { ServiceClient } from '../service';
 import { getIcon } from '../icons';
+import { t } from '../i18n';
 import { showContextMenu } from './context-menu';
 
 /**
@@ -71,7 +72,7 @@ export function createBranchPanel(
           <span style="color: #888; font-size: 12px; margin-right: 4px;">${getIcon('search')}</span>
           <input 
             type="text" 
-            placeholder="Branch or tag" 
+            placeholder="${t('branch.searchPlaceholder')}" 
             style="flex: 1; padding: 4px 0; background: transparent; border: none; color: #ccc; font-size: 12px; outline: none;"
           />
         </div>
