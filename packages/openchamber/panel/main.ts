@@ -377,14 +377,39 @@ async function runSidebarLocateBranch(): Promise<void> {
     console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'locate_no_branch' }));
     return;
   }
-  console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'locate_branch', branchName: selected.name }));
-  await loadCommitsForBranch(selected.name);
-  // 选中该分支最新一条提交（列表已按分支过滤，首条即最新）
-  const first = getState().allCommits[0];
-  if (first) {
-    setState(s => { s.selectedCommit = first; });
-    await loadCommitDetail(first.hash);
+
+  // 该分支最新提交即分支头；分支数据带有 commit 字段时直接用它
+  const headHash = selected.commit
+    ?? (await service.getLog(getDir(), selected.name)).at(0)?.hash;
+  if (!headHash) {
+    console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'locate_no_commit', branchName: selected.name }));
+    return;
   }
+
+  // 只在当前列表中定位并选中该提交，不改变过滤条件（对齐 IDEA jumpToBranch）
+  const found = getState().allCommits.find(c => c.hash === headHash);
+  console.debug(JSON.stringify({
+    prefix: '[sidebar]',
+    event: 'locate_branch',
+    branchName: selected.name,
+    headHash,
+    visible: Boolean(found),
+  }));
+
+  if (!found) {
+    // 当前过滤条件下该提交不在列表中：保持列表不变，仅提示
+    void host.toast({ kind: 'info', message: t('sidebar.locateNotInView', { branch: selected.name }) })
+      .catch((toastErr) => {
+        console.error(JSON.stringify({ prefix: '[sidebar]', event: 'locate_toast_error', error: String(toastErr) }));
+      });
+    return;
+  }
+
+  setState(s => {
+    s.selectedCommit = found;
+    s.selectedCommits = new Set([found.hash]);
+  });
+  await loadCommitDetail(found.hash);
 }
 
 /** 侧边栏关闭面板 */
