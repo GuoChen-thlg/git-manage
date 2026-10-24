@@ -28,14 +28,20 @@
 
 ### 2. 从文件夹安装
 
-先在本地构建，再选择构建产物所在目录：
+适用于本地开发：先用开发模式启动构建监听，代码改动会自动重建产物。
 
 ```sh
 pnpm install
-pnpm build
+pnpm dev        # 监听源码变化，自动输出到 packages/openchamber/dist
 ```
 
-安装时选择 `packages/openchamber` 目录。宿主会按 manifest 加载 `dist/` 下的构建产物，因此必须先完成构建，否则会提示 `missing-build`。
+安装时选择 `packages/openchamber` 目录。宿主会按 manifest 加载 `dist/` 下的构建产物，因此必须有产物，否则会提示 `missing-build`。
+
+若只需一次性构建（不监听）：
+
+```sh
+pnpm build
+```
 
 ### 3. 从 Git URL 安装
 
