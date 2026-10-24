@@ -21,7 +21,6 @@ export interface SidebarHandlers {
   onDeleteBranch: () => void;
   /** 与当前分支比较 */
   onCompareBranch: () => void;
-  /** 聚焦提交搜索框 */
   /** 切换「只显示我的分支」筛选 */
   onToggleMyBranches: () => void;
   /** 收藏/取消收藏目标分支 */
@@ -55,6 +54,9 @@ interface SidebarItem {
 /** 侧边栏容器样式（沿用原 main.ts 布局） */
 const SIDEBAR_STYLE =
   'width: 40px; min-width: 40px; background: #2b2b2b; border-right: 1px solid #333; display: flex; flex-direction: column; align-items: center; padding: 4px 0; gap: 2px;';
+
+/** 激活态背景色（对齐 IDEA ToggleAction 选中时的按钮底色） */
+const ACTIVE_BG = '#2e4a6e';
 
 /** 单个图标按钮样式 */
 const BUTTON_STYLE =
@@ -110,6 +112,8 @@ export function createSidebar(
   let disposed = false;
   /** 首个按钮引用（动态 title 更新目标） */
   let toggleBtn: HTMLElement | null = null;
+  /** 「我的分支」按钮引用（激活态/禁用态同步目标） */
+  let myBranchesBtn: HTMLElement | null = null;
 
   container.style.cssText = SIDEBAR_STYLE;
   container.innerHTML = '';
@@ -124,16 +128,26 @@ export function createSidebar(
       </div>
     `;
 
-    // hover 高亮（沿用原实现）
+    // 记录按钮的初始 SVG，切换禁用态时需要还原/置灰
+    btn.dataset.baseSvg = btn.innerHTML;
+    // 统一初始态：未激活、可用、透明背景（激活态由 applyButtonState 设置）
+    btn.dataset.active = 'false';
+    btn.dataset.disabled = 'false';
+    btn.style.background = 'transparent';
+
+    // hover 高亮：激活态保持激活底色，其余用 hover 色
     btn.addEventListener('mouseenter', () => {
-      btn.style.background = '#3c3c3c';
+      if (btn.dataset.disabled === 'true') return;
+      btn.style.background = btn.dataset.active === 'true' ? ACTIVE_BG : '#3c3c3c';
     });
     btn.addEventListener('mouseleave', () => {
-      btn.style.background = 'transparent';
+      btn.style.background = btn.dataset.active === 'true' ? ACTIVE_BG : 'transparent';
     });
 
     btn.addEventListener('click', (e) => {
       if (disposed) return;
+      // 禁用态不响应点击（对齐 IDEA 动作被置灰后不可触发）
+      if (btn.dataset.disabled === 'true') return;
       if (item.handler === 'onSettings') {
         handlers.onSettings(e);
       } else {
@@ -142,22 +156,80 @@ export function createSidebar(
     });
 
     if (isToggle) toggleBtn = btn;
+    if (item.key === 'search') myBranchesBtn = btn;
     container.appendChild(btn);
   }
+
+  /**
+   * 刷新按钮的激活态与禁用态
+   * 激活态：背景高亮（对齐 IDEA ToggleAction 选中效果）
+   * 禁用态：图标变灰、光标不可点、title 提示不可用原因
+   * @param btn 目标按钮
+   * @param active 是否激活
+   * @param enabled 是否可用
+   * @param disabledTitle 禁用时的提示文案
+   */
+  const applyButtonState = (
+    btn: HTMLElement,
+    active: boolean,
+    enabled: boolean,
+    disabledTitle: string,
+  ): void => {
+    btn.dataset.active = active ? 'true' : 'false';
+    btn.dataset.disabled = enabled ? 'false' : 'true';
+    btn.style.background = active ? ACTIVE_BG : 'transparent';
+    btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    btn.style.opacity = enabled ? '1' : '0.45';
+    if (!enabled) {
+      btn.title = disabledTitle;
+    } else {
+      btn.title = active ? t('sidebar.showMyBranchesOn') : t('sidebar.showMyBranches');
+    }
+  };
+
+  /**
+   * 同步「我的分支」按钮状态
+   * 无本地分支时禁用（没有可筛选对象）
+   */
+  const syncMyBranchesButton = (): void => {
+    if (!myBranchesBtn) return;
+    const state = getState();
+    const hasLocal = state.branches.some(b => !b.isRemote);
+    applyButtonState(
+      myBranchesBtn,
+      state.showOnlyMyBranches,
+      hasLocal,
+      t('sidebar.myBranchesUnavailable'),
+    );
+    // 激活态图标仍使用原图标，只改变背景与可点击性
+    myBranchesBtn.innerHTML = myBranchesBtn.dataset.baseSvg ?? myBranchesBtn.innerHTML;
+  };
+
+  syncMyBranchesButton();
 
   // 首个按钮 title 与 icon 跟随 branchPanelHidden 变化
   const unsubscribe = subscribeFields(['branchPanelHidden'], () => {
     if (disposed || !toggleBtn) return;
     toggleBtn.title = buildToggleTitle();
     toggleBtn.innerHTML = buildToggleIcon();
+    // 切换后刷新基础 SVG，避免禁用态还原成旧图标
+    toggleBtn.dataset.baseSvg = toggleBtn.innerHTML;
+  });
+
+  // 「我的分支」按钮激活态与可用性跟随状态变化
+  const unsubscribeMine = subscribeFields(['showOnlyMyBranches', 'branches'], () => {
+    if (disposed) return;
+    syncMyBranchesButton();
   });
 
   const dispose = (): void => {
     if (disposed) return;
     disposed = true;
     unsubscribe();
+    unsubscribeMine();
     container.innerHTML = '';
     toggleBtn = null;
+    myBranchesBtn = null;
   };
 
   return { dispose };

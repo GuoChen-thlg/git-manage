@@ -54,6 +54,8 @@ describe('sidebar', () => {
   beforeEach(() => {
     // 重置全局状态与语言（测试断言中文 tooltip）
     setState(s => Object.assign(s, createInitialState()));
+    // 预置一个本地分支：「我的分支」按钮需要可筛选对象才可用，否则进入禁用态
+    setState(s => { s.branches = [{ name: 'main', isCurrent: true, isRemote: false }]; });
     setLocale('zh-CN');
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -339,7 +341,8 @@ describe('sidebar', () => {
 
     for (const key of KEYS) {
       const b = btn(key);
-      expect(b.style.background, `按钮 ${key} 初始背景`).toBe('');
+      // 初始背景显式定为 transparent（激活态才设置高亮底色）
+      expect(b.style.background, `按钮 ${key} 初始背景`).toBe('transparent');
       b.dispatchEvent(new MouseEvent('mouseenter'));
       expect(b.style.background, `按钮 ${key} hover 背景`).toBe('rgb(60, 60, 60)');
       b.dispatchEvent(new MouseEvent('mouseleave'));
@@ -368,9 +371,54 @@ describe('sidebar', () => {
     const base = listeners.size;
 
     createBar();
-    expect(listeners.size, '创建后应新增一个监听器').toBe(base + 1);
+    // 现有两个订阅：branchPanelHidden（首个按钮）+ showOnlyMyBranches/branches（我的分支按钮）
+    expect(listeners.size, '创建后应新增两个监听器').toBe(base + 2);
 
     dispose?.();
     expect(listeners.size, 'dispose 后监听器应回到基线').toBe(base);
+  });
+
+  it('我的分支筛选激活时按钮应该显示背景色，关闭后恢复透明', () => {
+    createBar();
+    const btn = container.querySelector('[data-sidebar="search"]') as HTMLElement;
+
+    // 初始未激活：无背景
+    expect(btn.dataset.active).toBe('false');
+    expect(btn.style.background).toBe('transparent');
+
+    // 激活：设置高亮背景
+    setState(s => { s.showOnlyMyBranches = true; });
+    expect(btn.dataset.active).toBe('true');
+    expect(btn.style.background).toBe('rgb(46, 74, 110)');
+
+    // 再次关闭：恢复透明
+    setState(s => { s.showOnlyMyBranches = false; });
+    expect(btn.dataset.active).toBe('false');
+    expect(btn.style.background).toBe('transparent');
+  });
+
+  it('没有本地分支时我的分支按钮应该禁用且点击不触发 handler', () => {
+    // 清空分支：无可筛选对象
+    setState(s => { s.branches = []; });
+    createBar();
+    const btn = container.querySelector('[data-sidebar="search"]') as HTMLElement;
+
+    expect(btn.dataset.disabled).toBe('true');
+    expect(btn.style.cursor).toBe('not-allowed');
+    expect(btn.title).toBe('没有可筛选的本地分支');
+
+    btn.click();
+    expect(handlers.onToggleMyBranches).not.toHaveBeenCalled();
+  });
+
+  it('存在本地分支时我的分支按钮应该可用并响应点击', () => {
+    createBar();
+    const btn = container.querySelector('[data-sidebar="search"]') as HTMLElement;
+
+    expect(btn.dataset.disabled).toBe('false');
+    expect(btn.style.cursor).toBe('pointer');
+
+    btn.click();
+    expect(handlers.onToggleMyBranches).toHaveBeenCalledTimes(1);
   });
 });

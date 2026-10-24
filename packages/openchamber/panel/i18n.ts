@@ -181,6 +181,8 @@ const en: Record<string, string> = {
   'compare.tooMany': 'Select at most two branches to compare',
   'sidebar.showMyBranches': 'Show My Branches',
   'sidebar.myBranchesFailed': 'Failed to load my branches',
+  'sidebar.showMyBranchesOn': 'Showing My Branches',
+  'sidebar.myBranchesUnavailable': 'No local branches to filter',
 };
 
 /** 简体中文 */
@@ -355,6 +357,8 @@ const zhCN: Record<string, string> = {
   'compare.tooMany': '最多选择两个分支进行比较',
   'sidebar.showMyBranches': '只显示我的分支',
   'sidebar.myBranchesFailed': '加载我的分支失败',
+  'sidebar.showMyBranchesOn': '正在只显示我的分支',
+  'sidebar.myBranchesUnavailable': '没有可筛选的本地分支',
 };
 
 /** 繁体中文 */
@@ -529,6 +533,8 @@ const zhTW: Record<string, string> = {
   'compare.tooMany': '最多選擇兩個分支進行比較',
   'sidebar.showMyBranches': '只顯示我的分支',
   'sidebar.myBranchesFailed': '載入我的分支失敗',
+  'sidebar.showMyBranchesOn': '正在只顯示我的分支',
+  'sidebar.myBranchesUnavailable': '沒有可篩選的本機分支',
 };
 
 /** 德语 */
@@ -703,6 +709,8 @@ const de: Record<string, string> = {
   'compare.tooMany': 'Höchstens zwei Branches zum Vergleichen auswählen',
   'sidebar.showMyBranches': 'Nur meine Branches zeigen',
   'sidebar.myBranchesFailed': 'Meine Branches konnten nicht geladen werden',
+  'sidebar.showMyBranchesOn': 'Es werden nur meine Branches angezeigt',
+  'sidebar.myBranchesUnavailable': 'Keine lokalen Branches zum Filtern',
 };
 
 /** 法语 */
@@ -877,6 +885,8 @@ const fr: Record<string, string> = {
   'compare.tooMany': 'Sélectionnez au plus deux branches à comparer',
   'sidebar.showMyBranches': 'Afficher mes branches',
   'sidebar.myBranchesFailed': 'Échec du chargement de mes branches',
+  'sidebar.showMyBranchesOn': 'Affichage de mes branches uniquement',
+  'sidebar.myBranchesUnavailable': 'Aucune branche locale à filtrer',
 };
 
 /** 乌克兰语 */
@@ -1051,6 +1061,8 @@ const uk: Record<string, string> = {
   'compare.tooMany': 'Виберіть щонайбільше дві гілки для порівняння',
   'sidebar.showMyBranches': 'Показати мої гілки',
   'sidebar.myBranchesFailed': 'Не вдалося завантажити мої гілки',
+  'sidebar.showMyBranchesOn': 'Показано лише мої гілки',
+  'sidebar.myBranchesUnavailable': 'Немає локальних гілок для фільтрації',
 };
 
 /** 西班牙语 */
@@ -1225,6 +1237,8 @@ const es: Record<string, string> = {
   'compare.tooMany': 'Seleccione como máximo dos ramas para comparar',
   'sidebar.showMyBranches': 'Mostrar mis ramas',
   'sidebar.myBranchesFailed': 'Error al cargar mis ramas',
+  'sidebar.showMyBranchesOn': 'Mostrando solo mis ramas',
+  'sidebar.myBranchesUnavailable': 'No hay ramas locales que filtrar',
 };
 
 /** 巴西葡萄牙语 */
@@ -1399,6 +1413,8 @@ const ptBR: Record<string, string> = {
   'compare.tooMany': 'Selecione no máximo dois branches para comparar',
   'sidebar.showMyBranches': 'Mostrar meus branches',
   'sidebar.myBranchesFailed': 'Falha ao carregar meus branches',
+  'sidebar.showMyBranchesOn': 'Mostrando apenas meus branches',
+  'sidebar.myBranchesUnavailable': 'Nenhum branch local para filtrar',
 };
 
 /** 韩语 */
@@ -1573,6 +1589,8 @@ const ko: Record<string, string> = {
   'compare.tooMany': '비교할 브랜치는 최대 두 개까지 선택할 수 있습니다',
   'sidebar.showMyBranches': '내 브랜치만 표시',
   'sidebar.myBranchesFailed': '내 브랜치를 불러오지 못했습니다',
+  'sidebar.showMyBranchesOn': '내 브랜치만 표시 중',
+  'sidebar.myBranchesUnavailable': '필터링할 로컬 브랜치가 없습니다',
 };
 
 /** 波兰语 */
@@ -1747,6 +1765,8 @@ const pl: Record<string, string> = {
   'compare.tooMany': 'Wybierz najwyżej dwie gałęzie do porównania',
   'sidebar.showMyBranches': 'Pokaż moje gałęzie',
   'sidebar.myBranchesFailed': 'Nie udało się wczytać moich gałęzi',
+  'sidebar.showMyBranchesOn': 'Pokazywane są tylko moje gałęzie',
+  'sidebar.myBranchesUnavailable': 'Brak lokalnych gałęzi do filtrowania',
 };
 
 /** 日语 */
@@ -1921,6 +1941,8 @@ const ja: Record<string, string> = {
   'compare.tooMany': '比較できるブランチは最大 2 つです',
   'sidebar.showMyBranches': '自分のブランチのみ表示',
   'sidebar.myBranchesFailed': '自分のブランチを読み込めませんでした',
+  'sidebar.showMyBranchesOn': '自分のブランチのみ表示中',
+  'sidebar.myBranchesUnavailable': '絞り込めるローカルブランチがありません',
 };
 
 /** 土耳其语 */
@@ -2095,6 +2117,8 @@ const tr: Record<string, string> = {
   'compare.tooMany': 'Karşılaştırmak için en fazla iki dal seçin',
   'sidebar.showMyBranches': 'Yalnızca kendi dallarımı göster',
   'sidebar.myBranchesFailed': 'Kendi dallarım yüklenemedi',
+  'sidebar.showMyBranchesOn': 'Yalnızca kendi dallarım gösteriliyor',
+  'sidebar.myBranchesUnavailable': 'Filtrelenecek yerel dal yok',
 };
 
 /** 全部语言字典（导出用于测试完整性校验） */
