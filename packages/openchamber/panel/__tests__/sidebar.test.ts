@@ -14,19 +14,19 @@ import { getIcon } from '../icons';
 
 /** 12 个图标的 key 顺序（与 main.ts 原版一致） */
 const KEYS = [
-  'hideBranches', 'newBranch', 'refresh', 'delete', 'merge', 'search',
+  'hideBranches', 'newBranch', 'refresh', 'delete', 'compare', 'search',
   'favorite', 'settings', 'pull', 'expandAll', 'sort', 'close',
 ];
 
 /** 简体中文 tooltip（branchPanelHidden=false 初始态） */
 const TITLES_ZH = [
-  '隐藏 Git 分支', '新建分支', '更新所选', '删除分支', '合并', '搜索',
+  '隐藏 Git 分支', '新建分支', '更新所选', '删除分支', '与当前分支比较', '搜索',
   '收藏', '设置', '拉取', '展开全部', '排序', '关闭',
 ];
 
 /** 英文 tooltip（branchPanelHidden=false 初始态） */
 const TITLES_EN = [
-  'Hide Git Branches', 'New Branch', 'Update Selected', 'Delete Branch', 'Merge', 'Search',
+  'Hide Git Branches', 'New Branch', 'Update Selected', 'Delete Branch', 'Compare with Current', 'Search',
   'Favorite', 'Settings', 'Pull', 'Expand All', 'Sort', 'Close',
 ];
 
@@ -36,7 +36,7 @@ const HANDLER_OF: Record<string, keyof SidebarHandlers> = {
   newBranch: 'onNewBranch',
   refresh: 'onRefresh',
   delete: 'onDeleteBranch',
-  merge: 'onMerge',
+  compare: 'onCompareBranch',
   search: 'onSearch',
   favorite: 'onFavorite',
   settings: 'onSettings',
@@ -64,7 +64,7 @@ describe('sidebar', () => {
       onNewBranch: vi.fn(),
       onRefresh: vi.fn(),
       onDeleteBranch: vi.fn(),
-      onMerge: vi.fn(),
+      onCompareBranch: vi.fn(),
       onSearch: vi.fn(),
       onFavorite: vi.fn(),
       onSettings: vi.fn(),
@@ -245,14 +245,15 @@ describe('sidebar', () => {
     }).not.toThrow();
   });
 
-  it('每个按钮应该渲染对应图标 svg，merge 走自定义 svg，refresh 走 IDEA 更新图标', () => {
+  it('每个按钮应该渲染对应图标 svg，refresh 与 compare 使用各自图标字形', () => {
     createBar();
 
-    // 非 merge/refresh 按钮：走 getIcon(item.icon) 分支，逐个比对图形签名
-    // delete 键的图标名为 deleteBranch（垃圾桶字形）
+    // 非 refresh 按钮：走 getIcon(item.icon) 分支，逐个比对图形签名
+    // delete 键的图标名为 deleteBranch（垃圾桶字形），compare 键为 compareBranch（双向箭头）
+    const ICON_OF: Record<string, string> = { delete: 'deleteBranch', compare: 'compareBranch' };
     for (const key of KEYS) {
-      if (key === 'merge' || key === 'refresh') continue;
-      const expected = getIcon(key === 'delete' ? 'deleteBranch' : key);
+      if (key === 'refresh') continue;
+      const expected = getIcon(ICON_OF[key] ?? key);
       expect(expected, `图标表应包含 ${key}`).not.toBe('');
       const svg = btn(key).querySelector('svg');
       expect(svg, `按钮 ${key} 应包含 svg 元素`).not.toBeNull();
@@ -261,14 +262,6 @@ describe('sidebar', () => {
       );
     }
 
-    // merge 按钮：icons 表缺失 merge，必须渲染 customSvg（走 customSvg 分支）
-    const mergeSvg = btn('merge').querySelector('svg');
-    expect(mergeSvg, 'merge 按钮应包含 svg 元素').not.toBeNull();
-    expect(mergeSvg!.outerHTML).toContain('M4 8C4 8 8 8 12 8');
-    expect(svgSignature(mergeSvg!.outerHTML)).toEqual([
-      'M4 2V14M12 2V14M4 8C4 8 8 8 12 8',
-    ]);
-
     // refresh 按钮：渲染 IDEA AllIcons.Actions.CheckOut 字形（更新所选）
     const updateSvg = btn('refresh').querySelector('svg');
     expect(updateSvg, 'refresh 按钮应包含 svg 元素').not.toBeNull();
@@ -276,6 +269,13 @@ describe('sidebar', () => {
       svgSignature(getIcon('updateSelected'))
     );
     expect(updateSvg!.outerHTML).toContain('#6E6E6E');
+
+    // compare 按钮：双向箭头字形（与当前分支比较）
+    const compareSvg = btn('compare').querySelector('svg');
+    expect(compareSvg, 'compare 按钮应包含 svg 元素').not.toBeNull();
+    expect(svgSignature(compareSvg!.outerHTML)).toEqual(
+      svgSignature(getIcon('compareBranch'))
+    );
   });
 
   it('创建时应该清空容器旧内容且不残留任何文本节点', () => {

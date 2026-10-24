@@ -70,6 +70,8 @@ export interface PanelState {
   /** 多选提交哈希集合（不可变替换） */
   selectedCommits: Set<string>;
   selectedBranch: Branch | null;
+  /** 多选分支名集合（Cmd/Ctrl 点击累加，用于两分支比较；不可变替换） */
+  selectedBranches: Set<string>;
   commitDetail: CommitInfo | null;
   diffs: FileDiff[];
   gitStatus: GitStatusResult | null;
@@ -104,6 +106,7 @@ export function createInitialState(): PanelState {
     selectedCommit: null,
     selectedCommits: new Set<string>(),
     selectedBranch: null,
+    selectedBranches: new Set<string>(),
     commitDetail: null,
     diffs: [],
     gitStatus: null,

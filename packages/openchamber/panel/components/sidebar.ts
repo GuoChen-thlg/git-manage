@@ -19,8 +19,8 @@ export interface SidebarHandlers {
   onRefresh: () => void;
   /** 删除所选分支 */
   onDeleteBranch: () => void;
-  /** 合并目标分支 */
-  onMerge: () => void;
+  /** 与当前分支比较 */
+  onCompareBranch: () => void;
   /** 聚焦提交搜索框 */
   onSearch: () => void;
   /** 收藏/取消收藏目标分支 */
@@ -65,13 +65,7 @@ const ITEMS: readonly SidebarItem[] = [
   { key: 'newBranch', icon: 'newBranch', titleKey: 'sidebar.newBranch', handler: 'onNewBranch' },
   { key: 'refresh', icon: 'updateSelected', titleKey: 'sidebar.update', handler: 'onRefresh' },
   { key: 'delete', icon: 'deleteBranch', titleKey: 'sidebar.deleteBranch', handler: 'onDeleteBranch' },
-  {
-    key: 'merge',
-    icon: 'merge',
-    titleKey: 'sidebar.merge',
-    handler: 'onMerge',
-    customSvg: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 2V14M12 2V14M4 8C4 8 8 8 12 8" stroke="#6E6E6E" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-  },
+  { key: 'compare', icon: 'compareBranch', titleKey: 'sidebar.compareBranch', handler: 'onCompareBranch' },
   { key: 'search', icon: 'search', titleKey: 'sidebar.search', handler: 'onSearch' },
   { key: 'favorite', icon: 'favorite', titleKey: 'sidebar.favorite', handler: 'onFavorite' },
   { key: 'settings', icon: 'settings', titleKey: 'sidebar.settings', handler: 'onSettings' },
