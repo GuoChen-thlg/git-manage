@@ -143,15 +143,17 @@ describe('branch-panel', () => {
     expect(branchItem('origin/main')).toBeFalsy();
   });
 
-  it('应该为收藏分支显示星标', () => {
+  it('应该为收藏分支显示星标图标', () => {
     setState(s => {
       s.branches = makeBranches();
       s.favorites = new Set(['develop']);
     });
     createPanel();
 
-    expect(branchItem('develop').textContent).toContain('★');
-    expect(branchItem('main').textContent).not.toContain('★');
+    // 收藏分支带星标 svg（title 为「取消收藏」），未收藏分支没有
+    const star = branchItem('develop').querySelector('span[title="取消收藏"]');
+    expect(star?.querySelector('svg')).toBeTruthy();
+    expect(branchItem('main').querySelector('span[title="取消收藏"]')).toBeNull();
   });
 
   it('点击分组标题应该展开/折叠分组（本地分组）', () => {
@@ -580,7 +582,7 @@ describe('branch-panel', () => {
     expect(branchItem('develop').textContent).not.toContain('★');
 
     setState(s => { s.favorites = new Set(['develop']); });
-    expect(branchItem('develop').textContent).toContain('★');
+    expect(branchItem('develop').querySelector('span[title="取消收藏"]')).toBeTruthy();
 
     setState(s => { s.favorites = new Set<string>(); });
     expect(branchItem('develop').textContent).not.toContain('★');

@@ -19,7 +19,7 @@ import { mountEmpty } from "@openchamber/sdk/ui";
 
 import { html } from './html';
 import { host } from './host';
-import { getState, setState, Branch } from './state';
+import { getState, setState } from './state';
 import { setLocale, t } from './i18n';
 import { createServiceClient } from './service';
 import {
@@ -306,28 +306,34 @@ function createTabBar(): HTMLElement {
 }
 
 /**
- * 解析侧边栏分支操作目标
- * 优先取选中分支，否则回退到当前分支
- * @returns 目标分支，无可用分支时返回 null
+ * 侧边栏收藏切换：作用于所有选中项（对齐 IDEA ToggleFavoriteAction）
+ * 多选时先判断是否已全部收藏：全部已收藏则全部取消，否则全部收藏
  */
-function resolveSidebarTarget(): Branch | null {
-  const state = getState();
-  return state.selectedBranch ?? state.branches.find(b => b.isCurrent) ?? null;
-}
-
-/** 侧边栏收藏切换：目标分支在收藏集间增删并持久化 */
 async function runSidebarFavorite(): Promise<void> {
-  const target = resolveSidebarTarget();
-  if (!target) {
+  const state = getState();
+  // 选中项来源：多选集合优先，其次单选分支
+  const names = state.selectedBranches.size > 0
+    ? [...state.selectedBranches]
+    : (state.selectedBranch ? [state.selectedBranch.name] : []);
+  if (names.length === 0) {
     console.error(JSON.stringify({ prefix: '[sidebar]', event: 'favorite_no_branch' }));
     return;
   }
-  const next = new Set(getState().favorites);
-  if (next.has(target.name)) {
-    next.delete(target.name);
-  } else {
-    next.add(target.name);
+
+  const next = new Set(state.favorites);
+  // 全部已收藏 → 统一取消；否则统一收藏（与 IDEA 的批量切换语义一致）
+  const allFavorited = names.every(n => next.has(n));
+  for (const name of names) {
+    if (allFavorited) next.delete(name);
+    else next.add(name);
   }
+
+  console.debug(JSON.stringify({
+    prefix: '[sidebar]',
+    event: 'favorite_toggle',
+    branches: names,
+    favorited: !allFavorited,
+  }));
   setState(s => { s.favorites = next; });
   try {
     await service.saveFavorites(getDir(), [...next]);
@@ -371,14 +377,42 @@ async function runSidebarLocateBranch(): Promise<void> {
     console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'locate_no_branch' }));
     return;
   }
-  console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'locate_branch', branchName: selected.name }));
-  await loadCommitsForBranch(selected.name);
-  // 选中该分支最新一条提交（列表已按分支过滤，首条即最新）
-  const first = getState().allCommits[0];
-  if (first) {
-    setState(s => { s.selectedCommit = first; });
-    await loadCommitDetail(first.hash);
+
+  // 该分支最新提交即分支头；分支数据带有 commit 字段时直接用它
+  const headHash = selected.commit
+    ?? (await service.getLog(getDir(), selected.name)).at(0)?.hash;
+  if (!headHash) {
+    console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'locate_no_commit', branchName: selected.name }));
+    return;
   }
+
+  // 只在当前列表中定位并选中该提交，不改变过滤条件（对齐 IDEA jumpToBranch）
+  // 分支数据里的 commit 是短哈希，列表中为完整哈希：用前缀匹配兼容两种形式
+  const found = getState().allCommits.find(
+    c => c.hash === headHash || c.shortHash === headHash || c.hash.startsWith(headHash),
+  );
+  console.debug(JSON.stringify({
+    prefix: '[sidebar]',
+    event: 'locate_branch',
+    branchName: selected.name,
+    headHash,
+    visible: Boolean(found),
+  }));
+
+  if (!found) {
+    // 当前过滤条件下该提交不在列表中：保持列表不变，仅提示
+    void host.toast({ kind: 'info', message: t('sidebar.locateNotInView', { branch: selected.name }) })
+      .catch((toastErr) => {
+        console.error(JSON.stringify({ prefix: '[sidebar]', event: 'locate_toast_error', error: String(toastErr) }));
+      });
+    return;
+  }
+
+  setState(s => {
+    s.selectedCommit = found;
+    s.selectedCommits = new Set([found.hash]);
+  });
+  await loadCommitDetail(found.hash);
 }
 
 /** 侧边栏关闭面板 */

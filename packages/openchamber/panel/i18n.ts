@@ -191,6 +191,7 @@ const en: Record<string, string> = {
   'sidebar.fetch': 'Fetch',
   'sidebar.locate': 'Select in Git Log',
   'sidebar.collapseAll': 'Collapse All',
+  'sidebar.locateNotInView': '{branch} head is not in the current log view',
 };
 
 /** 简体中文 */
@@ -375,6 +376,7 @@ const zhCN: Record<string, string> = {
   'sidebar.fetch': '获取远程更新',
   'sidebar.locate': '在 Git 日志中定位',
   'sidebar.collapseAll': '折叠全部',
+  'sidebar.locateNotInView': '{branch} 的最新提交不在当前列表中',
 };
 
 /** 繁体中文 */
@@ -559,6 +561,7 @@ const zhTW: Record<string, string> = {
   'sidebar.fetch': '取得遠端更新',
   'sidebar.locate': '在 Git 日誌中定位',
   'sidebar.collapseAll': '全部收合',
+  'sidebar.locateNotInView': '{branch} 的最新提交不在目前清單中',
 };
 
 /** 德语 */
@@ -743,6 +746,7 @@ const de: Record<string, string> = {
   'sidebar.fetch': 'Abrufen',
   'sidebar.locate': 'Im Git-Log anzeigen',
   'sidebar.collapseAll': 'Alle zuklappen',
+  'sidebar.locateNotInView': '{branch}-Head ist nicht in der aktuellen Ansicht',
 };
 
 /** 法语 */
@@ -927,6 +931,7 @@ const fr: Record<string, string> = {
   'sidebar.fetch': 'Récupérer',
   'sidebar.locate': 'Afficher dans le journal Git',
   'sidebar.collapseAll': 'Tout réduire',
+  'sidebar.locateNotInView': "La tête de {branch} n'est pas dans la vue actuelle",
 };
 
 /** 乌克兰语 */
@@ -1111,6 +1116,7 @@ const uk: Record<string, string> = {
   'sidebar.fetch': 'Отримати зміни',
   'sidebar.locate': 'Показати в журналі Git',
   'sidebar.collapseAll': 'Згорнути все',
+  'sidebar.locateNotInView': 'Останній коміт {branch} відсутній у поточному списку',
 };
 
 /** 西班牙语 */
@@ -1295,6 +1301,7 @@ const es: Record<string, string> = {
   'sidebar.fetch': 'Obtener cambios',
   'sidebar.locate': 'Mostrar en el registro Git',
   'sidebar.collapseAll': 'Contraer todo',
+  'sidebar.locateNotInView': 'El último commit de {branch} no está en la vista actual',
 };
 
 /** 巴西葡萄牙语 */
@@ -1479,6 +1486,7 @@ const ptBR: Record<string, string> = {
   'sidebar.fetch': 'Buscar alterações',
   'sidebar.locate': 'Mostrar no log do Git',
   'sidebar.collapseAll': 'Recolher tudo',
+  'sidebar.locateNotInView': 'O commit mais recente de {branch} não está na visualização atual',
 };
 
 /** 韩语 */
@@ -1663,6 +1671,7 @@ const ko: Record<string, string> = {
   'sidebar.fetch': '원격 변경 가져오기',
   'sidebar.locate': 'Git 로그에서 찾기',
   'sidebar.collapseAll': '모두 접기',
+  'sidebar.locateNotInView': '{branch}의 최신 커밋이 현재 목록에 없습니다',
 };
 
 /** 波兰语 */
@@ -1847,6 +1856,7 @@ const pl: Record<string, string> = {
   'sidebar.fetch': 'Pobierz zmiany',
   'sidebar.locate': 'Pokaż w dzienniku Git',
   'sidebar.collapseAll': 'Zwiń wszystko',
+  'sidebar.locateNotInView': 'Ostatni commit gałęzi {branch} nie jest widoczny',
 };
 
 /** 日语 */
@@ -2031,6 +2041,7 @@ const ja: Record<string, string> = {
   'sidebar.fetch': 'フェッチ',
   'sidebar.locate': 'Git ログで表示',
   'sidebar.collapseAll': 'すべて折りたたむ',
+  'sidebar.locateNotInView': '{branch} の最新コミットが現在の一覧にありません',
 };
 
 /** 土耳其语 */
@@ -2215,6 +2226,7 @@ const tr: Record<string, string> = {
   'sidebar.fetch': 'Değişiklikleri getir',
   'sidebar.locate': 'Git günlüğünde göster',
   'sidebar.collapseAll': 'Tümünü daralt',
+  'sidebar.locateNotInView': "{branch} son commit'i mevcut listede değil",
 };
 
 /** 全部语言字典（导出用于测试完整性校验） */
