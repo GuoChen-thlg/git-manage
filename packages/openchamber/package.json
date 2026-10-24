@@ -4,8 +4,8 @@
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
-    "build:panel": "npx esbuild panel/main.ts --bundle --format=iife --outfile=dist/panel/main.js --platform=browser && cp dist/panel/main.js panel/main.js",
-    "build:service": "npx esbuild service/main.ts --bundle --format=cjs --outfile=dist/service/main.js --platform=node --target=node20 && cp dist/service/main.js service/main.js",
+    "build:panel": "npx esbuild panel/main.ts --bundle --format=iife --outfile=dist/panel/main.js --platform=browser && cp panel/index.html dist/panel/index.html",
+    "build:service": "npx esbuild service/main.ts --bundle --format=cjs --outfile=dist/service/main.js --platform=node --target=node20",
     "build": "npm run build:panel && npm run build:service",
     "typecheck": "tsc --noEmit"
   },
@@ -19,7 +19,7 @@
         "id": "git-manager",
         "name": "Git Manager",
         "icon": "git-branch",
-        "entry": "panel/index.html"
+        "entry": "dist/panel/index.html"
       },
       "service": {
         "entry": "dist/service/main.js",
