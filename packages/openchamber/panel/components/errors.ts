@@ -84,7 +84,7 @@ export function showOperationError(
     : `${t(fallbackKey)}: ${message}`;
 
   void hostClient.toast({ kind: 'error', message: text, copy: true, dismiss: true })
-    .catch((toastErr) => {
+    ?.catch((toastErr: unknown) => {
       console.error(JSON.stringify({ prefix: logPrefix, event: `${event}_toast_error`, error: String(toastErr) }));
     });
 }

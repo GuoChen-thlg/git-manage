@@ -122,4 +122,11 @@ describe('showOperationError', () => {
     await new Promise(r => setTimeout(r, 0));
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('x_toast_error'));
   });
+
+  it('toast 返回非 Promise 时不应崩溃（回归：CI 上 undefined.catch 报错）', () => {
+    // 宿主实现或测试 mock 都可能返回非 Promise，不能直接调用 .catch
+    toastMock.mockReturnValueOnce(undefined as never);
+
+    expect(() => showOperationError(new Error('boom'), 'op.failed', '[test]', 'x')).not.toThrow();
+  });
 });

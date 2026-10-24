@@ -86,6 +86,9 @@ describe('dialogs', () => {
     document.body.innerHTML = '';
     mock = createServiceMock();
     service = mock as unknown as ServiceClient;
+    // 恢复 toast 默认实现：clearAllMocks 只清记录，mockResolvedValueOnce 用尽后会返回 undefined
+    toastMock.mockReset();
+    toastMock.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
