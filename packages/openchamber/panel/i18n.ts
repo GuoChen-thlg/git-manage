@@ -174,6 +174,10 @@ const en: Record<string, string> = {
   'compare.loadFailed': 'Failed to compare branches',
   'compare.selectBranch': 'Select a branch to compare first',
   'compare.currentBranch': 'The current branch cannot be compared with itself',
+  'compare.noCurrentBranch': 'Current branch not loaded yet, please retry',
+  'compare.with': 'with',
+  'compare.identical': 'Branches are identical',
+  'compare.sameBranch': 'Select two different branches',
 };
 
 /** 简体中文 */
@@ -341,6 +345,10 @@ const zhCN: Record<string, string> = {
   'compare.loadFailed': '分支比较失败',
   'compare.selectBranch': '请先选择要比较的分支',
   'compare.currentBranch': '当前分支无法与自己比较',
+  'compare.noCurrentBranch': '当前分支尚未加载完成，请稍后重试',
+  'compare.with': '与',
+  'compare.identical': '两个分支没有差异',
+  'compare.sameBranch': '请选择两个不同的分支',
 };
 
 /** 繁体中文 */
@@ -508,6 +516,10 @@ const zhTW: Record<string, string> = {
   'compare.loadFailed': '分支比較失敗',
   'compare.selectBranch': '請先選擇要比較的分支',
   'compare.currentBranch': '目前分支無法與自己比較',
+  'compare.noCurrentBranch': '目前分支尚未載入完成，請稍後重試',
+  'compare.with': '與',
+  'compare.identical': '兩個分支沒有差異',
+  'compare.sameBranch': '請選擇兩個不同的分支',
 };
 
 /** 德语 */
@@ -675,6 +687,10 @@ const de: Record<string, string> = {
   'compare.loadFailed': 'Branch-Vergleich fehlgeschlagen',
   'compare.selectBranch': 'Bitte zuerst einen Branch auswählen',
   'compare.currentBranch': 'Der aktuelle Branch kann nicht mit sich selbst verglichen werden',
+  'compare.noCurrentBranch': 'Aktueller Branch noch nicht geladen, bitte erneut versuchen',
+  'compare.with': 'mit',
+  'compare.identical': 'Branches sind identisch',
+  'compare.sameBranch': 'Bitte zwei unterschiedliche Branches wählen',
 };
 
 /** 法语 */
@@ -842,6 +858,10 @@ const fr: Record<string, string> = {
   'compare.loadFailed': 'Échec de la comparaison des branches',
   'compare.selectBranch': 'Veuillez d’abord sélectionner une branche',
   'compare.currentBranch': 'La branche actuelle ne peut pas être comparée à elle-même',
+  'compare.noCurrentBranch': 'Branche actuelle pas encore chargée, veuillez réessayer',
+  'compare.with': 'avec',
+  'compare.identical': 'Les branches sont identiques',
+  'compare.sameBranch': 'Sélectionnez deux branches différentes',
 };
 
 /** 乌克兰语 */
@@ -1009,6 +1029,10 @@ const uk: Record<string, string> = {
   'compare.loadFailed': 'Не вдалося порівняти гілки',
   'compare.selectBranch': 'Спочатку виберіть гілку',
   'compare.currentBranch': 'Поточну гілку не можна порівняти саму з собою',
+  'compare.noCurrentBranch': 'Поточну гілку ще не завантажено, спробуйте пізніше',
+  'compare.with': 'з',
+  'compare.identical': 'Гілки однакові',
+  'compare.sameBranch': 'Виберіть дві різні гілки',
 };
 
 /** 西班牙语 */
@@ -1176,6 +1200,10 @@ const es: Record<string, string> = {
   'compare.loadFailed': 'Error al comparar las ramas',
   'compare.selectBranch': 'Primero seleccione una rama',
   'compare.currentBranch': 'La rama actual no se puede comparar consigo misma',
+  'compare.noCurrentBranch': 'La rama actual aún no se ha cargado, inténtelo de nuevo',
+  'compare.with': 'con',
+  'compare.identical': 'Las ramas son idénticas',
+  'compare.sameBranch': 'Seleccione dos ramas diferentes',
 };
 
 /** 巴西葡萄牙语 */
@@ -1343,6 +1371,10 @@ const ptBR: Record<string, string> = {
   'compare.loadFailed': 'Falha ao comparar branches',
   'compare.selectBranch': 'Selecione um branch primeiro',
   'compare.currentBranch': 'O branch atual não pode ser comparado consigo mesmo',
+  'compare.noCurrentBranch': 'O branch atual ainda não foi carregado, tente novamente',
+  'compare.with': 'com',
+  'compare.identical': 'Os branches são idênticos',
+  'compare.sameBranch': 'Selecione dois branches diferentes',
 };
 
 /** 韩语 */
@@ -1510,6 +1542,10 @@ const ko: Record<string, string> = {
   'compare.loadFailed': '브랜치 비교 실패',
   'compare.selectBranch': '먼저 비교할 브랜치를 선택하세요',
   'compare.currentBranch': '현재 브랜치는 자기 자신과 비교할 수 없습니다',
+  'compare.noCurrentBranch': '현재 브랜치가 아직 로드되지 않았습니다. 잠시 후 다시 시도하세요',
+  'compare.with': '와',
+  'compare.identical': '두 브랜치가 동일합니다',
+  'compare.sameBranch': '서로 다른 브랜치 두 개를 선택하세요',
 };
 
 /** 波兰语 */
@@ -1677,6 +1713,10 @@ const pl: Record<string, string> = {
   'compare.loadFailed': 'Nie udało się porównać gałęzi',
   'compare.selectBranch': 'Najpierw wybierz gałąź',
   'compare.currentBranch': 'Bieżącej gałęzi nie można porównać z nią samą',
+  'compare.noCurrentBranch': 'Bieżąca gałąź nie została jeszcze wczytana, spróbuj ponownie',
+  'compare.with': 'z',
+  'compare.identical': 'Gałęzie są identyczne',
+  'compare.sameBranch': 'Wybierz dwie różne gałęzie',
 };
 
 /** 日语 */
@@ -1844,6 +1884,10 @@ const ja: Record<string, string> = {
   'compare.loadFailed': 'ブランチの比較に失敗しました',
   'compare.selectBranch': '先に比較するブランチを選択してください',
   'compare.currentBranch': '現在のブランチは自分自身と比較できません',
+  'compare.noCurrentBranch': '現在のブランチがまだ読み込まれていません。しばらくしてから再試行してください',
+  'compare.with': 'と',
+  'compare.identical': 'ブランチに差異はありません',
+  'compare.sameBranch': '異なる 2 つのブランチを選択してください',
 };
 
 /** 土耳其语 */
@@ -2011,6 +2055,10 @@ const tr: Record<string, string> = {
   'compare.loadFailed': 'Dallar karşılaştırılamadı',
   'compare.selectBranch': 'Önce karşılaştırılacak bir dal seçin',
   'compare.currentBranch': 'Geçerli dal kendisiyle karşılaştırılamaz',
+  'compare.noCurrentBranch': 'Geçerli dal henüz yüklenmedi, lütfen tekrar deneyin',
+  'compare.with': 'ile',
+  'compare.identical': 'Dallar aynı',
+  'compare.sameBranch': 'İki farklı dal seçin',
 };
 
 /** 全部语言字典（导出用于测试完整性校验） */

@@ -174,31 +174,64 @@ async function render(): Promise<void> {
         void performBranchDelete(service, getDir(), branch);
       },
       onCompareBranch: () => {
-        // 对齐 IDEA Compare with Current：仅作用于选中分支，未选中或当前分支时 toast 提示
-        const branch = getState().selectedBranch;
+        // 选中分支按名字从最新 branches 数组取：selectedBranch 可能是刷新前的旧对象快照，
+        // 其 isCurrent 等字段会过期，直接用会导致误判
+        const state = getState();
+        const selectedName = state.selectedBranch?.name ?? null;
+        const branch = selectedName
+          ? state.branches.find(b => b.name === selectedName) ?? state.selectedBranch
+          : null;
+        console.debug(JSON.stringify({
+          prefix: '[sidebar]',
+          event: 'compare_branch_click',
+          selectedName,
+          resolvedName: branch?.name ?? null,
+          branchCount: state.branches.length,
+          branchesWithIsCurrent: state.branches.filter(b => b.isCurrent).map(b => b.name),
+          logBranch: state.logBranch,
+        }));
         if (!branch) {
           void host.toast({ kind: 'error', message: t('compare.selectBranch') }).catch((toastErr) => {
             console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));
           });
           return;
         }
-        if (branch.isCurrent) {
-          void host.toast({ kind: 'error', message: t('compare.currentBranch') }).catch((toastErr) => {
-            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));
-          });
-          return;
-        }
-        const current = getState().gitStatus?.currentBranch;
-        if (!current) {
-          void host.toast({ kind: 'error', message: t('compare.selectBranch') }).catch((toastErr) => {
-            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));
-          });
-          return;
-        }
-        void service.debugLog('compare-branch-open', { branch: branch.name, current });
-        showCompareBranchesView(service, getDir(), branch.name, current, (commit) => {
-          loadCommitDetail(commit.hash);
-        });
+        void (async () => {
+          // 当前分支优先取 branches 里的 isCurrent；列表未带该标记时实时查 git status 兜底
+          let current = getState().branches.find(b => b.isCurrent)?.name ?? '';
+          if (!current) {
+            try {
+              const status = await service.getStatus(getDir());
+              current = status.currentBranch ?? '';
+            } catch (statusErr) {
+              console.error(JSON.stringify({
+                prefix: '[sidebar]',
+                event: 'compare_get_status_error',
+                error: String(statusErr),
+              }));
+            }
+          }
+          console.debug(JSON.stringify({
+            prefix: '[sidebar]',
+            event: 'compare_resolve_current',
+            currentBranch: current || null,
+          }));
+          if (!current) {
+            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_no_current_branch', branch: branch.name }));
+            void host.toast({ kind: 'error', message: t('compare.noCurrentBranch') }).catch((toastErr) => {
+              console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));
+            });
+            return;
+          }
+          if (branch.name === current) {
+            void host.toast({ kind: 'error', message: t('compare.currentBranch') }).catch((toastErr) => {
+              console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));
+            });
+            return;
+          }
+          void service.debugLog('compare-branch-open', { branch: branch.name, current });
+          showCompareBranchesView(service, getDir(), getState().branches, branch.name, current);
+        })();
       },
       onSearch: () => {
         // data-search-input 由 commit-list 搜索框提供，缺失时静默忽略

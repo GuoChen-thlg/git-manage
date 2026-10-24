@@ -5,7 +5,7 @@
 
 // SDK 实际导出的宿主类型是 HostClient（含 serviceRequest 方法），不存在 Host 导出
 import type { HostClient } from "@openchamber/sdk";
-import type { CommitInfo, FileDiff } from "./state";
+import type { CommitInfo, FileDiff, GitStatusResult } from "./state";
 
 /** service 调用结果 */
 export interface ServiceResult<T> {
@@ -286,7 +286,7 @@ export function createServiceClient(host: HostClient) {
 
   /** 获取 Git 状态 */
   async function getStatus(directory: string) {
-    return serviceCall('git-status', { directory });
+    return serviceCall<GitStatusResult>('git-status', { directory });
   }
 
   // ── 收藏相关 API ──

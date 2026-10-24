@@ -110,7 +110,10 @@ export function createBranchPanel(
         } catch (err) {
           console.error(JSON.stringify({ prefix: '[branch-panel]', event: 'on_branch_select_error', error: String(err) }));
         }
-        setState(s => { s.selectedBranch = branch; });
+        setState(s => {
+          // 存最新数组里的对象（避免存快照后刷新导致字段过期）；找不到时退回点击时的对象
+          s.selectedBranch = s.branches.find(b => b.name === branch.name) ?? branch;
+        });
         return;
       }
 

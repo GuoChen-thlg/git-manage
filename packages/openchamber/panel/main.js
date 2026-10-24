@@ -1535,7 +1535,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "Loading\u2026",
     "compare.loadFailed": "Failed to compare branches",
     "compare.selectBranch": "Select a branch to compare first",
-    "compare.currentBranch": "The current branch cannot be compared with itself"
+    "compare.currentBranch": "The current branch cannot be compared with itself",
+    "compare.noCurrentBranch": "Current branch not loaded yet, please retry",
+    "compare.with": "with",
+    "compare.identical": "Branches are identical",
+    "compare.sameBranch": "Select two different branches"
   };
   var zhCN = {
     "branch.checkout": "\u7B7E\u51FA\u5206\u652F",
@@ -1700,7 +1704,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "\u52A0\u8F7D\u4E2D\u2026",
     "compare.loadFailed": "\u5206\u652F\u6BD4\u8F83\u5931\u8D25",
     "compare.selectBranch": "\u8BF7\u5148\u9009\u62E9\u8981\u6BD4\u8F83\u7684\u5206\u652F",
-    "compare.currentBranch": "\u5F53\u524D\u5206\u652F\u65E0\u6CD5\u4E0E\u81EA\u5DF1\u6BD4\u8F83"
+    "compare.currentBranch": "\u5F53\u524D\u5206\u652F\u65E0\u6CD5\u4E0E\u81EA\u5DF1\u6BD4\u8F83",
+    "compare.noCurrentBranch": "\u5F53\u524D\u5206\u652F\u5C1A\u672A\u52A0\u8F7D\u5B8C\u6210\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5",
+    "compare.with": "\u4E0E",
+    "compare.identical": "\u4E24\u4E2A\u5206\u652F\u6CA1\u6709\u5DEE\u5F02",
+    "compare.sameBranch": "\u8BF7\u9009\u62E9\u4E24\u4E2A\u4E0D\u540C\u7684\u5206\u652F"
   };
   var zhTW = {
     "branch.checkout": "\u7C3D\u51FA\u5206\u652F",
@@ -1865,7 +1873,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "\u8F09\u5165\u4E2D\u2026",
     "compare.loadFailed": "\u5206\u652F\u6BD4\u8F03\u5931\u6557",
     "compare.selectBranch": "\u8ACB\u5148\u9078\u64C7\u8981\u6BD4\u8F03\u7684\u5206\u652F",
-    "compare.currentBranch": "\u76EE\u524D\u5206\u652F\u7121\u6CD5\u8207\u81EA\u5DF1\u6BD4\u8F03"
+    "compare.currentBranch": "\u76EE\u524D\u5206\u652F\u7121\u6CD5\u8207\u81EA\u5DF1\u6BD4\u8F03",
+    "compare.noCurrentBranch": "\u76EE\u524D\u5206\u652F\u5C1A\u672A\u8F09\u5165\u5B8C\u6210\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66",
+    "compare.with": "\u8207",
+    "compare.identical": "\u5169\u500B\u5206\u652F\u6C92\u6709\u5DEE\u7570",
+    "compare.sameBranch": "\u8ACB\u9078\u64C7\u5169\u500B\u4E0D\u540C\u7684\u5206\u652F"
   };
   var de = {
     "branch.checkout": "Branch auschecken",
@@ -2030,7 +2042,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "Wird geladen\u2026",
     "compare.loadFailed": "Branch-Vergleich fehlgeschlagen",
     "compare.selectBranch": "Bitte zuerst einen Branch ausw\xE4hlen",
-    "compare.currentBranch": "Der aktuelle Branch kann nicht mit sich selbst verglichen werden"
+    "compare.currentBranch": "Der aktuelle Branch kann nicht mit sich selbst verglichen werden",
+    "compare.noCurrentBranch": "Aktueller Branch noch nicht geladen, bitte erneut versuchen",
+    "compare.with": "mit",
+    "compare.identical": "Branches sind identisch",
+    "compare.sameBranch": "Bitte zwei unterschiedliche Branches w\xE4hlen"
   };
   var fr = {
     "branch.checkout": "Checkout de la branche",
@@ -2195,7 +2211,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "Chargement\u2026",
     "compare.loadFailed": "\xC9chec de la comparaison des branches",
     "compare.selectBranch": "Veuillez d\u2019abord s\xE9lectionner une branche",
-    "compare.currentBranch": "La branche actuelle ne peut pas \xEAtre compar\xE9e \xE0 elle-m\xEAme"
+    "compare.currentBranch": "La branche actuelle ne peut pas \xEAtre compar\xE9e \xE0 elle-m\xEAme",
+    "compare.noCurrentBranch": "Branche actuelle pas encore charg\xE9e, veuillez r\xE9essayer",
+    "compare.with": "avec",
+    "compare.identical": "Les branches sont identiques",
+    "compare.sameBranch": "S\xE9lectionnez deux branches diff\xE9rentes"
   };
   var uk = {
     "branch.checkout": "\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043D\u0430 \u0433\u0456\u043B\u043A\u0443",
@@ -2360,7 +2380,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "\u0417\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043D\u044F\u2026",
     "compare.loadFailed": "\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u043F\u043E\u0440\u0456\u0432\u043D\u044F\u0442\u0438 \u0433\u0456\u043B\u043A\u0438",
     "compare.selectBranch": "\u0421\u043F\u043E\u0447\u0430\u0442\u043A\u0443 \u0432\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0433\u0456\u043B\u043A\u0443",
-    "compare.currentBranch": "\u041F\u043E\u0442\u043E\u0447\u043D\u0443 \u0433\u0456\u043B\u043A\u0443 \u043D\u0435 \u043C\u043E\u0436\u043D\u0430 \u043F\u043E\u0440\u0456\u0432\u043D\u044F\u0442\u0438 \u0441\u0430\u043C\u0443 \u0437 \u0441\u043E\u0431\u043E\u044E"
+    "compare.currentBranch": "\u041F\u043E\u0442\u043E\u0447\u043D\u0443 \u0433\u0456\u043B\u043A\u0443 \u043D\u0435 \u043C\u043E\u0436\u043D\u0430 \u043F\u043E\u0440\u0456\u0432\u043D\u044F\u0442\u0438 \u0441\u0430\u043C\u0443 \u0437 \u0441\u043E\u0431\u043E\u044E",
+    "compare.noCurrentBranch": "\u041F\u043E\u0442\u043E\u0447\u043D\u0443 \u0433\u0456\u043B\u043A\u0443 \u0449\u0435 \u043D\u0435 \u0437\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043E, \u0441\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u0456\u0437\u043D\u0456\u0448\u0435",
+    "compare.with": "\u0437",
+    "compare.identical": "\u0413\u0456\u043B\u043A\u0438 \u043E\u0434\u043D\u0430\u043A\u043E\u0432\u0456",
+    "compare.sameBranch": "\u0412\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0434\u0432\u0456 \u0440\u0456\u0437\u043D\u0456 \u0433\u0456\u043B\u043A\u0438"
   };
   var es = {
     "branch.checkout": "Checkout de la rama",
@@ -2525,7 +2549,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "Cargando\u2026",
     "compare.loadFailed": "Error al comparar las ramas",
     "compare.selectBranch": "Primero seleccione una rama",
-    "compare.currentBranch": "La rama actual no se puede comparar consigo misma"
+    "compare.currentBranch": "La rama actual no se puede comparar consigo misma",
+    "compare.noCurrentBranch": "La rama actual a\xFAn no se ha cargado, int\xE9ntelo de nuevo",
+    "compare.with": "con",
+    "compare.identical": "Las ramas son id\xE9nticas",
+    "compare.sameBranch": "Seleccione dos ramas diferentes"
   };
   var ptBR = {
     "branch.checkout": "Fazer checkout do branch",
@@ -2690,7 +2718,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "Carregando\u2026",
     "compare.loadFailed": "Falha ao comparar branches",
     "compare.selectBranch": "Selecione um branch primeiro",
-    "compare.currentBranch": "O branch atual n\xE3o pode ser comparado consigo mesmo"
+    "compare.currentBranch": "O branch atual n\xE3o pode ser comparado consigo mesmo",
+    "compare.noCurrentBranch": "O branch atual ainda n\xE3o foi carregado, tente novamente",
+    "compare.with": "com",
+    "compare.identical": "Os branches s\xE3o id\xEAnticos",
+    "compare.sameBranch": "Selecione dois branches diferentes"
   };
   var ko = {
     "branch.checkout": "\uBE0C\uB79C\uCE58 \uCCB4\uD06C\uC544\uC6C3",
@@ -2855,7 +2887,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
     "compare.loadFailed": "\uBE0C\uB79C\uCE58 \uBE44\uAD50 \uC2E4\uD328",
     "compare.selectBranch": "\uBA3C\uC800 \uBE44\uAD50\uD560 \uBE0C\uB79C\uCE58\uB97C \uC120\uD0DD\uD558\uC138\uC694",
-    "compare.currentBranch": "\uD604\uC7AC \uBE0C\uB79C\uCE58\uB294 \uC790\uAE30 \uC790\uC2E0\uACFC \uBE44\uAD50\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4"
+    "compare.currentBranch": "\uD604\uC7AC \uBE0C\uB79C\uCE58\uB294 \uC790\uAE30 \uC790\uC2E0\uACFC \uBE44\uAD50\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
+    "compare.noCurrentBranch": "\uD604\uC7AC \uBE0C\uB79C\uCE58\uAC00 \uC544\uC9C1 \uB85C\uB4DC\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694",
+    "compare.with": "\uC640",
+    "compare.identical": "\uB450 \uBE0C\uB79C\uCE58\uAC00 \uB3D9\uC77C\uD569\uB2C8\uB2E4",
+    "compare.sameBranch": "\uC11C\uB85C \uB2E4\uB978 \uBE0C\uB79C\uCE58 \uB450 \uAC1C\uB97C \uC120\uD0DD\uD558\uC138\uC694"
   };
   var pl = {
     "branch.checkout": "Przejd\u017A na ga\u0142\u0105\u017A",
@@ -3020,7 +3056,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "\u0141adowanie\u2026",
     "compare.loadFailed": "Nie uda\u0142o si\u0119 por\xF3wna\u0107 ga\u0142\u0119zi",
     "compare.selectBranch": "Najpierw wybierz ga\u0142\u0105\u017A",
-    "compare.currentBranch": "Bie\u017C\u0105cej ga\u0142\u0119zi nie mo\u017Cna por\xF3wna\u0107 z ni\u0105 sam\u0105"
+    "compare.currentBranch": "Bie\u017C\u0105cej ga\u0142\u0119zi nie mo\u017Cna por\xF3wna\u0107 z ni\u0105 sam\u0105",
+    "compare.noCurrentBranch": "Bie\u017C\u0105ca ga\u0142\u0105\u017A nie zosta\u0142a jeszcze wczytana, spr\xF3buj ponownie",
+    "compare.with": "z",
+    "compare.identical": "Ga\u0142\u0119zie s\u0105 identyczne",
+    "compare.sameBranch": "Wybierz dwie r\xF3\u017Cne ga\u0142\u0119zie"
   };
   var ja = {
     "branch.checkout": "\u30D6\u30E9\u30F3\u30C1\u3092\u30C1\u30A7\u30C3\u30AF\u30A2\u30A6\u30C8",
@@ -3185,7 +3225,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
     "compare.loadFailed": "\u30D6\u30E9\u30F3\u30C1\u306E\u6BD4\u8F03\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
     "compare.selectBranch": "\u5148\u306B\u6BD4\u8F03\u3059\u308B\u30D6\u30E9\u30F3\u30C1\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044",
-    "compare.currentBranch": "\u73FE\u5728\u306E\u30D6\u30E9\u30F3\u30C1\u306F\u81EA\u5206\u81EA\u8EAB\u3068\u6BD4\u8F03\u3067\u304D\u307E\u305B\u3093"
+    "compare.currentBranch": "\u73FE\u5728\u306E\u30D6\u30E9\u30F3\u30C1\u306F\u81EA\u5206\u81EA\u8EAB\u3068\u6BD4\u8F03\u3067\u304D\u307E\u305B\u3093",
+    "compare.noCurrentBranch": "\u73FE\u5728\u306E\u30D6\u30E9\u30F3\u30C1\u304C\u307E\u3060\u8AAD\u307F\u8FBC\u307E\u308C\u3066\u3044\u307E\u305B\u3093\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044",
+    "compare.with": "\u3068",
+    "compare.identical": "\u30D6\u30E9\u30F3\u30C1\u306B\u5DEE\u7570\u306F\u3042\u308A\u307E\u305B\u3093",
+    "compare.sameBranch": "\u7570\u306A\u308B 2 \u3064\u306E\u30D6\u30E9\u30F3\u30C1\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044"
   };
   var tr = {
     "branch.checkout": "Dal\u0131 checkout et",
@@ -3350,7 +3394,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.loading": "Y\xFCkleniyor\u2026",
     "compare.loadFailed": "Dallar kar\u015F\u0131la\u015Ft\u0131r\u0131lamad\u0131",
     "compare.selectBranch": "\xD6nce kar\u015F\u0131la\u015Ft\u0131r\u0131lacak bir dal se\xE7in",
-    "compare.currentBranch": "Ge\xE7erli dal kendisiyle kar\u015F\u0131la\u015Ft\u0131r\u0131lamaz"
+    "compare.currentBranch": "Ge\xE7erli dal kendisiyle kar\u015F\u0131la\u015Ft\u0131r\u0131lamaz",
+    "compare.noCurrentBranch": "Ge\xE7erli dal hen\xFCz y\xFCklenmedi, l\xFCtfen tekrar deneyin",
+    "compare.with": "ile",
+    "compare.identical": "Dallar ayn\u0131",
+    "compare.sameBranch": "\u0130ki farkl\u0131 dal se\xE7in"
   };
   var dicts = {
     en,
@@ -5041,7 +5089,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
             console.error(JSON.stringify({ prefix: "[branch-panel]", event: "on_branch_select_error", error: String(err) }));
           }
           setState((s) => {
-            s.selectedBranch = branch;
+            s.selectedBranch = s.branches.find((b) => b.name === branch.name) ?? branch;
           });
           return;
         }
@@ -6793,47 +6841,67 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     }
     return list;
   }
-  function showCompareBranchesView(service2, directory2, branchName, currentBranch, onCommitSelect) {
+  function showCompareBranchesView(service2, directory2, branches, initialLeft, initialRight) {
     document.getElementById(OVERLAY_ID)?.remove();
     let closed = false;
+    let leftBranch = initialLeft;
+    let rightBranch = initialRight;
+    let selectedHash = null;
     const overlay = html`
     <div id="${OVERLAY_ID}" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; width: 760px; max-width: 92vw; height: 560px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;">
-        <!-- 标题栏 -->
+      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; width: 1080px; max-width: 96vw; height: 640px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+        <!-- 标题栏 + 分支选择 -->
         <div style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #444; flex-shrink: 0;">
           <span style="display: flex; align-items: center;">${getIcon("compareBranch")}</span>
-          <span style="font-size: 13px; color: #ccc;">${t("compare.title", { branch: branchName, current: currentBranch })}</span>
+          <button id="compare-left-btn" style="padding: 2px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; cursor: pointer; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></button>
+          <span style="color: #888; font-size: 12px;">${t("compare.with")}</span>
+          <button id="compare-right-btn" style="padding: 2px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; cursor: pointer; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></button>
+          <span id="compare-summary" style="color: #888; font-size: 11px; margin-left: 4px;"></span>
           <span style="flex: 1;"></span>
           <span id="compare-close" title="${t("sidebar.close")}" style="cursor: pointer; color: #888; font-size: 14px; padding: 0 4px;">×</span>
         </div>
 
-        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
-          <!-- 目标分支独有的提交 -->
-          <div style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: #252526; border-bottom: 1px solid #333; flex-shrink: 0;">
-            <span style="font-size: 11px; color: #ccc;">${t("compare.branchOnly", { branch: branchName })}</span>
-            <span id="compare-only-count" style="font-size: 11px; color: #888;">…</span>
-          </div>
-          <div id="compare-only-list" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; border-bottom: 1px solid #444;">
-            <div style="padding: 12px 8px; color: #888; font-size: 12px; text-align: center;">${t("compare.loading")}</div>
+        <div style="flex: 1; display: flex; min-height: 0;">
+          <!-- 左：两个提交列表 -->
+          <div style="width: 56%; display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #444;">
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: #252526; border-bottom: 1px solid #333; flex-shrink: 0;">
+              <span id="compare-left-title" style="font-size: 11px; color: #ccc;"></span>
+              <span id="compare-left-count" style="font-size: 11px; color: #888;">…</span>
+            </div>
+            <div id="compare-left-list" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; border-bottom: 1px solid #444;">
+              <div style="padding: 12px 8px; color: #888; font-size: 12px; text-align: center;">${t("compare.loading")}</div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: #252526; border-bottom: 1px solid #333; flex-shrink: 0;">
+              <span id="compare-right-title" style="font-size: 11px; color: #ccc;"></span>
+              <span id="compare-right-count" style="font-size: 11px; color: #888;">…</span>
+            </div>
+            <div id="compare-right-list" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
+              <div style="padding: 12px 8px; color: #888; font-size: 12px; text-align: center;">${t("compare.loading")}</div>
+            </div>
           </div>
 
-          <!-- 当前分支独有的提交 -->
-          <div style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: #252526; border-bottom: 1px solid #333; flex-shrink: 0;">
-            <span style="font-size: 11px; color: #ccc;">${t("compare.currentOnly", { current: currentBranch })}</span>
-            <span id="compare-current-count" style="font-size: 11px; color: #888;">…</span>
-          </div>
-          <div id="compare-current-list" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
-            <div style="padding: 12px 8px; color: #888; font-size: 12px; text-align: center;">${t("compare.loading")}</div>
+          <!-- 右：选中提交的详情与变更文件 -->
+          <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+            <div id="compare-detail" style="flex: 1; overflow-y: auto; padding: 8px; font-size: 12px;">
+              <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #888;">${t("commit.noSelection")}</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   `;
     document.body.appendChild(overlay);
-    const onlyListEl = overlay.querySelector("#compare-only-list");
-    const currentListEl = overlay.querySelector("#compare-current-list");
-    const onlyCountEl = overlay.querySelector("#compare-only-count");
-    const currentCountEl = overlay.querySelector("#compare-current-count");
+    const leftListEl = overlay.querySelector("#compare-left-list");
+    const rightListEl = overlay.querySelector("#compare-right-list");
+    const leftCountEl = overlay.querySelector("#compare-left-count");
+    const rightCountEl = overlay.querySelector("#compare-right-count");
+    const leftTitleEl = overlay.querySelector("#compare-left-title");
+    const rightTitleEl = overlay.querySelector("#compare-right-title");
+    const leftBtn = overlay.querySelector("#compare-left-btn");
+    const rightBtn = overlay.querySelector("#compare-right-btn");
+    const detailEl = overlay.querySelector("#compare-detail");
+    const summaryEl = overlay.querySelector("#compare-summary");
     const close = () => {
       if (closed) return;
       closed = true;
@@ -6848,46 +6916,151 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) close();
     });
-    const fill = (target, countEl, commits, emptyText) => {
+    const renderDetail = (commit, detail, diffs) => {
+      detailEl.innerHTML = "";
+      const head = document.createElement("div");
+      head.style.cssText = "margin-bottom: 8px;";
+      const msg = document.createElement("div");
+      msg.style.cssText = "color: #ccc; font-size: 13px; word-break: break-word; margin-bottom: 6px;";
+      msg.textContent = commit.message;
+      head.appendChild(msg);
+      const rows = [
+        [t("detail.hash"), commit.hash],
+        [t("detail.author"), `${commit.authorName} <${commit.authorEmail}>`],
+        [t("detail.date"), new Date(commit.date).toLocaleString(getLang())]
+      ];
+      for (const [label, value] of rows) {
+        const row = document.createElement("div");
+        row.style.cssText = "display: flex; gap: 8px; margin-bottom: 2px;";
+        const labelEl = document.createElement("span");
+        labelEl.style.cssText = "color: #888; flex-shrink: 0; width: 48px;";
+        labelEl.textContent = label;
+        const valueEl = document.createElement("span");
+        valueEl.style.cssText = "color: #ccc; word-break: break-all;";
+        valueEl.textContent = value;
+        row.append(labelEl, valueEl);
+        head.appendChild(row);
+      }
+      detailEl.appendChild(head);
+      const fileTitle = document.createElement("div");
+      fileTitle.style.cssText = "color: #888; font-size: 11px; margin: 8px 0 4px; border-top: 1px solid #3a3a3a; padding-top: 6px;";
+      fileTitle.textContent = `${t("file.changedFiles")} (${diffs.length})`;
+      detailEl.appendChild(fileTitle);
+      if (diffs.length === 0) {
+        const empty = document.createElement("div");
+        empty.style.cssText = "color: #888; font-size: 11px;";
+        empty.textContent = t("file.noChanges");
+        detailEl.appendChild(empty);
+        return;
+      }
+      for (const diff of diffs) {
+        const row = document.createElement("div");
+        row.style.cssText = "display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 11px;";
+        const pathEl = document.createElement("span");
+        pathEl.style.cssText = "flex: 1; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+        pathEl.textContent = diff.path;
+        pathEl.title = diff.path;
+        row.appendChild(pathEl);
+        const addEl = document.createElement("span");
+        addEl.style.cssText = "color: #4caf50; flex-shrink: 0;";
+        addEl.textContent = `+${diff.additions}`;
+        row.appendChild(addEl);
+        const delEl = document.createElement("span");
+        delEl.style.cssText = "color: #f44336; flex-shrink: 0;";
+        delEl.textContent = `-${diff.deletions}`;
+        row.appendChild(delEl);
+        detailEl.appendChild(row);
+      }
+      if (detail && Array.isArray(detail.parents)) {
+        const parents = detail.parents ?? [];
+        if (parents.length > 0) {
+          const parentsTitle = document.createElement("div");
+          parentsTitle.style.cssText = "color: #888; font-size: 11px; margin: 8px 0 2px;";
+          parentsTitle.textContent = "parents";
+          detailEl.appendChild(parentsTitle);
+          const parentsEl = document.createElement("div");
+          parentsEl.style.cssText = "color: #888; font-size: 11px; word-break: break-all; font-family: monospace;";
+          parentsEl.textContent = parents.join(", ");
+          detailEl.appendChild(parentsEl);
+        }
+      }
+    };
+    const loadCommitInto = async (commit) => {
+      selectedHash = commit.hash;
+      detailEl.innerHTML = `<div style="color: #888; padding: 8px;">${t("compare.loading")}</div>`;
+      try {
+        const [detail, diffs] = await Promise.all([
+          service2.getCommitDetail(directory2, commit.hash),
+          service2.getCommitDiffs(directory2, commit.hash)
+        ]);
+        if (closed || selectedHash !== commit.hash) return;
+        renderDetail(commit, detail, diffs ?? []);
+      } catch (e) {
+        if (closed || selectedHash !== commit.hash) return;
+        console.error(JSON.stringify({
+          prefix: "[compare]",
+          event: "commit_detail_error",
+          hash: commit.hash,
+          error: String(e)
+        }));
+        detailEl.innerHTML = "";
+        const error = document.createElement("div");
+        error.style.cssText = "color: #f44336; padding: 8px; font-size: 12px;";
+        error.textContent = `${t("compare.loadFailed")}: ${e instanceof Error ? e.message : String(e)}`;
+        detailEl.appendChild(error);
+      }
+    };
+    const fill = (target, countEl, commits) => {
       target.innerHTML = "";
       countEl.textContent = `(${commits.length})`;
-      target.appendChild(renderCommitList(commits, emptyText, (commit) => {
-        onCommitSelect(commit);
+      target.appendChild(renderCommitList(commits, t("compare.empty"), (commit) => {
+        void loadCommitInto(commit);
       }));
     };
     const load = async () => {
+      leftBtn.textContent = leftBranch;
+      rightBtn.textContent = rightBranch;
+      leftTitleEl.textContent = t("compare.branchOnly", { branch: leftBranch });
+      rightTitleEl.textContent = t("compare.branchOnly", { branch: rightBranch });
       console.debug(JSON.stringify({
         prefix: "[compare]",
         event: "load_start",
-        branch: branchName,
-        current: currentBranch
+        left: leftBranch,
+        right: rightBranch
       }));
+      leftListEl.innerHTML = `<div style="padding: 12px 8px; color: #888; font-size: 12px; text-align: center;">${t("compare.loading")}</div>`;
+      rightListEl.innerHTML = `<div style="padding: 12px 8px; color: #888; font-size: 12px; text-align: center;">${t("compare.loading")}</div>`;
+      leftCountEl.textContent = "\u2026";
+      rightCountEl.textContent = "\u2026";
+      summaryEl.textContent = "";
       try {
-        const onlyInBranch = await service2.getLog(directory2, `${currentBranch}..${branchName}`);
+        const [onlyLeft, onlyRight] = await Promise.all([
+          service2.getLog(directory2, `${rightBranch}..${leftBranch}`),
+          service2.getLog(directory2, `${leftBranch}..${rightBranch}`)
+        ]);
         if (closed) return;
-        fill(onlyListEl, onlyCountEl, onlyInBranch, t("compare.empty"));
-        const onlyInCurrent = await service2.getLog(directory2, `${branchName}..${currentBranch}`);
-        if (closed) return;
-        fill(currentListEl, currentCountEl, onlyInCurrent, t("compare.empty"));
+        fill(leftListEl, leftCountEl, onlyLeft);
+        fill(rightListEl, rightCountEl, onlyRight);
+        summaryEl.textContent = onlyLeft.length === 0 && onlyRight.length === 0 ? t("compare.identical") : "";
         console.debug(JSON.stringify({
           prefix: "[compare]",
           event: "load_done",
-          branch: branchName,
-          current: currentBranch,
-          branchOnly: onlyInBranch.length,
-          currentOnly: onlyInCurrent.length
+          left: leftBranch,
+          right: rightBranch,
+          leftCount: onlyLeft.length,
+          rightCount: onlyRight.length
         }));
       } catch (e) {
         console.error(JSON.stringify({
           prefix: "[compare]",
           event: "load_error",
-          branch: branchName,
-          current: currentBranch,
+          left: leftBranch,
+          right: rightBranch,
           error: String(e)
         }));
         if (closed) return;
         const errorText2 = `${t("compare.loadFailed")}: ${e instanceof Error ? e.message : String(e)}`;
-        for (const [target, countEl] of [[onlyListEl, onlyCountEl], [currentListEl, currentCountEl]]) {
+        for (const [target, countEl] of [[leftListEl, leftCountEl], [rightListEl, rightCountEl]]) {
           target.innerHTML = "";
           countEl.textContent = "";
           const error = document.createElement("div");
@@ -6897,6 +7070,33 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
         }
       }
     };
+    const openBranchPicker = (e, side) => {
+      const anchor = side === "left" ? leftBtn : rightBtn;
+      const currentName = side === "left" ? leftBranch : rightBranch;
+      const items = branches.map((b) => ({
+        id: b.name,
+        label: b.name,
+        checked: b.name === currentName
+      }));
+      showDropdownMenu(anchor, items, (id) => {
+        if (side === "left") leftBranch = id;
+        else rightBranch = id;
+        if (leftBranch === rightBranch) {
+          summaryEl.textContent = t("compare.sameBranch");
+          leftBtn.textContent = leftBranch;
+          rightBtn.textContent = rightBranch;
+          return;
+        }
+        void load();
+      });
+      void e;
+    };
+    leftBtn.addEventListener("click", (e) => {
+      openBranchPicker(e, "left");
+    });
+    rightBtn.addEventListener("click", (e) => {
+      openBranchPicker(e, "right");
+    });
     void load();
     return { dispose: close };
   }
@@ -7017,30 +7217,59 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
           void performBranchDelete(service, getDir(), branch);
         },
         onCompareBranch: () => {
-          const branch = getState().selectedBranch;
+          const state = getState();
+          const selectedName = state.selectedBranch?.name ?? null;
+          const branch = selectedName ? state.branches.find((b) => b.name === selectedName) ?? state.selectedBranch : null;
+          console.debug(JSON.stringify({
+            prefix: "[sidebar]",
+            event: "compare_branch_click",
+            selectedName,
+            resolvedName: branch?.name ?? null,
+            branchCount: state.branches.length,
+            branchesWithIsCurrent: state.branches.filter((b) => b.isCurrent).map((b) => b.name),
+            logBranch: state.logBranch
+          }));
           if (!branch) {
             void host.toast({ kind: "error", message: t("compare.selectBranch") }).catch((toastErr) => {
               console.error(JSON.stringify({ prefix: "[sidebar]", event: "compare_toast_error", error: String(toastErr) }));
             });
             return;
           }
-          if (branch.isCurrent) {
-            void host.toast({ kind: "error", message: t("compare.currentBranch") }).catch((toastErr) => {
-              console.error(JSON.stringify({ prefix: "[sidebar]", event: "compare_toast_error", error: String(toastErr) }));
-            });
-            return;
-          }
-          const current3 = getState().gitStatus?.currentBranch;
-          if (!current3) {
-            void host.toast({ kind: "error", message: t("compare.selectBranch") }).catch((toastErr) => {
-              console.error(JSON.stringify({ prefix: "[sidebar]", event: "compare_toast_error", error: String(toastErr) }));
-            });
-            return;
-          }
-          void service.debugLog("compare-branch-open", { branch: branch.name, current: current3 });
-          showCompareBranchesView(service, getDir(), branch.name, current3, (commit) => {
-            loadCommitDetail(commit.hash);
-          });
+          void (async () => {
+            let current3 = getState().branches.find((b) => b.isCurrent)?.name ?? "";
+            if (!current3) {
+              try {
+                const status = await service.getStatus(getDir());
+                current3 = status.currentBranch ?? "";
+              } catch (statusErr) {
+                console.error(JSON.stringify({
+                  prefix: "[sidebar]",
+                  event: "compare_get_status_error",
+                  error: String(statusErr)
+                }));
+              }
+            }
+            console.debug(JSON.stringify({
+              prefix: "[sidebar]",
+              event: "compare_resolve_current",
+              currentBranch: current3 || null
+            }));
+            if (!current3) {
+              console.error(JSON.stringify({ prefix: "[sidebar]", event: "compare_no_current_branch", branch: branch.name }));
+              void host.toast({ kind: "error", message: t("compare.noCurrentBranch") }).catch((toastErr) => {
+                console.error(JSON.stringify({ prefix: "[sidebar]", event: "compare_toast_error", error: String(toastErr) }));
+              });
+              return;
+            }
+            if (branch.name === current3) {
+              void host.toast({ kind: "error", message: t("compare.currentBranch") }).catch((toastErr) => {
+                console.error(JSON.stringify({ prefix: "[sidebar]", event: "compare_toast_error", error: String(toastErr) }));
+              });
+              return;
+            }
+            void service.debugLog("compare-branch-open", { branch: branch.name, current: current3 });
+            showCompareBranchesView(service, getDir(), getState().branches, branch.name, current3);
+          })();
         },
         onSearch: () => {
           commitListPanel.querySelector("[data-search-input]")?.focus();
