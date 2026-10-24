@@ -184,7 +184,7 @@ export function createBranchPanel(
     // 订阅状态字段，变化时局部更新分支列表
     if (unsubscribe) unsubscribe();
     unsubscribe = subscribeFields(
-      ['branches', 'branchFilter', 'favorites', 'selectedBranch'],
+      ['branches', 'branchFilter', 'favorites', 'selectedBranch', 'showOnlyMyBranches', 'myBranches'],
       () => {
         if (!disposed) renderList();
       }
@@ -197,15 +197,21 @@ export function createBranchPanel(
     listContainer.innerHTML = '';
 
     const filteredBranches = state.branches.filter(branch => {
+      // 只显示我的分支：本地与远程分支都按判定结果过滤（远程分支名形如 origin/xxx）
+      if (state.showOnlyMyBranches && !state.myBranches.has(branch.name)) {
+        return false;
+      }
       if (!state.branchFilter) return true;
       return branch.name.toLowerCase().includes(state.branchFilter.toLowerCase());
     });
 
+    // 本地分支：包含当前分支（对齐 IDEA，当前分支只出现在本地分组内，不再单列 HEAD 组）
     const current = filteredBranches.filter(b => b.isCurrent);
-    const local = filteredBranches.filter(b => !b.isCurrent && !b.isRemote);
+    // 本地分支：包含当前分支（对齐 IDEA，当前分支同时存在于 HEAD 组与本地组）
+    const local = filteredBranches.filter(b => !b.isRemote);
     const remote = filteredBranches.filter(b => b.isRemote);
 
-    // HEAD(当前分支)
+    // HEAD(当前分支)：独立分组，点击即把提交列表过滤到当前分支提交
     if (current.length > 0) {
       listContainer.appendChild(
         createGroup(t('branch.groupHead'), current, expandedGroups.has(t('branch.groupHead')))

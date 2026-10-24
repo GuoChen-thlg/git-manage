@@ -27,6 +27,8 @@ import {
   merge,
   rebase,
   getBranchDiff,
+  findMyBranches,
+  getCurrentAuthor,
   localBranchExists,
   isBranchMerged,
   deleteRemoteBranch,
@@ -621,5 +623,87 @@ describe('差异比较', () => {
     expect(readme!.lines.some(l => l.type === 'add' && l.content.includes('工作区新改动'))).toBe(true);
     expect(readme!.lines.some(l => l.type === 'delete' && l.content.includes('主分支改动'))).toBe(true);
     expect((readme?.additions ?? 0) + (readme?.deletions ?? 0)).toBeGreaterThan(0);
+  });
+
+  it('getCurrentAuthor 应返回仓库配置的作者信息', async () => {
+    const author = await getCurrentAuthor({ cwd: repoDir });
+    expect(author.email).toBe('test@example.com');
+    expect(author.name).toBe('测试用户');
+  });
+
+  it('findMyBranches 应只返回独有提交全部由当前作者创作的分支', async () => {
+    // fixture：feature/login 有一个由「测试用户」创建的独有提交
+    // main 的提交都被 feature/login 共享（无独有提交），按 IDEA 语义不属于「我的分支」
+    const mine = await findMyBranches({ cwd: repoDir });
+    expect(mine).toContain('feature/login');
+    expect(mine).not.toContain('main');
+  });
+
+  it('findMyBranches 应排除独有提交由他人创作的分支', async () => {
+    // 新建分支并用其他作者身份提交
+    await git(['checkout', '-b', 'feature/other'], repoDir);
+    writeFileSync(join(repoDir, 'other.txt'), 'other\n');
+    await git(['add', '.'], repoDir);
+    await git(
+      ['-c', 'user.email=other@example.com', '-c', 'user.name=其他用户', 'commit', '-m', '他人的提交'],
+      repoDir,
+    );
+    await git(['checkout', 'main'], repoDir);
+
+    const mine = await findMyBranches({ cwd: repoDir });
+    expect(mine).not.toContain('feature/other');
+    expect(mine).toContain('feature/login');
+  });
+
+  it('findMyBranches 应容忍分支提交作者的姓名写法差异', async () => {
+    // fixture 作者是「测试用户」，这里用一个姓名写法不同的作者提交
+    // 姓名标准化为两段式后应能匹配（Zhang San / zhang-s#an）
+    await git(['checkout', '-b', 'feature/style'], repoDir);
+    writeFileSync(join(repoDir, 'style.txt'), 'style\n');
+    await git(['add', '.'], repoDir);
+    await git(
+      ['-c', 'user.email=test@example.com', '-c', 'user.name=测试 用户', 'commit', '-m', '同邮箱不同姓名写法'],
+      repoDir,
+    );
+    await git(['checkout', 'main'], repoDir);
+
+    // 邮箱一致即视为同一人，分支应算我的分支
+    const mine = await findMyBranches({ cwd: repoDir });
+    expect(mine).toContain('feature/style');
+  });
+
+  it('findMyBranches 中远程分支也应参与判定', async () => {
+    // 仅存在于远程的分支：本地删除后仍应被判定（远程分支独立计算）
+    await git(['init', '--bare', '-b', 'main', bareDir], repoDir);
+    await git(['remote', 'add', 'origin', bareDir], repoDir);
+    await git(['push', '-u', 'origin', 'main'], repoDir);
+    await git(['push', 'origin', 'feature/login'], repoDir);
+    await git(['fetch', 'origin'], repoDir);
+
+    const mine = await findMyBranches({ cwd: repoDir });
+    // origin/feature/login 由当前作者创作，应出现在结果中
+    expect(mine).toContain('origin/feature/login');
+  });
+
+  it('findMyBranches 不应混入 origin 等远程引用', async () => {
+    // 配置远程并抓取，生成 origin/HEAD 与 origin/main 这类引用
+    await git(['init', '--bare', '-b', 'main', bareDir], repoDir);
+    await git(['remote', 'add', 'origin', bareDir], repoDir);
+    await git(['push', '-u', 'origin', 'main'], repoDir);
+    await git(['fetch', 'origin'], repoDir);
+
+    const mine = await findMyBranches({ cwd: repoDir });
+    // origin/HEAD 这类符号引用不是分支，绝不能出现在结果里
+    expect(mine).not.toContain('origin');
+    expect(mine).not.toContain('origin/HEAD');
+    // 真实远程分支可参与判定（本用例只断言符号引用被排除）
+    expect(mine).toContain('feature/login');
+  });
+
+  it('findMyBranches 在没有独有提交的分支上不应包含该分支', async () => {
+    // 新建分支但不提交：无独有提交，按 IDEA 语义不算「我的分支」
+    await git(['branch', 'no-commit-branch'], repoDir);
+    const mine = await findMyBranches({ cwd: repoDir });
+    expect(mine).not.toContain('no-commit-branch');
   });
 });

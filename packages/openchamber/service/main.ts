@@ -30,6 +30,7 @@ import {
   push,
   forcePush,
   listTrackedFiles,
+  findMyBranches,
   GitError,
 } from "../../core/dist/index.js";
 
@@ -95,6 +96,11 @@ async function handleRequest(request: Request): Promise<Response> {
       case "/git-branches": {
         const branches = await getBranches(directory);
         return Response.json(branches);
+      }
+      case "/git-my-branches": {
+        const mine = await findMyBranches({ cwd: directory });
+        console.log(`[git-manager-service] ${JSON.stringify({ event: "my-branches", count: mine.length })}`);
+        return Response.json(mine);
       }
       case "/git-checkout": {
         await checkout(body.branch as string, { cwd: directory });
