@@ -20,6 +20,17 @@ import type { Branch } from '../state';
 import type { ServiceClient } from '../service';
 import { setLocale } from '../i18n';
 
+/** 宿主 toast 断言句柄 */
+const { toastMock } = vi.hoisted(() => ({ toastMock: vi.fn().mockResolvedValue(undefined) }));
+
+// 宿主模块打桩：避免真实 connectHost 握手，并断言失败提示
+vi.mock('../host', () => ({
+  host: {
+    toast: toastMock,
+    writeClipboard: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 /** 仓库目录固定值 */
 const DIRECTORY = '/repo';
 
@@ -176,23 +187,26 @@ describe('dialogs', () => {
       expect(input.selectionEnd).toBe(branch.name.length);
     });
 
-    it('重命名失败时应该记录错误日志并关闭对话框', async () => {
+    it('重命名失败时应提示用户并保持对话框打开', async () => {
       mock.renameBranch.mockRejectedValueOnce(new Error('改名失败'));
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      toastMock.mockClear();
 
       showRenameDialog(branch, service, DIRECTORY);
       const input = document.getElementById('rename-input') as HTMLInputElement;
       input.value = 'renamed-branch';
       (document.getElementById('rename-ok') as HTMLElement).click();
 
+      // 回归：此前只写 console 并关闭对话框，用户看不到任何失败提示
       await vi.waitFor(() => {
-        expect(document.getElementById('rename-input')).toBeNull();
+        expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+          kind: 'error',
+          message: expect.stringContaining('重命名分支失败'),
+        }));
       });
-
-      expect(errorSpy).toHaveBeenCalledWith(
-        '[git-manager] 重命名分支失败:',
-        expect.any(Error)
-      );
+      // 对话框保持打开，便于改名重试
+      expect(document.getElementById('rename-input')).not.toBeNull();
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('rename_branch_error'));
       // 失败时不刷新分支列表
       expect(mock.getBranches).not.toHaveBeenCalled();
       expect(getState().branches).toEqual([]);
@@ -316,23 +330,25 @@ describe('dialogs', () => {
       expect(document.getElementById('new-branch-input')).toBeTruthy();
     });
 
-    it('创建失败时应该记录错误日志并关闭对话框', async () => {
+    it('创建失败时应提示用户并保持对话框打开', async () => {
       mock.createNewBranch.mockRejectedValueOnce(new Error('创建失败'));
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      toastMock.mockClear();
 
       showCreateBranchDialog(service, DIRECTORY);
       const input = document.getElementById('new-branch-input') as HTMLInputElement;
       input.value = 'feature-x';
       (document.getElementById('create-ok') as HTMLElement).click();
 
+      // 回归：此前只写 console 并关闭对话框，用户看不到任何失败提示
       await vi.waitFor(() => {
-        expect(document.getElementById('new-branch-input')).toBeNull();
+        expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+          kind: 'error',
+          message: expect.stringContaining('创建分支失败'),
+        }));
       });
-
-      expect(errorSpy).toHaveBeenCalledWith(
-        '[git-manager] 创建分支失败:',
-        expect.any(Error)
-      );
+      expect(document.getElementById('new-branch-input')).not.toBeNull();
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('create_branch_error'));
       expect(mock.getBranches).not.toHaveBeenCalled();
       expect(getState().branches).toEqual([]);
     });
@@ -509,21 +525,23 @@ describe('dialogs', () => {
       expect(mock.reset).toHaveBeenCalledWith(DIRECTORY, hash, 'mixed');
     });
 
-    it('重置失败时应该记录错误日志并关闭对话框', async () => {
+    it('重置失败时应提示用户并保持对话框打开', async () => {
       mock.reset.mockRejectedValueOnce(new Error('重置失败'));
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      toastMock.mockClear();
 
       showResetDialog(hash, service, DIRECTORY);
       (document.getElementById('reset-ok') as HTMLElement).click();
 
+      // 回归：此前只写 console 并关闭对话框，用户看不到任何失败提示
       await vi.waitFor(() => {
-        expect(document.getElementById('reset-ok')).toBeNull();
+        expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+          kind: 'error',
+          message: expect.stringContaining('重置失败'),
+        }));
       });
-
-      expect(errorSpy).toHaveBeenCalledWith(
-        '[git-manager] 重置分支失败:',
-        expect.any(Error)
-      );
+      expect(document.getElementById('reset-ok')).not.toBeNull();
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('reset_branch_error'));
       // 失败时不刷新分支列表
       expect(mock.getBranches).not.toHaveBeenCalled();
       expect(getState().branches).toEqual([]);

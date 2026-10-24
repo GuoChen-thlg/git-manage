@@ -13,6 +13,20 @@ import { createInitialState, getState, setState, stateManager, CommitInfo } from
 import { ServiceClient } from '../service';
 import { setLocale } from '../i18n';
 
+/** 宿主 toast 断言句柄（vi.mock 工厂在提升阶段执行，只能引用外部变量以外的东西，故用 vi.hoisted） */
+const { toastMock, writeClipboardMock } = vi.hoisted(() => ({
+  toastMock: vi.fn().mockResolvedValue(undefined),
+  writeClipboardMock: vi.fn().mockResolvedValue(undefined),
+}));
+
+// 宿主模块打桩：避免真实 connectHost 握手，并在用例中断言 toast 调用
+vi.mock('../host', () => ({
+  host: {
+    toast: toastMock,
+    writeClipboard: writeClipboardMock,
+  },
+}));
+
 /** 构造组件所需的 service mock，getLog/pull/diffVsLocal/listFiles 单独暴露用于断言 */
 function createServiceMock(): {
   service: ServiceClient;
@@ -695,6 +709,8 @@ describe('commit-list', () => {
     const clipboardDesc = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
     const writeTextMock = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: writeTextMock }, configurable: true });
+    // 宿主通道不可用，验证回退到浏览器 Clipboard API 的路径
+    writeClipboardMock.mockRejectedValueOnce(new Error('host 通道不可用'));
     try {
       await contextRow('h2');
       const menu = menuEl() as HTMLElement;
@@ -827,21 +843,24 @@ describe('commit-list', () => {
     });
   });
 
-  it('刷新失败时应该向控制台输出错误日志', async () => {
+  it('刷新失败时应提示用户并保留原列表', async () => {
     setupCommits();
     createPanel();
 
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    toastMock.mockClear();
     try {
       getLogMock.mockRejectedValue(new Error('网络异常'));
       (container.querySelector('[data-action="btn-refresh"]') as HTMLElement).click();
 
+      // 回归：此前失败只写 console，用户点刷新后看不出任何变化
       await vi.waitFor(() => {
-        expect(errorSpy).toHaveBeenCalledWith(
-          expect.stringContaining('刷新提交列表失败'),
-          expect.anything()
-        );
+        expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+          kind: 'error',
+          message: expect.stringContaining('加载提交列表失败'),
+        }));
       });
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('refresh_commits_error'));
     } finally {
       errorSpy.mockRestore();
     }
@@ -2366,17 +2385,78 @@ describe('commit-list', () => {
     expect(cherryPickMock.mock.calls[1][1]).toBe(commits[0].hash);
   });
 
-  it('未选中提交时点击 Cherry-pick 不应发起请求', async () => {
+  it('未选中提交时点击 Cherry-pick 不应发起请求，且必须给出可见提示', async () => {
     setupCommits();
     createPanel();
     const cherryPickMock = vi.mocked(service.cherryPick);
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    toastMock.mockClear();
 
     toolbarBtn('btn-cherry-pick').click();
     await new Promise(r => setTimeout(r, 0));
 
     expect(cherryPickMock).not.toHaveBeenCalled();
     expect(errSpy.mock.calls.some(c => String(c[0]).includes('cherry_pick_no_selection'))).toBe(true);
+    // 回归：此前只打日志，用户看不到任何提示，表现为「点了没反应」
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'error',
+      message: '请先选择提交',
+    }));
+  });
+
+  it('Cherry-pick 成功单个提交后应提示短哈希', async () => {
+    const commits = setupCommits();
+    createPanel();
+    const cherryPickMock = vi.mocked(service.cherryPick);
+    cherryPickMock.mockResolvedValue(undefined as never);
+    toastMock.mockClear();
+
+    setState(s => { s.selectedCommit = commits[0]; s.selectedCommits = new Set([commits[0].hash]); });
+    toolbarBtn('btn-cherry-pick').click();
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'success',
+      message: `已 Cherry-pick ${commits[0].hash.slice(0, 7)}`,
+    }));
+  });
+
+  it('Cherry-pick 多个提交成功时报数量', async () => {
+    const commits = setupCommits();
+    createPanel();
+    const cherryPickMock = vi.mocked(service.cherryPick);
+    cherryPickMock.mockResolvedValue(undefined as never);
+    toastMock.mockClear();
+
+    setState(s => { s.selectedCommits = new Set([commits[0].hash, commits[1].hash]); });
+    toolbarBtn('btn-cherry-pick').click();
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(cherryPickMock).toHaveBeenCalledTimes(2);
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'success',
+      message: '已 Cherry-pick 2 个提交',
+    }));
+  });
+
+  it('Cherry-pick 失败时应展示错误并保留原文可复制', async () => {
+    const commits = setupCommits();
+    createPanel();
+    const cherryPickMock = vi.mocked(service.cherryPick);
+    cherryPickMock.mockRejectedValue(new Error('conflict in a.ts'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    toastMock.mockClear();
+
+    setState(s => { s.selectedCommit = commits[0]; s.selectedCommits = new Set([commits[0].hash]); });
+    toolbarBtn('btn-cherry-pick').click();
+    await new Promise(r => setTimeout(r, 0));
+
+    // 回归：此前冲突只打 console，界面无任何反馈
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'error',
+      copy: true,
+      message: expect.stringContaining('conflict in a.ts'),
+    }));
   });
 
   /** 读取某行上的引用标签名（去空后） */
