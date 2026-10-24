@@ -11,6 +11,8 @@ import { getState, subscribeFields } from '../state';
 
 /** 侧边栏图标按钮点击处理器集（顺序对齐 IDEA 分支面板工具栏） */
 export interface SidebarHandlers {
+  /** 收起/展开分支面板（面板隐藏时图标与文案切换为「显示」） */
+  onToggleBranchPanel: () => void;
   /** 新建分支 */
   onNewBranch: () => void;
   /** 更新所选（fetch + 刷新） */
@@ -60,9 +62,31 @@ const ACTIVE_BG = '#2e4a6e';
 const BUTTON_STYLE =
   'width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; color: #6E6E6E;';
 
+/**
+ * 收起/展开按钮的 tooltip
+ * @returns 面板隐藏时返回「显示」文案，否则返回「隐藏」文案
+ */
+function buildToggleTitle(): string {
+  return getState().branchPanelHidden
+    ? t('sidebar.showBranches')
+    : t('sidebar.hideBranches');
+}
+
+/**
+ * 收起/展开按钮的图标
+ * 展开时箭头向左（表示可收起），隐藏时箭头向右（表示可展开）
+ * @returns 当前状态对应的 svg 图标
+ */
+function buildToggleIcon(): string {
+  return getState().branchPanelHidden
+    ? getIcon('showBranches')
+    : getIcon('hideBranches');
+}
+
 /** 侧栏图标项（顺序对齐 IDEA 分支面板工具栏） */
 const ITEMS: readonly SidebarItem[] = [
-  // 顺序对齐 IDEA 分支面板工具栏（createActionGroup）
+  // 顺序对齐 IDEA：收起/展开分支面板位于最前，其余动作紧随其后
+  { key: 'hideBranches', icon: 'hideBranches', titleKey: 'sidebar.hideBranches', handler: 'onToggleBranchPanel' },
   { key: 'newBranch', icon: 'newBranch', titleKey: 'sidebar.newBranch', handler: 'onNewBranch' },
   { key: 'refresh', icon: 'updateSelected', titleKey: 'sidebar.update', handler: 'onRefresh' },
   { key: 'delete', icon: 'deleteBranch', titleKey: 'sidebar.deleteBranch', handler: 'onDeleteBranch' },
@@ -89,16 +113,19 @@ export function createSidebar(
   let disposed = false;
   /** 「我的分支」按钮引用（激活态/禁用态同步目标） */
   let myBranchesBtn: HTMLElement | null = null;
+  /** 收起/展开按钮引用（title 与图标随面板显隐切换） */
+  let toggleBtn: HTMLElement | null = null;
 
   container.style.cssText = SIDEBAR_STYLE;
   container.innerHTML = '';
 
   for (const item of ITEMS) {
-    const title = t(item.titleKey);
+    const isToggle = item.handler === 'onToggleBranchPanel';
+    const title = isToggle ? buildToggleTitle() : t(item.titleKey);
 
     const btn = html`
       <div data-sidebar="${item.key}" style="${BUTTON_STYLE}" title="${title}">
-        ${item.customSvg ?? getIcon(item.icon)}
+        ${isToggle ? buildToggleIcon() : (item.customSvg ?? getIcon(item.icon))}
       </div>
     `;
 
@@ -130,6 +157,7 @@ export function createSidebar(
     });
 
     if (item.key === 'search') myBranchesBtn = btn;
+    if (isToggle) toggleBtn = btn;
     container.appendChild(btn);
   }
 
@@ -272,6 +300,14 @@ export function createSidebar(
 
   syncButtonAvailability();
 
+  // 收起/展开按钮的 title 与图标跟随面板显隐变化
+  const unsubscribeToggle = subscribeFields(['branchPanelHidden'], () => {
+    if (disposed || !toggleBtn) return;
+    toggleBtn.title = buildToggleTitle();
+    toggleBtn.innerHTML = buildToggleIcon();
+    toggleBtn.dataset.baseSvg = toggleBtn.innerHTML;
+  });
+
   // 「我的分支」激活态与全部按钮可用性跟随状态变化
   const unsubscribeMine = subscribeFields(
     ['showOnlyMyBranches', 'branches', 'selectedBranch', 'selectedBranches', 'favorites', 'fetching'],
@@ -285,9 +321,11 @@ export function createSidebar(
   const dispose = (): void => {
     if (disposed) return;
     disposed = true;
+    unsubscribeToggle();
     unsubscribeMine();
     container.innerHTML = '';
     myBranchesBtn = null;
+    toggleBtn = null;
   };
 
   return { dispose };
