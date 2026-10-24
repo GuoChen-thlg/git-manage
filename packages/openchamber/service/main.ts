@@ -38,6 +38,12 @@ import {
   rewordCommit,
   dropCommit,
   pushUpToCommit,
+  listWorktrees,
+  addWorktree,
+  removeWorktree,
+  pruneWorktrees,
+  getGitCommandLogs,
+  clearGitCommandLogs,
   GitError,
 } from "../../core/dist/index.js";
 
@@ -399,6 +405,40 @@ export async function handleRequest(request: Request): Promise<Response> {
       case "/git-push-up-to": {
         const ref = await pushUpToCommit(body.hash as string, body.branch as string, { cwd: directory });
         return Response.json({ success: true, ref });
+      }
+      case "/git-worktree-list": {
+        const worktrees = await listWorktrees({ cwd: directory });
+        return Response.json(worktrees);
+      }
+      case "/git-worktree-add": {
+        // createBranch 为 true 时以 -b 新建分支并检出
+        await addWorktree(
+          body.path as string,
+          body.branch as string,
+          body.createBranch === true,
+          body.startPoint as string | undefined,
+          { cwd: directory },
+        );
+        return Response.json({ success: true });
+      }
+      case "/git-worktree-remove": {
+        await removeWorktree(body.path as string, body.force === true, { cwd: directory });
+        return Response.json({ success: true });
+      }
+      case "/git-worktree-prune": {
+        await pruneWorktrees({ cwd: directory });
+        return Response.json({ success: true });
+      }
+      case "/git-command-logs": {
+        // since 传上次获取到的最大 id，只回增量；directory 可选，用于过滤仓库
+        const since = typeof body.since === "number" ? body.since : 0;
+        const logs = getGitCommandLogs(since);
+        const filtered = directory ? logs.filter((l) => l.cwd === directory) : logs;
+        return Response.json(filtered);
+      }
+      case "/git-command-logs-clear": {
+        clearGitCommandLogs();
+        return Response.json({ success: true });
       }
       case "/git-revert": {
         const { execFile } = await import("child_process");

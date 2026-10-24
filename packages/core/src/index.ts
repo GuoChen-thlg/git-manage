@@ -4,7 +4,15 @@
  */
 
 // Git 命令执行
-export { gitExec, gitExecStrict, isRepository, getRepositoryRoot } from './git/executor.js';
+export {
+  gitExec,
+  gitExecStrict,
+  isRepository,
+  getRepositoryRoot,
+  getGitCommandLogs,
+  clearGitCommandLogs,
+} from './git/executor.js';
+export type { GitCommandLog } from './git/executor.js';
 
 // 分支管理
 export {
@@ -30,6 +38,16 @@ export {
   getCurrentAuthor,
   findMyBranches,
 } from './git/branches.js';
+
+// worktree 管理
+export {
+  listWorktrees,
+  addWorktree,
+  removeWorktree,
+  pruneWorktrees,
+  worktreePathExists,
+} from './git/worktree.js';
+export type { WorktreeInfo } from './git/worktree.js';
 
 // 提交改写（编辑信息 / 删除提交 / 推送至指定提交）
 export {

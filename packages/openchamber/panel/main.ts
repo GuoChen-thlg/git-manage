@@ -22,14 +22,17 @@ import { host } from './host';
 import { getState, setState } from './state';
 import { setLocale, t } from './i18n';
 import { createServiceClient } from './service';
+import { deleteBranches, resolveDeleteTargets } from './components/batch-delete';
+import { showOperationError } from './components/errors';
 import {
   createBranchPanel,
   createCommitListPanel,
   createFileDiffPanel,
   createCommitDetailPanel,
+  createConsolePanel,
+  createWorktreesPanel,
   createSidebar,
   hideContextMenu,
-  performBranchDelete,
   showCompareBranchesView,
 } from './components';
 import { showCreateBranchDialog } from './components/dialogs';
@@ -40,6 +43,13 @@ const root = document.querySelector("#root")!;
 const service = createServiceClient(host);
 
 let disposables: Array<{ dispose: () => void }> = [];
+
+/**
+ * 底部页签状态提升到模块级：宿主目录事件会触发整体重建（render），
+ * 若存在 render 内的局部变量里，重建后会丢失、回退到 Git 页签，
+ * 表现为「点了页签又跳回去、像没反应」。
+ */
+let activeBottomTab: 'git' | 'console' | 'worktrees' = 'git';
 let directory: string | null = null;
 let rendering = false;
 /** loadData 进行中标志：防止连点刷新等并发触发重复加载 */
@@ -168,21 +178,38 @@ async function render(): Promise<void> {
       },
       onRefresh: () => { void runSidebarUpdate(); },
       onDeleteBranch: () => {
-        // IDEA DeleteBranchAction 语义：仅作用于选中分支，未选中或当前分支时 toast 提示
-        const branch = getState().selectedBranch;
-        if (!branch) {
+        // 对齐 IDEA DeleteBranchAction：多选时批量删除所有选中分支，未多选时只删单选分支。
+        // IDEA 在多选包含当前分支时整体置灰，这里改为明确提示并中止，避免删掉一半才失败
+        const state = getState();
+        const resolved = resolveDeleteTargets(state.branches, state.selectedBranch, state.selectedBranches);
+
+        if (resolved.kind === 'none') {
           void host.toast({ kind: 'error', message: t('branch.selectBranch') }).catch((toastErr) => {
             console.error(JSON.stringify({ prefix: '[sidebar]', event: 'delete_branch_toast_error', error: String(toastErr) }));
           });
           return;
         }
-        if (branch.isCurrent) {
+
+        if (resolved.kind === 'current') {
+          // 当前分支不可删除：多选场景下整体中止，与 IDEA 动作置灰语义一致
           void host.toast({ kind: 'error', message: t('branch.deleteCurrent') }).catch((toastErr) => {
             console.error(JSON.stringify({ prefix: '[sidebar]', event: 'delete_branch_toast_error', error: String(toastErr) }));
           });
           return;
         }
-        void performBranchDelete(service, getDir(), branch);
+
+        void (async () => {
+          await deleteBranches(service, host, getDir(), resolved.targets);
+          // 删除后清空多选集合，避免下次操作仍指向已删除分支
+          setState(s => { s.selectedBranches = new Set<string>(); });
+          // 刷新分支列表，反映删除结果
+          try {
+            const next = await service.getBranches(getDir());
+            setState(s => { s.branches = next; });
+          } catch (err) {
+            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'reload_branches_error', error: String(err) }));
+          }
+        })();
       },
       onCompareBranch: () => {
         // 分支来源优先级：Cmd 多选的两个分支 > 单选分支 + 当前分支
@@ -295,9 +322,69 @@ async function render(): Promise<void> {
 
     root.appendChild(mainLayout);
 
-    // 底部 Tab 栏
-    const tabBar = createTabBar();
+    // 底部区域：可折叠的面板容器 + Tab 栏
+    // 三个页签共用同一容器，切换时重建对应面板
+    const bottomPanel = html`
+      <div data-bottom-panel style="display: none; height: 220px; min-height: 120px; border-top: 1px solid #333; overflow: hidden;"></div>
+    `;
+    root.appendChild(bottomPanel);
+
+    let bottomHandle: { dispose: () => void } | null = null;
+    /** 当前激活的底部页签（模块级，跨重建保留） */
+    let activeTab = activeBottomTab;
+
+    /**
+     * 切换到指定页签
+     * @param tab 页签名
+     */
+    const switchTab = (tab: 'git' | 'console' | 'worktrees'): void => {
+      if (activeTab === tab && tab !== 'git') {
+        // 再次点击已激活的可折叠页签：收起
+        activeTab = 'git';
+      } else {
+        activeTab = tab;
+      }
+      // 写回模块级，重建后仍停留在同一页签
+      activeBottomTab = activeTab;
+      bottomHandle?.dispose();
+      bottomHandle = null;
+      bottomPanel.innerHTML = '';
+
+      if (activeTab === 'git') {
+        bottomPanel.style.display = 'none';
+      } else if (activeTab === 'console') {
+        bottomPanel.style.display = 'block';
+        bottomHandle = createConsolePanel(bottomPanel, service, getDir());
+      } else {
+        bottomPanel.style.display = 'block';
+        bottomHandle = createWorktreesPanel(bottomPanel, service, getDir(), host);
+      }
+      updateTabStyles();
+    };
+
+    // Tab 栏
+    const tabBar = createTabBar(switchTab);
     root.appendChild(tabBar);
+
+    /**
+     * 同步页签的激活样式
+     */
+    function updateTabStyles(): void {
+      tabBar.querySelectorAll<HTMLElement>('[data-tab]').forEach((el) => {
+        const isActive = el.dataset.tab === activeTab && activeTab !== 'git';
+        el.style.color = isActive ? '#fff' : '#888';
+        el.style.background = isActive ? '#1e1e1e' : 'transparent';
+      });
+    }
+
+    disposables.push({
+      dispose: () => { bottomHandle?.dispose(); },
+    });
+
+    // 重建后恢复上次激活的页签（目录事件会无条件触发重建）
+    if (activeBottomTab !== 'git') {
+      switchTab(activeBottomTab);
+    }
   } finally {
     rendering = false;
   }
@@ -352,20 +439,31 @@ function createProgressBar(element: HTMLElement): ProgressBar {
   return { start, done };
 }
 
-/** 底部 Tab 栏 */
-function createTabBar(): HTMLElement {
-  return html`
+/**
+ * 底部 Tab 栏
+ * 三个页签：Git（收起底部区域）、控制台、Worktrees
+ * @param onSwitch 页签点击回调
+ * @returns Tab 栏元素
+ */
+function createTabBar(onSwitch: (tab: 'git' | 'console' | 'worktrees') => void): HTMLElement {
+  const bar = html`
     <div style="flex-shrink: 0; border-top: 1px solid #333;">
       <div style="display: flex; background: #2d2d2d; padding: 0; align-items: center;">
-        <div style="padding: 4px 12px; font-size: 11px; color: #fff; background: #1e1e1e; border-right: 1px solid #333; cursor: pointer;">Git</div>
-        <div style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; border-right: 1px solid #333;">${t('main.tabConsole')}</div>
-        <div style="display: flex; align-items: center; padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; gap: 4px;">
-          <span>Worktrees</span>
-          <span style="color: #666; font-size: 10px; cursor: pointer;">×</span>
-        </div>
+        <div data-tab="git" style="padding: 4px 12px; font-size: 11px; color: #fff; background: #1e1e1e; border-right: 1px solid #333; cursor: pointer;">Git</div>
+        <div data-tab="console" style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; border-right: 1px solid #333;">${t('main.tabConsole')}</div>
+        <div data-tab="worktrees" style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer;">Worktrees</div>
       </div>
     </div>
   `;
+
+  bar.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement).closest('[data-tab]') as HTMLElement | null;
+    if (!target) return;
+    const tab = target.dataset.tab as 'git' | 'console' | 'worktrees';
+    onSwitch(tab);
+  });
+
+  return bar;
 }
 
 /**
@@ -380,6 +478,7 @@ async function runSidebarFavorite(): Promise<void> {
     : (state.selectedBranch ? [state.selectedBranch.name] : []);
   if (names.length === 0) {
     console.error(JSON.stringify({ prefix: '[sidebar]', event: 'favorite_no_branch' }));
+    void host.toast({ kind: 'error', message: t('branch.selectBranch') }).catch(() => {});
     return;
   }
 
@@ -397,11 +496,14 @@ async function runSidebarFavorite(): Promise<void> {
     branches: names,
     favorited: !allFavorited,
   }));
+  const previous = state.favorites;
   setState(s => { s.favorites = next; });
   try {
     await service.saveFavorites(getDir(), [...next]);
   } catch (e) {
-    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'save_favorites_error', error: String(e) }));
+    // 保存失败需回滚本地状态，否则界面显示已收藏但实际未落盘
+    setState(s => { s.favorites = previous; });
+    showOperationError(e, 'branch.favoriteSaveFailed', '[sidebar]', 'save_favorites_error');
   }
 }
 
@@ -411,7 +513,8 @@ async function runSidebarUpdate(): Promise<void> {
     await service.fetch(getDir());
     await loadData();
   } catch (e) {
-    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_error', error: String(e) }));
+    // 回归：此前只写 console，点「更新」失败时界面毫无反应
+    showOperationError(e, 'sidebar.fetchFailed', '[sidebar]', 'update_error');
   }
 }
 
@@ -583,7 +686,7 @@ async function loadCommitsForBranch(branchName: string): Promise<void> {
     });
     console.debug(JSON.stringify({ prefix: '[main]', event: 'commits_set', count: commits.length }));
   } catch (e) {
-    console.error(JSON.stringify({ prefix: '[main]', event: 'load_branch_error', branchName, error: String(e) }));
+    showOperationError(e, 'commit.loadListFailed', '[main]', 'load_branch_error');
   }
 }
 
@@ -619,7 +722,7 @@ async function clearBranchFilter(): Promise<void> {
     filterCommits();
     console.debug(JSON.stringify({ prefix: '[main]', event: 'branch_filter_cleared', count: commits.length }));
   } catch (e) {
-    console.error(JSON.stringify({ prefix: '[main]', event: 'clear_branch_filter_error', error: String(e) }));
+    showOperationError(e, 'commit.loadListFailed', '[main]', 'clear_branch_filter_error');
   } finally {
     clearingBranchFilter = false;
   }
@@ -634,7 +737,7 @@ async function loadCommitDetail(hash: string): Promise<void> {
       s.diffs = diffs;
     });
   } catch (e) {
-    console.error("[git-manager] 加载提交详情失败:", e);
+    showOperationError(e, 'commit.loadDetailFailed', '[main]', 'load_commit_detail_error');
   }
 }
 
@@ -643,7 +746,7 @@ async function loadBranches(): Promise<void> {
     const branches = await service.getBranches(getDir());
     setState(s => { s.branches = branches; });
   } catch (e) {
-    console.error("[git-manager] 加载分支失败:", e);
+    showOperationError(e, 'branch.loadFailed', '[main]', 'load_branches_error');
   }
 }
 
@@ -702,11 +805,24 @@ async function init(): Promise<void> {
     setLocale(context.locale);
   });
   host.onDirectory((dir) => {
+    console.debug(JSON.stringify({
+      prefix: '[main]',
+      event: 'on_directory',
+      dir,
+      prevDir: directory,
+      same: dir === directory,
+    }));
+    const prevDir = directory;
     directory = dir;
-    if (dir) {
-      // 目录切换：需要清空旧仓库状态并整体重建布局
-      loadData({ reset: true });
+    if (!dir) return;
+    // 同一目录的重复事件不重建：宿主高频推送会把面板反复销毁重建，
+    // 表现为「点了页签立刻被重置」
+    if (prevDir === dir) {
+      console.debug(JSON.stringify({ prefix: '[main]', event: 'on_directory_same_skip', dir }));
+      return;
     }
+    // 目录切换：清空旧仓库状态并整体重建布局
+    loadData({ reset: true });
   });
 }
 
@@ -791,7 +907,7 @@ async function loadData(options: { reset?: boolean } = {}): Promise<void> {
       // 重应用活动过滤与排序（reset 场景过滤条件已清空，等价于按当前排序模式输出）
       filterCommits();
     } catch (e) {
-      console.error(JSON.stringify({ prefix: '[main]', event: 'load_data_commits_error', error: String(e) }));
+      showOperationError(e, 'commit.loadListFailed', '[main]', 'load_data_commits_error');
     }
 
     if (reset) {

@@ -4,6 +4,77 @@ import { GitError, type GitCommandOptions, type GitResult } from './types.js';
 
 const execFileAsync = promisify(execFile);
 
+/** 单条 git 命令记录 */
+export interface GitCommandLog {
+  /** 自增序号 */
+  id: number;
+  /** 执行时刻（毫秒时间戳） */
+  startedAt: number;
+  /** 耗时（毫秒） */
+  durationMs: number;
+  /** 完整命令文本（含 git 前缀） */
+  command: string;
+  /** 工作目录 */
+  cwd: string;
+  /** 退出码；启动失败时为 -1 */
+  exitCode: number;
+  /** 是否成功 */
+  ok: boolean;
+  /** 标准输出（截断至上限） */
+  stdout: string;
+  /** 标准错误（截断至上限） */
+  stderr: string;
+}
+
+/** 命令日志保留上限（环形缓冲，超出丢弃最旧） */
+const GIT_LOG_LIMIT = 200;
+/** 单条日志中 stdout/stderr 的保留字节上限 */
+const GIT_LOG_OUTPUT_LIMIT = 8192;
+
+/** 命令日志缓冲 */
+const commandLogs: GitCommandLog[] = [];
+/** 自增序号 */
+let logSeq = 0;
+
+/**
+ * 读取最近的 git 命令日志（旧→新）
+ * @param since 只返回 id 大于该值的记录
+ * @param limit 最多返回条数
+ * @returns 日志数组
+ */
+export function getGitCommandLogs(since = 0, limit = GIT_LOG_LIMIT): GitCommandLog[] {
+  return commandLogs.filter(l => l.id > since).slice(-limit);
+}
+
+/**
+ * 清空命令日志
+ */
+export function clearGitCommandLogs(): void {
+  commandLogs.length = 0;
+}
+
+/**
+ * 截断过长输出，避免单条记录吃掉整个缓冲
+ * @param text 原始输出
+ * @returns 截断后的文本
+ */
+function truncateOutput(text: string): string {
+  if (text.length <= GIT_LOG_OUTPUT_LIMIT) return text;
+  return `${text.slice(0, GIT_LOG_OUTPUT_LIMIT)}\n…（已截断，共 ${text.length} 字符）`;
+}
+
+/**
+ * 记录一条命令执行结果
+ * @param entry 除 id 外的记录内容
+ */
+function recordCommand(entry: Omit<GitCommandLog, 'id'>): void {
+  logSeq += 1;
+  commandLogs.push({ id: logSeq, ...entry });
+  if (commandLogs.length > GIT_LOG_LIMIT) {
+    commandLogs.splice(0, commandLogs.length - GIT_LOG_LIMIT);
+  }
+}
+
 /**
  * 执行 Git 命令
  * @param command - Git 命令（不含 git 前缀）；字符串按空白拆分，
@@ -22,6 +93,9 @@ export async function gitExec(
   const args = typeof command === 'string' ? command.split(/\s+/).filter(Boolean) : command;
   const commandText = Array.isArray(command) ? command.join(' ') : command;
 
+  // 计时用于命令日志展示耗时
+  const startedAt = Date.now();
+
   try {
     const result = await execFileAsync('git', args, {
       cwd,
@@ -36,10 +110,25 @@ export async function gitExec(
       maxBuffer: 10 * 1024 * 1024, // 10MB
     });
 
+    const stdout = result.stdout.trimEnd();
+    const stderr = result.stderr.trim();
+
+    // 无论成败都记录，便于用户在控制台排查命令与输出
+    recordCommand({
+      startedAt,
+      durationMs: Date.now() - startedAt,
+      command: `git ${commandText}`,
+      cwd,
+      exitCode: 0,
+      ok: true,
+      stdout: truncateOutput(stdout),
+      stderr: truncateOutput(stderr),
+    });
+
     return {
       // 只清理尾部空白：git status --porcelain 行首空格承载暂存状态语义，不能吃掉
-      stdout: result.stdout.trimEnd(),
-      stderr: result.stderr.trim(),
+      stdout,
+      stderr,
       exitCode: 0,
     };
   } catch (error: unknown) {
@@ -50,10 +139,26 @@ export async function gitExec(
       killed?: boolean;
     };
 
+    const failStdout = execError.stdout ?? '';
+    const failStderr = execError.killed ? '命令执行超时' : (execError.stderr ?? '');
+    const failCode = execError.killed ? -1 : (execError.code ?? 1);
+
+    // 失败同样记录：新建分支被拒之类的错误必须能在控制台看到
+    recordCommand({
+      startedAt,
+      durationMs: Date.now() - startedAt,
+      command: `git ${commandText}`,
+      cwd,
+      exitCode: failCode,
+      ok: false,
+      stdout: truncateOutput(failStdout),
+      stderr: truncateOutput(failStderr),
+    });
+
     // 命令超时
     if (execError.killed) {
       throw new GitError(`Git 命令执行超时: ${commandText}`, {
-        stdout: execError.stdout ?? '',
+        stdout: failStdout,
         stderr: '命令执行超时',
         exitCode: -1,
       });
@@ -61,9 +166,9 @@ export async function gitExec(
 
     // Git 命令返回非零退出码
     return {
-      stdout: execError.stdout ?? '',
-      stderr: execError.stderr ?? '',
-      exitCode: execError.code ?? 1,
+      stdout: failStdout,
+      stderr: failStderr,
+      exitCode: failCode,
     };
   }
 }
