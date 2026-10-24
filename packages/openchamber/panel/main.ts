@@ -95,6 +95,17 @@ async function render(): Promise<void> {
       <div style="display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden;"></div>
     `;
 
+    // 顶部细进度条：Fetch 等耗时操作期间显示流动动画，空闲时高度为 0 不占位
+    const progressBar = html`
+      <div data-progress style="height: 0; flex-shrink: 0; overflow: hidden; background: #2b2b2b; position: relative; transition: height 0.15s;">
+        <div data-progress-inner style="position: absolute; top: 0; left: 0; height: 2px; width: 30%; background: #589df6; opacity: 0;"></div>
+      </div>
+    `;
+    mainLayout.appendChild(progressBar);
+
+    /** 进度条控制器（fetch 等操作期间显示/隐藏），赋值给模块级变量供各操作使用 */
+    progress = createProgressBar(progressBar);
+
     // 内容区域: 左中右三栏
     const contentArea = html`
       <div style="display: flex; flex: 1; width: 100%; overflow: hidden;"></div>
@@ -288,6 +299,55 @@ async function render(): Promise<void> {
   }
 }
 
+/** 进度条控制器 */
+interface ProgressBar {
+  /** 开始显示进度（引用计数：嵌套调用只在最外层结束后隐藏） */
+  start: () => void;
+  /** 结束一次进度 */
+  done: () => void;
+}
+
+/**
+ * 创建顶部细进度条控制器
+ * 显示时高度展开为 2px 并播放往复动画；引用计数归零后收起
+ * @param element 进度条容器（需包含 [data-progress-inner] 内部条）
+ * @returns 控制器
+ */
+function createProgressBar(element: HTMLElement): ProgressBar {
+  const inner = element.querySelector('[data-progress-inner]') as HTMLElement | null;
+  let pending = 0;
+  let animation: Animation | null = null;
+
+  const start = (): void => {
+    pending += 1;
+    if (pending > 1) return;
+    element.style.height = '2px';
+    if (inner) {
+      inner.style.opacity = '1';
+      // 左右往复的流动效果：从左侧滑到右侧再返回
+      animation = inner.animate(
+        [
+          { transform: 'translateX(-100%)' },
+          { transform: 'translateX(340%)' },
+        ],
+        { duration: 1100, iterations: Infinity, easing: 'ease-in-out' },
+      );
+    }
+  };
+
+  const done = (): void => {
+    if (pending === 0) return;
+    pending -= 1;
+    if (pending > 0) return;
+    animation?.cancel();
+    animation = null;
+    if (inner) inner.style.opacity = '0';
+    element.style.height = '0';
+  };
+
+  return { start, done };
+}
+
 /** 底部 Tab 栏 */
 function createTabBar(): HTMLElement {
   return html`
@@ -352,13 +412,102 @@ async function runSidebarUpdate(): Promise<void> {
 }
 
 /** 侧边栏 Fetch：只获取远程引用并刷新分支列表，不重载提交历史 */
+
+/** 顶部进度条控制器（界面初始化时赋值，未初始化时为空操作） */
+let progress: ProgressBar = { start: () => {}, done: () => {} };
+
+/**
+ * 按 git 错误内容归类失败原因（导出以便单元测试覆盖分类规则）
+ * @param message 原始错误信息
+ * @returns 用于提示的文案键
+ */
+export function classifyFetchError(message: string): string {
+  const text = message.toLowerCase();
+  // 认证失败：凭据缺失或被拒绝
+  if (
+    text.includes('authentication failed')
+    || text.includes('could not read username')
+    || text.includes('permission denied')
+    || text.includes('access denied')
+    || text.includes('403')
+  ) {
+    return 'sidebar.fetchAuthFailed';
+  }
+  // 网络不可达 / DNS / 连接被拒
+  if (
+    text.includes('could not resolve host')
+    || text.includes('connection refused')
+    || text.includes('connection timed out')
+    || text.includes('network is unreachable')
+    || text.includes('failed to connect')
+  ) {
+    return 'sidebar.fetchUnreachable';
+  }
+  // 未配置远程
+  if (text.includes('does not appear to be a git repository') || text.includes('no such remote')) {
+    return 'sidebar.fetchNoRemote';
+  }
+  // 其余归为通用失败
+  return 'sidebar.fetchFailed';
+}
+
 async function runSidebarFetch(): Promise<void> {
+  // 防重入：进行中再次点击直接忽略
+  if (getState().fetching) {
+    console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_skipped_running' }));
+    return;
+  }
+  setState(s => { s.fetching = true; });
+  progress.start();
+  const startedAt = Date.now();
+  console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_start' }));
+
   try {
     await service.fetch(getDir());
     await loadBranches();
-    console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_done' }));
+
+    // 统计 fetch 后存在待拉取提交的分支数量，用于成功提示
+    const unpulledBranches = getState().branches
+      .filter(b => b.hasUnpulled && (b.unpulledCount ?? 0) > 0)
+      .map(b => b.name);
+    console.debug(JSON.stringify({
+      prefix: '[sidebar]',
+      event: 'fetch_done',
+      elapsedMs: Date.now() - startedAt,
+      unpulledCount: unpulledBranches.length,
+    }));
+
+    // 成功提示：区分「有新提交待拉取」与「已是最新」
+    void host.toast({
+      kind: 'success',
+      message: unpulledBranches.length > 0
+        ? t('sidebar.fetchSuccessUpdates', { count: unpulledBranches.length })
+        : t('sidebar.fetchSuccessNoUpdates'),
+    }).catch((toastErr) => {
+      console.error(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_toast_error', error: String(toastErr) }));
+    });
   } catch (e) {
-    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_error', error: String(e) }));
+    const message = e instanceof Error ? e.message : String(e);
+    const reasonKey = classifyFetchError(message);
+    console.error(JSON.stringify({
+      prefix: '[sidebar]',
+      event: 'fetch_error',
+      elapsedMs: Date.now() - startedAt,
+      reasonKey,
+      error: message,
+    }));
+    // 分类文案 + 原始错误，支持复制详情便于排查
+    void host.toast({
+      kind: 'error',
+      message: `${t(reasonKey)}: ${message}`,
+      copy: true,
+      dismiss: true,
+    }).catch((toastErr) => {
+      console.error(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_toast_error', error: String(toastErr) }));
+    });
+  } finally {
+    setState(s => { s.fetching = false; });
+    progress.done();
   }
 }
 

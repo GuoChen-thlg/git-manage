@@ -467,4 +467,17 @@ describe('sidebar', () => {
     setState(s => { s.selectedBranch = { name: 'develop', isCurrent: false, isRemote: false }; });
     expect(btn.dataset.disabled).toBe('false');
   });
+
+  it('Fetch 进行中时按钮应该禁用并提示进行中', () => {
+    createBar();
+    const btn = container.querySelector('[data-sidebar="fetch"]') as HTMLElement;
+    expect(btn.dataset.disabled).toBe('false');
+
+    setState(s => { s.fetching = true; });
+    expect(btn.dataset.disabled).toBe('true');
+    expect(btn.title).toBe('正在获取远程更新…');
+
+    setState(s => { s.fetching = false; });
+    expect(btn.dataset.disabled).toBe('false');
+  });
 });
