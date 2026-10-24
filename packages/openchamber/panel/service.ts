@@ -272,6 +272,44 @@ export function createServiceClient(host: HostClient) {
     return serviceCall('git-branch-diff', { directory, from, to });
   }
 
+  /**
+   * 查询提交的可编辑信息（是否 HEAD、是否合并提交）
+   * @param directory 仓库目录
+   * @param hash 提交哈希
+   */
+  async function getCommitEditInfo(directory: string, hash: string) {
+    return serviceCall<{ isHead: boolean; isMerge: boolean }>('git-commit-edit-info', { directory, hash });
+  }
+
+  /**
+   * 修改提交信息
+   * @param directory 仓库目录
+   * @param hash 提交哈希
+   * @param message 新提交信息
+   */
+  async function rewordCommit(directory: string, hash: string, message: string) {
+    return serviceCall('git-reword-commit', { directory, hash, message });
+  }
+
+  /**
+   * 删除提交
+   * @param directory 仓库目录
+   * @param hash 提交哈希
+   */
+  async function dropCommit(directory: string, hash: string) {
+    return serviceCall('git-drop-commit', { directory, hash });
+  }
+
+  /**
+   * 推送当前分支至指定提交
+   * @param directory 仓库目录
+   * @param hash 提交哈希
+   * @param branch 当前分支名
+   */
+  async function pushUpTo(directory: string, hash: string, branch: string) {
+    return serviceCall<{ success: boolean; ref: string }>('git-push-up-to', { directory, hash, branch });
+  }
+
   /** 重置分支 */
   async function reset(directory: string, hash: string, mode: 'soft' | 'mixed' | 'hard') {
     return serviceCall('git-reset', { directory, hash, mode });
@@ -288,6 +326,14 @@ export function createServiceClient(host: HostClient) {
   }
 
   // ── 状态相关 API ──
+
+  /**
+   * 检查工作区是否干净（有未提交改动时返回 false）
+   * @param directory 仓库目录
+   */
+  async function isWorkingTreeClean(directory: string) {
+    return serviceCall<boolean>('git-working-tree-clean', { directory });
+  }
 
   /** 获取 Git 状态 */
   async function getStatus(directory: string) {
@@ -345,7 +391,12 @@ export function createServiceClient(host: HostClient) {
     reset,
     revert,
     undoCommit,
+    getCommitEditInfo,
+    rewordCommit,
+    dropCommit,
+    pushUpTo,
     getStatus,
+    isWorkingTreeClean,
     getFavorites,
     saveFavorites,
     isGitRepository,

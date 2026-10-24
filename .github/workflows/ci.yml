@@ -31,3 +31,7 @@ jobs:
 
       - name: 单元测试
         run: pnpm exec vitest run --dir packages
+
+      # 黑盒测试：启动真实 service 进程，通过 HTTP 验证协议、鉴权与副作用
+      - name: 黑盒测试（service）
+        run: pnpm run test:blackbox

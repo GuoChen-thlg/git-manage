@@ -25,7 +25,10 @@ export interface CommitInfo {
   message: string;
   authorName: string;
   authorEmail: string;
+  /** 作者创作时间 */
   date: string;
+  /** 提交时间（可能晚于创作时间） */
+  commitDate?: string;
   parents: string[];
 }
 
@@ -96,7 +99,21 @@ export interface PanelState {
   /** 提交列表排序模式：default=原始日期降序 */
   sortMode: 'default' | 'date-asc' | 'author-asc' | 'message-asc';
   /** 显示设置（spec 3.3 Columns 最小集） */
-  displaySettings: { showAuthor: boolean; showDate: boolean; showHash: boolean };
+  displaySettings: {
+    showAuthor: boolean;
+    showDate: boolean;
+    showHash: boolean;
+    /** 显示跨分支的长边（对齐 IDEA Long Edges） */
+    showLongEdges: boolean;
+    /** 显示标签名（对齐 IDEA Tag Names） */
+    showTagNames: boolean;
+    /** 紧凑引用视图：每个提交只显示第一个引用（对齐 IDEA Compact References View） */
+    compactReferences: boolean;
+    /** 显示提交时间戳而非创作时间（对齐 IDEA Commit Timestamp） */
+    preferCommitDate: boolean;
+    /** 引用显示在提交消息左侧（对齐 IDEA References on the Left） */
+    referencesOnLeft: boolean;
+  };
   /** 搜索是否使用正则表达式模式 */
   searchRegex: boolean;
   /** 搜索是否大小写敏感 */
@@ -130,7 +147,16 @@ export function createInitialState(): PanelState {
     filterPaths: [],
     branchPanelHidden: false,
     sortMode: "default",
-    displaySettings: { showAuthor: true, showDate: true, showHash: true },
+    displaySettings: {
+      showAuthor: true,
+      showDate: true,
+      showHash: true,
+      showLongEdges: true,
+      showTagNames: true,
+      compactReferences: false,
+      preferCommitDate: false,
+      referencesOnLeft: false,
+    },
     searchRegex: false,
     searchCaseSensitive: false,
   };

@@ -7,6 +7,8 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['**/*.test.ts'],
     exclude: ['node_modules', 'dist'],
+    // service 路由测试需要真实文件系统与 git，跑在 node 环境
+    environmentMatchGlobs: [['**/service/__tests__/**', 'node']],
   },
   resolve: {
     alias: {

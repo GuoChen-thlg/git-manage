@@ -18,11 +18,21 @@ interface SettingsItem {
   labelKey: string;
 }
 
-/** 菜单项列表（顺序固定：作者/日期/哈希） */
+/**
+ * 菜单项列表（顺序对齐 IDEA PresentationSettings）
+ * 平铺展示，不分「视图/图」标题——IDEA 该菜单本身只有分隔线
+ */
 const SETTINGS_ITEMS: readonly SettingsItem[] = [
+  // 表头列开关（对应 IDEA Toggle Columns）
   { key: 'showAuthor', labelKey: 'settings.showAuthor' },
   { key: 'showDate', labelKey: 'settings.showDate' },
   { key: 'showHash', labelKey: 'settings.showHash' },
+  // 表格与提交图显示项
+  { key: 'showTagNames', labelKey: 'settings.showTagNames' },
+  { key: 'compactReferences', labelKey: 'settings.compactReferences' },
+  { key: 'showLongEdges', labelKey: 'settings.showLongEdges' },
+  { key: 'preferCommitDate', labelKey: 'settings.preferCommitDate' },
+  { key: 'referencesOnLeft', labelKey: 'settings.referencesOnLeft' },
 ];
 
 /** 当前生效的外部点击关闭监听（保证同时只挂一个） */
@@ -95,30 +105,40 @@ export function showSettingsMenu(e: MouseEvent): void {
   separator.style.margin = '4px 0';
   menu.appendChild(separator);
 
-  // 开关项：勾号指示 + 文案
-  for (const item of SETTINGS_ITEMS) {
-    const el = document.createElement('div');
-    el.dataset.key = item.key;
-    el.style.padding = '6px 12px';
-    el.style.cursor = 'pointer';
-    el.style.fontSize = '12px';
-    el.style.color = '#ccc';
-    el.style.display = 'flex';
-    el.style.alignItems = 'center';
-    el.style.gap = '6px';
+  // 平铺渲染：与 IDEA 一致，仅在「列开关」与「显示项」之间加一条分隔线
+  for (const [index, item] of SETTINGS_ITEMS.entries()) {
+    // 前三项为表头列开关，之后为表格/图显示项，中间插分隔线
+    if (index === 3) {
+      const midSep = document.createElement('div');
+      midSep.style.height = '1px';
+      midSep.style.background = '#444';
+      midSep.style.margin = '4px 0';
+      menu.appendChild(midSep);
+    }
+    {
+      const el = document.createElement('div');
+      el.dataset.key = item.key;
+      el.style.padding = '6px 12px';
+      el.style.cursor = 'pointer';
+      el.style.fontSize = '12px';
+      el.style.color = '#ccc';
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.gap = '6px';
 
-    const check = document.createElement('span');
-    check.className = 'git-settings-check';
-    check.style.width = '12px';
-    check.style.flex = '0 0 12px';
-    check.style.color = '#4caf50';
+      const check = document.createElement('span');
+      check.className = 'git-settings-check';
+      check.style.width = '12px';
+      check.style.flex = '0 0 12px';
+      check.style.color = '#4caf50';
 
-    const label = document.createElement('span');
-    label.textContent = t(item.labelKey);
+      const label = document.createElement('span');
+      label.textContent = t(item.labelKey);
 
-    el.appendChild(check);
-    el.appendChild(label);
-    menu.appendChild(el);
+      el.appendChild(check);
+      el.appendChild(label);
+      menu.appendChild(el);
+    }
   }
 
   syncChecks(menu);

@@ -17,7 +17,8 @@ function parseCommit(raw: string): Commit | null {
   const authorName = lines[2];
   const authorEmail = lines[3].replace(/[<>]/g, '');
   const date = lines[4] || '';
-  const parents = lines[5] ? lines[5].split(' ').filter(Boolean) : [];
+  const commitDate = lines[5] || '';
+  const parents = lines[6] ? lines[6].split(' ').filter(Boolean) : [];
 
   return {
     hash,
@@ -26,6 +27,7 @@ function parseCommit(raw: string): Commit | null {
     authorName,
     authorEmail,
     date,
+    commitDate,
     parents,
   };
 }
@@ -46,7 +48,7 @@ export async function getLog(
   options: LogOptions = {},
   gitOptions: GitCommandOptions
 ): Promise<Commit[]> {
-  const format = '%H%n%s%n%an%n%ae%n%ai%n%P';
+  const format = '%H%n%s%n%an%n%ae%n%ai%n%cI%n%P';
   // 使用数组构建参数：gitExec 数组形式保留参数边界、不经 shell，
   // 含空格的路径不会被按空白拆碎
   const args: string[] = ['log', `--format=${format}`];
@@ -88,10 +90,10 @@ export async function getLog(
   const commits: Commit[] = [];
   const lines = result.stdout.split('\n');
 
-  // 每 6 行为一条提交: hash, subject, author, email, date, parents
+  // 每 7 行为一条提交: hash, subject, author, email, authorDate, commitDate, parents
   // 注意: root 提交 %P 为空，尾部空行被 trimEnd 消耗后末块只有 5 行，
   // 故按步长推进循环，块完整性交由 parseCommit 校验（不足 4 行返回 null）
-  const COMMIT_FIELDS = 6;
+  const COMMIT_FIELDS = 7;
   for (let i = 0; i < lines.length; i += COMMIT_FIELDS) {
     const block = lines.slice(i, i + COMMIT_FIELDS).join('\n');
     const commit = parseCommit(block.trim());
@@ -129,7 +131,7 @@ export async function showCommit(
   options: GitCommandOptions
 ): Promise<CommitDetail | null> {
   // 获取提交基本信息
-  const format = '%H%n%s%n%an%n%ae%n%ai%n%P';
+  const format = '%H%n%s%n%an%n%ae%n%ai%n%cI%n%P';
   const result = await gitExec(`show --format=${format} --stat ${hash}`, options);
 
   if (!result.stdout) {
@@ -137,7 +139,7 @@ export async function showCommit(
   }
 
   const lines = result.stdout.split('\n');
-  if (lines.length < 5) return null;
+  if (lines.length < 7) return null;
 
   const commit: Commit = {
     hash: lines[0],
@@ -146,7 +148,8 @@ export async function showCommit(
     authorName: lines[2],
     authorEmail: lines[3].replace(/[<>]/g, ''),
     date: lines[4],
-    parents: lines[5] ? lines[5].split(' ').filter(Boolean) : [],
+    commitDate: lines[5] || undefined,
+    parents: lines[6] ? lines[6].split(' ').filter(Boolean) : [],
   };
 
   // 获取提交差异
@@ -222,7 +225,7 @@ export async function getCommitRange(
   to: string,
   options: GitCommandOptions
 ): Promise<Commit[]> {
-  const format = '%H%n%s%n%an%n%ae%n%ai%n%P';
+  const format = '%H%n%s%n%an%n%ae%n%ai%n%cI%n%P';
   const result = await gitExec(`log --format=${format} ${from}..${to}`, options);
 
   if (!result.stdout) {
@@ -232,7 +235,7 @@ export async function getCommitRange(
   const commits: Commit[] = [];
   const lines = result.stdout.split('\n');
 
-  const COMMIT_FIELDS = 6;
+  const COMMIT_FIELDS = 7;
   for (let i = 0; i + COMMIT_FIELDS - 1 < lines.length; i += COMMIT_FIELDS) {
     const block = lines.slice(i, i + COMMIT_FIELDS).join('\n');
     const commit = parseCommit(block.trim());

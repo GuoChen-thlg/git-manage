@@ -982,3 +982,82 @@ export function showDeleteBranchDialog(
   });
   okBtn.addEventListener('click', () => { void submit(); });
 }
+
+/**
+ * 编辑提交信息对话框
+ * 预填原提交信息，确定后回调新文本；与其它对话框一致支持 Escape / 点遮罩关闭
+ * @param currentMessage 原提交信息
+ * @param onConfirm 确认回调，入参为去除首尾空白的新信息
+ */
+export function showRewordCommitDialog(
+  currentMessage: string,
+  onConfirm: (message: string) => Promise<void>,
+): void {
+  const overlay = html`
+    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
+      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 420px;">
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('commit.rewordTitle')}</div>
+        <textarea id="reword-input" style="width: 100%; height: 96px; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px; resize: vertical; font-family: inherit;"></textarea>
+        <div id="reword-error" style="display: none; font-size: 11px; color: #f44336; margin-bottom: 8px;"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button id="reword-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
+          <button id="reword-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  let closed = false;
+  const input = overlay.querySelector('#reword-input') as HTMLTextAreaElement;
+  const errorEl = overlay.querySelector('#reword-error') as HTMLElement;
+  const okBtn = overlay.querySelector('#reword-ok') as HTMLButtonElement;
+  input.value = currentMessage;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+
+  /** 关闭对话框并注销 Escape 监听（幂等） */
+  const close = (): void => {
+    if (closed) return;
+    closed = true;
+    document.removeEventListener('keydown', onKeydown);
+    overlay.remove();
+  };
+
+  /** Escape 关闭 */
+  const onKeydown = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape') close();
+  };
+  document.addEventListener('keydown', onKeydown);
+
+  overlay.querySelector('#reword-cancel')?.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+
+  let pending = false;
+  okBtn.addEventListener('click', () => {
+    if (pending) return;
+    const next = input.value.trim();
+    if (!next) {
+      errorEl.textContent = t('commit.rewordEmpty');
+      errorEl.style.display = 'block';
+      return;
+    }
+    pending = true;
+    okBtn.disabled = true;
+    errorEl.style.display = 'none';
+    void onConfirm(next)
+      .then(() => { close(); })
+      .catch((e: unknown) => {
+        // 失败就地展示，保持对话框打开便于修改后重试
+        errorEl.textContent = e instanceof Error ? e.message : String(e);
+        errorEl.style.display = 'block';
+      })
+      .finally(() => {
+        pending = false;
+        if (!closed) okBtn.disabled = false;
+      });
+  });
+}

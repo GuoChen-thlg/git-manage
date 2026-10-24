@@ -67,7 +67,7 @@ describe('settings-menu', () => {
   });
 
   describe('showSettingsMenu 渲染', () => {
-    it('打开后应在指针位置渲染菜单、中文标题与三个开关项且默认全部勾选', () => {
+    it('打开后应在指针位置渲染菜单、中文标题与平铺开关项', () => {
       showSettingsMenu(createClickEvent());
 
       const menu = getMenu();
@@ -76,11 +76,17 @@ describe('settings-menu', () => {
       expect(menu.style.top).toBe('30px');
       expect(menu.textContent).toContain('显示设置');
 
+      // 平铺列表：前 3 项为列开关，其后为显示项；顺序对齐 IDEA
       const items = Array.from(menu.querySelectorAll('[data-key]'));
       expect(items.map(el => el.textContent)).toEqual([
         '✓显示作者列',
         '✓显示日期列',
         '✓显示哈希列',
+        '✓标签名称',
+        '紧凑引用视图',
+        '✓长边',
+        '提交时间戳',
+        '引用显示在左侧',
       ]);
     });
 
@@ -188,6 +194,11 @@ describe('settings-menu', () => {
         showAuthor: true,
         showDate: true,
         showHash: true,
+        showLongEdges: true,
+        showTagNames: true,
+        compactReferences: false,
+        preferCommitDate: false,
+        referencesOnLeft: false,
       });
     });
 

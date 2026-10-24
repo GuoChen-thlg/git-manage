@@ -11,8 +11,16 @@ import { ServiceClient, DeleteBranchResult } from '../service';
 
 // 宿主模块打桩：避免真实 connectHost 握手，并在用例中断言 toast 调用
 vi.mock('../host', () => ({
-  host: { toast: vi.fn().mockResolvedValue(undefined) },
+  host: {
+    toast: vi.fn().mockResolvedValue(undefined),
+    writeClipboard: vi.fn().mockResolvedValue(undefined),
+  },
 }));
+
+/** 宿主 toast 断言句柄 */
+const toastMock = vi.fn().mockResolvedValue(undefined);
+/** 宿主剪贴板通道断言句柄 */
+const writeClipboardMock = vi.fn().mockResolvedValue(undefined);
 
 /** 测试目录 */
 const DIRECTORY = '/repo';
@@ -63,6 +71,8 @@ function createMockService(): ServiceClient {
     checkoutNewBranch: vi.fn().mockResolvedValue(undefined),
     renameBranch: vi.fn().mockResolvedValue(undefined),
     diffVsLocal: vi.fn().mockResolvedValue([]),
+    // reloadCommits 依赖 getLog 刷新提交列表
+    getLog: vi.fn().mockResolvedValue([]),
   } as unknown as ServiceClient;
 }
 
@@ -149,13 +159,24 @@ function getMenu(): HTMLElement {
 }
 
 describe('context-menu', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // 使用假计时器接管 show* 结束时注册的 setTimeout(0)
     vi.useFakeTimers();
     setLocale('zh-CN');
     setState(s => Object.assign(s, createInitialState()));
     document.body.innerHTML = '';
     writeTextMock = vi.fn().mockResolvedValue(undefined);
+    // 宿主 mock 每次重置，避免跨用例污染
+    toastMock.mockClear().mockResolvedValue(undefined);
+    writeClipboardMock.mockClear().mockResolvedValue(undefined);
+    // 直接把断言句柄挂到 host 上，保证组件调用与断言是同一个 spy
+    const hostModule = await import('../host');
+    const h = hostModule.host as unknown as {
+      toast: typeof toastMock;
+      writeClipboard: typeof writeClipboardMock;
+    };
+    h.toast = toastMock;
+    h.writeClipboard = writeClipboardMock;
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText: writeTextMock },
       configurable: true,
@@ -169,6 +190,15 @@ describe('context-menu', () => {
     vi.spyOn(console, 'debug').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
+
+  /**
+   * 打开批量提交右键菜单
+   * @param hashes 选中的提交哈希
+   * @param service 服务桩
+   */
+  function showContextMenuWithBatch(hashes: string[], service: ServiceClient): void {
+    showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, hashes);
+  }
 
   afterEach(() => {
     hideContextMenu();
@@ -673,17 +703,23 @@ describe('context-menu', () => {
       const labels = (Array.from(menu.children) as HTMLElement[])
         .filter(el => el.style.height !== '1px')
         .map(el => el.textContent);
+      // 顺序对齐 IDEA 提交右键菜单：复制 → Cherry-pick/比较 → Reset/Revert
+      // → 撤销/编辑/删除 → 推送至此 → 分支/标签
       expect(labels).toEqual([
         '复制提交哈希',
         'Cherry-pick',
         '与本地比较',
         '将当前分支重置到此处',
         '回滚提交',
+        '撤销提交',
+        '编辑提交信息',
+        '删除提交',
+        '推送此前所有提交',
         '新建分支',
         '新建标签',
       ]);
       const separators = (Array.from(menu.children) as HTMLElement[]).filter(el => el.style.height === '1px');
-      expect(separators).toHaveLength(3);
+      expect(separators).toHaveLength(5);
     });
 
     it('点击复制提交哈希应写入剪贴板', async () => {
@@ -693,7 +729,7 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), '复制提交哈希')!.click();
       await flush();
 
-      expect(writeTextMock).toHaveBeenCalledWith('abc123');
+      expect(writeClipboardMock).toHaveBeenCalledWith('abc123');
       expect(document.getElementById('git-context-menu')).toBeNull();
     });
 
@@ -840,7 +876,7 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), '复制哈希列表')!.click();
       await flush();
 
-      expect(writeTextMock).toHaveBeenCalledWith('h1\nh2\nh3');
+      expect(writeClipboardMock).toHaveBeenCalledWith('h1\nh2\nh3');
     });
 
     it('确认后点击 Cherry-pick 全部应逐个调用 service.cherryPick', async () => {
@@ -944,32 +980,52 @@ describe('context-menu', () => {
   });
 
   describe('失败路径日志', () => {
-    it('分支菜单各项操作失败时应打印对应中文错误日志', async () => {
+    it('分支菜单各项操作失败时应输出结构化日志并弹出错误提示', async () => {
       const err = new Error('模拟服务失败');
-      const cases: Array<{ label: string; method: string; message: string }> = [
-        { label: '签出分支', method: 'checkoutBranch', message: '[git-manager] 签出分支失败:' },
-        { label: '合并到当前分支', method: 'mergeBranch', message: '[git-manager] 合并分支失败:' },
-        { label: '变基到此分支', method: 'rebaseBranch', message: '[git-manager] 变基失败:' },
-        { label: '拉取', method: 'pull', message: '[git-manager] 拉取失败:' },
-        { label: '推送', method: 'push', message: '[git-manager] 推送失败:' },
-        { label: '添加收藏', method: 'saveFavorites', message: '[git-manager] 保存收藏失败:' },
-        // 删除分支失败走错误 toast 与 [context-menu] JSON 日志，不打印该风格 console.error
+      const cases: Array<{ label: string; method: string; action: string }> = [
+        { label: '签出分支', method: 'checkoutBranch', action: 'checkout' },
+        { label: '合并到当前分支', method: 'mergeBranch', action: 'merge' },
+        { label: '变基到此分支', method: 'rebaseBranch', action: 'rebase' },
+        { label: '拉取', method: 'pull', action: 'pull' },
+        { label: '推送', method: 'push', action: 'push' },
       ];
 
       for (const c of cases) {
         const service = createMockService();
         const failing = vi.fn().mockRejectedValue(err);
         (service as unknown as Record<string, typeof failing>)[c.method] = failing;
+        toastMock.mockClear();
 
         showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
         findMenuItem(getMenu(), c.label)!.click();
         await flush();
 
-        expect(console.error).toHaveBeenCalledWith(c.message, err);
+        // 失败必须让用户可见：结构化日志 + error toast（原先仅 console.error 导致「点击无反应」）
+        const log = vi.mocked(console.error).mock.calls
+          .map(call => String(call[0]))
+          .find(m => m.includes(`${c.action}_error`));
+        expect(log, `${c.label} 应输出 ${c.action}_error 日志`).toBeTruthy();
+        expect(toastMock, `${c.label} 应弹出错误提示`).toHaveBeenCalledWith(
+          expect.objectContaining({ kind: 'error' }),
+        );
       }
     });
 
-    it('单提交 Cherry-pick 与 Revert 失败时应打印对应错误日志', async () => {
+    it('分支操作成功时应刷新并提示成功', async () => {
+      const service = createMockService();
+      showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
+      findMenuItem(getMenu(), '签出分支')!.click();
+      await flush();
+
+      expect(service.checkoutBranch).toHaveBeenCalledWith(DIRECTORY, 'dev');
+      // 签出后应刷新分支列表
+      expect(service.getBranches).toHaveBeenCalled();
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'success' }),
+      );
+    });
+
+    it('单提交 Cherry-pick 失败时应输出结构化日志并弹出错误提示', async () => {
       const err = new Error('模拟操作失败');
       const service = createMockService();
       vi.mocked(service.cherryPick).mockRejectedValue(err);
@@ -977,13 +1033,69 @@ describe('context-menu', () => {
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
       findMenuItem(getMenu(), 'Cherry-pick')!.click();
       await flush();
-      expect(console.error).toHaveBeenCalledWith('[git-manager] Cherry-pick 失败:', err);
+
+      // 失败必须让用户可见：结构化日志 + error toast（原先仅打 console 导致「没反应」）
+      const log = vi.mocked(console.error).mock.calls
+        .map(c => String(c[0]))
+        .find(m => m.includes('cherry_pick_error'));
+      expect(log).toBeTruthy();
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error' }));
+    });
+
+    it('Cherry-pick 冲突时应提示冲突而非通用失败', async () => {
+      const err = new Error('error: could not apply abc123... conflict in file.ts');
+      const service = createMockService();
+      vi.mocked(service.cherryPick).mockRejectedValue(err);
+
+      showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
+      findMenuItem(getMenu(), 'Cherry-pick')!.click();
+      await flush();
+
+      const toastArg = toastMock.mock.calls.at(-1)?.[0] as { message: string } | undefined;
+      expect(toastArg?.message).toContain('冲突');
+    });
+
+    it('单提交 Cherry-pick 成功时应刷新列表并提示成功', async () => {
+      const service = createMockService();
+      vi.mocked(service.cherryPick).mockResolvedValue(undefined);
+
+      showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
+      findMenuItem(getMenu(), 'Cherry-pick')!.click();
+      await flush();
+
+      expect(service.cherryPick).toHaveBeenCalledWith(DIRECTORY, 'abc123');
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' }));
+    });
+
+    it('单提交 Revert 失败时应输出结构化日志并弹出错误提示', async () => {
+      const err = new Error('模拟操作失败');
+      const service = createMockService();
 
       vi.mocked(service.revert).mockRejectedValue(err);
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
       findMenuItem(getMenu(), '回滚提交')!.click();
       await flush();
-      expect(console.error).toHaveBeenCalledWith('[git-manager] Revert 失败:', err);
+
+      // 原先仅 console.error，用户看不到任何反馈
+      const log = vi.mocked(console.error).mock.calls
+        .map(c => String(c[0]))
+        .find(m => m.includes('revert_error'));
+      expect(log).toBeTruthy();
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error' }));
+    });
+
+    it('单提交 Revert 成功时应刷新列表并提示成功', async () => {
+      const service = createMockService();
+      vi.mocked(service.revert).mockResolvedValue(undefined);
+
+      showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
+      findMenuItem(getMenu(), '回滚提交')!.click();
+      await flush();
+
+      expect(service.revert).toHaveBeenCalledWith(DIRECTORY, 'abc123');
+      // revert 会新增反向提交，必须刷新才能看到
+      expect(service.getLog).toHaveBeenCalled();
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' }));
     });
 
     it('与本地比较失败时应打印 compare_local_error JSON 日志且不覆盖 diffs', async () => {
@@ -1011,32 +1123,76 @@ describe('context-menu', () => {
       expect(getState().diffs).toEqual([]);
     });
 
-    it('批量复制哈希失败时应打印错误日志', async () => {
-      const err = new Error('剪贴板不可用');
-      writeTextMock.mockRejectedValue(err);
+    it('批量复制应优先走宿主剪贴板通道并提示成功', async () => {
       const service = createMockService();
 
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, ['h1', 'h2', 'h3']);
       findMenuItem(getMenu(), '复制哈希列表')!.click();
       await flush();
 
-      expect(console.error).toHaveBeenCalledWith('[git-manager] 复制哈希列表失败:', err);
+      // 沙箱内 navigator.clipboard 不可靠，必须优先使用宿主通道
+      expect(writeClipboardMock).toHaveBeenCalledWith('h1\nh2\nh3');
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' }));
     });
 
-    it('批量 Cherry-pick 中断时应打印错误并停止后续提交', async () => {
+    it('宿主剪贴板通道失败时应回退到浏览器 API', async () => {
+      writeClipboardMock.mockRejectedValueOnce(new Error('宿主不可用'));
+      writeTextMock.mockResolvedValue(undefined);
+      const service = createMockService();
+
+      showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, ['h1', 'h2']);
+      findMenuItem(getMenu(), '复制哈希列表')!.click();
+      await flush();
+
+      expect(writeClipboardMock).toHaveBeenCalled();
+      expect(writeTextMock).toHaveBeenCalledWith('h1\nh2');
+    });
+
+    it('所有复制通道都失败时应提示复制失败', async () => {
+      writeClipboardMock.mockRejectedValue(new Error('宿主不可用'));
+      writeTextMock.mockRejectedValue(new Error('浏览器不可用'));
+      const service = createMockService();
+
+      showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, ['h1', 'h2']);
+      findMenuItem(getMenu(), '复制哈希列表')!.click();
+      await flush();
+
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error' }));
+    });
+
+    it('批量 Cherry-pick 中断时应输出结构化日志、提示错误并停止后续提交', async () => {
       const err = new Error('cherry-pick 失败');
       const service = createMockService();
       vi.mocked(service.cherryPick)
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(err);
 
-      showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, ['h1', 'h2', 'h3']);
+      showContextMenuWithBatch(['h1', 'h2', 'h3'], service);
       findMenuItem(getMenu(), 'Cherry-pick 全部 (3)')!.click();
       await flush();
 
-      expect(console.error).toHaveBeenCalledWith('[git-manager] 批量 Cherry-pick 中断于 h2:', err);
       // 中断后不应继续处理 h3
       expect(service.cherryPick).toHaveBeenCalledTimes(2);
+      // 失败需对用户可见，并记录已完成数量
+      const log = vi.mocked(console.error).mock.calls
+        .map(c => String(c[0]))
+        .find(m => m.includes('batch_cherry_pick_error'));
+      expect(log).toBeTruthy();
+      expect(log).toContain('"done":1');
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error' }));
+    });
+
+    it('批量 Cherry-pick 全部成功时应刷新并提示成功数量', async () => {
+      const service = createMockService();
+      vi.mocked(service.cherryPick).mockResolvedValue(undefined);
+
+      showContextMenuWithBatch(['h1', 'h2'], service);
+      findMenuItem(getMenu(), 'Cherry-pick 全部 (2)')!.click();
+      await flush();
+
+      expect(service.cherryPick).toHaveBeenCalledTimes(2);
+      const toastArg = toastMock.mock.calls.at(-1)?.[0] as { message: string } | undefined;
+      expect(toastArg?.message).toContain('2');
     });
 
     it('批量 Revert 中断时应打印错误并停止后续提交', async () => {

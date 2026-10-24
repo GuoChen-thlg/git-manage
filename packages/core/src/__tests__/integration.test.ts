@@ -29,6 +29,9 @@ import {
   getBranchDiff,
   findMyBranches,
   getCurrentAuthor,
+  uncommitHead,
+  rewordCommit,
+  dropCommit,
   localBranchExists,
   isBranchMerged,
   deleteRemoteBranch,
@@ -705,5 +708,95 @@ describe('差异比较', () => {
     await git(['branch', 'no-commit-branch'], repoDir);
     const mine = await findMyBranches({ cwd: repoDir });
     expect(mine).not.toContain('no-commit-branch');
+  });
+
+  it('listBranches 的 commit 字段应为 7 位短哈希（与提交完整哈希形成前缀关系）', async () => {
+    // 该约定被前端用于「分支短哈希前缀匹配提交完整哈希」，
+    // 一旦 git 输出格式变化，前端分支标签与跳转会静默失效，故在此固化
+    const branches = await listBranches({ cwd: repoDir });
+    const local = branches.filter(b => !b.isRemote && b.commit);
+    expect(local.length).toBeGreaterThan(0);
+
+    // 用 git log --all 覆盖所有分支的提交（getCommitLog 默认只取当前分支）
+    const allLog = await git(['log', '--all', '--format=%H'], repoDir);
+    const fullHashes = allLog.split('\n').filter(Boolean);
+    for (const branch of local) {
+      expect(branch.commit!.length, `${branch.name} 的 commit 应为短哈希`).toBe(7);
+      expect(
+        fullHashes.some(h => h.startsWith(branch.commit!)),
+        `${branch.name} 的短哈希应能前缀匹配到某条提交`,
+      ).toBe(true);
+    }
+  });
+
+  it('getCommitLog 应同时返回创作时间与提交时间字段', async () => {
+    const commits = await getCommitLog(repoDir, 5);
+    expect(commits.length).toBeGreaterThan(0);
+    for (const commit of commits) {
+      // 创作时间（%ai）与提交时间（%cI）都必须存在，前端「提交时间戳」开关依赖后者
+      expect(commit.date).toBeTruthy();
+      expect(commit.commitDate).toBeTruthy();
+      // commitDate 使用 ISO 格式，不含空格，避免按行解析被拆分
+      expect(commit.commitDate).not.toContain(' ');
+    }
+  });
+
+  it('uncommitHead 应撤销指定 HEAD 提交并保留改动到暂存区', async () => {
+    const before = await getCommitLog(repoDir, 5);
+    const headHash = before[0].hash;
+    const parentHash = before[1].hash;
+
+    await uncommitHead(headHash, { cwd: repoDir });
+
+    const after = await getCommitLog(repoDir, 5);
+    // 提交数减一，HEAD 指向父提交
+    expect(after.length).toBe(before.length - 1);
+    expect(after[0].hash).toBe(parentHash);
+
+    // 改动保留在暂存区（reset --soft 语义）
+    const status = await getStatus({ cwd: repoDir });
+    expect(status.hasChanges).toBe(true);
+    expect(status.hasStagedChanges).toBe(true);
+  });
+
+  it('uncommitHead 对非 HEAD 提交应抛出明确错误', async () => {
+    const commits = await getCommitLog(repoDir, 5);
+    const oldHash = commits[1].hash;
+
+    await expect(uncommitHead(oldHash, { cwd: repoDir })).rejects.toThrow(/只能撤销当前分支的最新提交/);
+  });
+
+  it('uncommitHead 在工作区不干净时应拒绝执行', async () => {
+    const commits = await getCommitLog(repoDir, 1);
+    writeFileSync(join(repoDir, 'dirty.txt'), 'dirty\n');
+    await git(['add', '.'], repoDir);
+
+    await expect(uncommitHead(commits[0].hash, { cwd: repoDir })).rejects.toThrow(/工作区有未提交的改动/);
+
+    // 清理，避免影响后续用例
+    await git(['reset', '--hard', 'HEAD'], repoDir);
+    await git(['clean', '-fd'], repoDir);
+  });
+
+  it('rewordCommit 应更新 HEAD 提交信息', async () => {
+    const commits = await getCommitLog(repoDir, 1);
+    await rewordCommit(commits[0].hash, '改写后的提交信息', { cwd: repoDir });
+
+    const after = await getCommitLog(repoDir, 1);
+    expect(after[0].message).toBe('改写后的提交信息');
+  });
+
+  it('dropCommit 应删除 HEAD 提交并保留改动', async () => {
+    const before = await getCommitLog(repoDir, 5);
+    const headHash = before[0].hash;
+
+    await dropCommit(headHash, { cwd: repoDir });
+
+    const after = await getCommitLog(repoDir, 5);
+    expect(after.length).toBe(before.length - 1);
+    expect(after.some(c => c.hash === headHash)).toBe(false);
+
+    await git(['reset', '--hard', 'HEAD'], repoDir);
+    await git(['clean', '-fd'], repoDir);
   });
 });

@@ -11,7 +11,8 @@
     "test": "vitest",
     "mutation": "stryker run",
     "lint": "eslint . --ext .ts,.vue",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "test:blackbox": "pnpm --filter git-manager run test:blackbox"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
