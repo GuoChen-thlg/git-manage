@@ -15,19 +15,19 @@ import { getIcon } from '../icons';
 /** 12 个图标的 key 顺序（对齐 IDEA 分支面板工具栏） */
 const KEYS = [
   'newBranch', 'refresh', 'delete', 'compare', 'search', 'fetch',
-  'favorite', 'locate', 'settings', 'expandAll', 'collapseAll', 'close',
+  'favorite', 'locate', 'settings', 'expandAll', 'collapseAll',
 ];
 
 /** 简体中文 tooltip */
 const TITLES_ZH = [
   '新建分支', '更新所选', '删除分支', '与当前分支比较', '只显示我的分支', '获取远程更新',
-  '收藏', '在 Git 日志中定位', '设置', '展开全部', '折叠全部', '关闭',
+  '收藏', '在 Git 日志中定位', '设置', '展开全部', '折叠全部',
 ];
 
 /** 英文 tooltip */
 const TITLES_EN = [
   'New Branch', 'Update Selected', 'Delete Branch', 'Compare with Current', 'Show My Branches', 'Fetch',
-  'Favorite', 'Select in Git Log', 'Settings', 'Expand All', 'Collapse All', 'Close',
+  'Favorite', 'Select in Git Log', 'Settings', 'Expand All', 'Collapse All',
 ];
 
 /** 每个 key 对应的 handler 键 */
@@ -43,7 +43,6 @@ const HANDLER_OF: Record<string, keyof SidebarHandlers> = {
   settings: 'onSettings',
   expandAll: 'onExpandAll',
   collapseAll: 'onCollapseAll',
-  close: 'onClose',
 };
 
 describe('sidebar', () => {
@@ -81,7 +80,6 @@ describe('sidebar', () => {
       onSettings: vi.fn(),
       onExpandAll: vi.fn(),
       onCollapseAll: vi.fn(),
-      onClose: vi.fn(),
     };
   });
 
@@ -123,11 +121,11 @@ describe('sidebar', () => {
     return [...svg.matchAll(/\s(?:d|points)="([^"]*)"/g)].map(m => m[1]);
   }
 
-  it('应该按约定顺序渲染 12 个图标按钮与简体中文 tooltip', () => {
+  it('应该按约定顺序渲染 11 个图标按钮与简体中文 tooltip', () => {
     createBar();
 
     const nodes = container.querySelectorAll('[data-sidebar]');
-    expect(nodes.length).toBe(12);
+    expect(nodes.length).toBe(11);
     expect([...nodes].map(n => n.getAttribute('data-sidebar'))).toEqual(KEYS);
     expect([...nodes].map(n => n.getAttribute('title'))).toEqual(TITLES_ZH);
   });
@@ -163,8 +161,8 @@ describe('sidebar', () => {
       called.add(handlerKey);
     }
 
-    // 12 个 handler 全部被逐一触发过
-    expect(called.size).toBe(12);
+    // 11 个 handler 全部被逐一触发过
+    expect(called.size).toBe(11);
   });
 
   it('设置按钮应该把 MouseEvent 透传给 onSettings', () => {
@@ -260,13 +258,13 @@ describe('sidebar', () => {
 
     expect(container.querySelector('.stale')).toBeNull();
     expect(container.querySelector('p')).toBeNull();
-    // 恰好 12 个按钮子节点，没有任何多余文本节点
-    expect(container.childNodes.length).toBe(12);
+    // 恰好 11 个按钮子节点，没有任何多余文本节点
+    expect(container.childNodes.length).toBe(11);
     // 按钮模板自带缩进空白，去空白后容器内不应残留任何文字
     expect(container.textContent?.replace(/\s+/g, '')).toBe('');
   });
 
-  it('setLocale(en) 后 12 个按钮应该显示英文 tooltip', () => {
+  it('setLocale(en) 后 11 个按钮应该显示英文 tooltip', () => {
     setLocale('en');
 
     createBar();
@@ -275,7 +273,7 @@ describe('sidebar', () => {
     expect([...nodes].map(n => n.getAttribute('title'))).toEqual(TITLES_EN);
   });
 
-  it('逐个 hover 应该在 12 个按钮上精确切换背景色', () => {
+  it('逐个 hover 应该在 11 个按钮上精确切换背景色', () => {
     createBar();
 
     for (const key of KEYS) {

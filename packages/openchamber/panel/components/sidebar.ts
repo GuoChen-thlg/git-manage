@@ -1,6 +1,6 @@
 /**
  * 左侧图标工具栏组件
- * 40px 宽 IntelliJ 风格图标栏，渲染 12 个 Git 快捷操作按钮
+ * 40px 宽 IntelliJ 风格图标栏，渲染 Git 快捷操作按钮
  * 图标顺序沿用原 main.ts createSidebar，首个按钮文案与箭头方向随 branchPanelHidden 动态切换
  */
 
@@ -33,8 +33,6 @@ export interface SidebarHandlers {
   onExpandAll: () => void;
   /** 折叠分支面板全部分组 */
   onCollapseAll: () => void;
-  /** 关闭面板 */
-  onClose: () => void;
 }
 
 /** 图标项定义 */
@@ -62,7 +60,7 @@ const ACTIVE_BG = '#2e4a6e';
 const BUTTON_STYLE =
   'width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; color: #6E6E6E;';
 
-/** 12 个图标项（顺序固定） */
+/** 侧栏图标项（顺序对齐 IDEA 分支面板工具栏） */
 const ITEMS: readonly SidebarItem[] = [
   // 顺序对齐 IDEA 分支面板工具栏（createActionGroup）
   { key: 'newBranch', icon: 'newBranch', titleKey: 'sidebar.newBranch', handler: 'onNewBranch' },
@@ -76,13 +74,12 @@ const ITEMS: readonly SidebarItem[] = [
   { key: 'settings', icon: 'settings', titleKey: 'sidebar.settings', handler: 'onSettings' },
   { key: 'expandAll', icon: 'expandAll', titleKey: 'sidebar.expandAll', handler: 'onExpandAll' },
   { key: 'collapseAll', icon: 'collapseAll', titleKey: 'sidebar.collapseAll', handler: 'onCollapseAll' },
-  { key: 'close', icon: 'close', titleKey: 'sidebar.close', handler: 'onClose' },
 ];
 
 /**
  * 创建左侧图标工具栏
  * @param container 侧边栏挂载容器（会被设为 40px 图标栏并清空旧内容）
- * @param handlers 12 个图标按钮的点击处理器
+ * @param handlers 图标按钮的点击处理器
  * @returns 可复用对象：dispose 取消状态订阅并清空容器
  */
 export function createSidebar(
