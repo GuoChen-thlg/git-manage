@@ -184,7 +184,7 @@ export function createBranchPanel(
     // 订阅状态字段，变化时局部更新分支列表
     if (unsubscribe) unsubscribe();
     unsubscribe = subscribeFields(
-      ['branches', 'branchFilter', 'favorites', 'selectedBranch'],
+      ['branches', 'branchFilter', 'favorites', 'selectedBranch', 'showOnlyMyBranches', 'myBranches'],
       () => {
         if (!disposed) renderList();
       }
@@ -197,6 +197,10 @@ export function createBranchPanel(
     listContainer.innerHTML = '';
 
     const filteredBranches = state.branches.filter(branch => {
+      // 只显示我的分支：远程分支与当前作者无关，一并过滤
+      if (state.showOnlyMyBranches && (branch.isRemote || !state.myBranches.has(branch.name))) {
+        return false;
+      }
       if (!state.branchFilter) return true;
       return branch.name.toLowerCase().includes(state.branchFilter.toLowerCase());
     });

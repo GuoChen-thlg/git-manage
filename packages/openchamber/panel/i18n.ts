@@ -179,6 +179,8 @@ const en: Record<string, string> = {
   'compare.identical': 'Branches are identical',
   'compare.sameBranch': 'Select two different branches',
   'compare.tooMany': 'Select at most two branches to compare',
+  'sidebar.showMyBranches': 'Show My Branches',
+  'sidebar.myBranchesFailed': 'Failed to load my branches',
 };
 
 /** 简体中文 */
@@ -351,6 +353,8 @@ const zhCN: Record<string, string> = {
   'compare.identical': '两个分支没有差异',
   'compare.sameBranch': '请选择两个不同的分支',
   'compare.tooMany': '最多选择两个分支进行比较',
+  'sidebar.showMyBranches': '只显示我的分支',
+  'sidebar.myBranchesFailed': '加载我的分支失败',
 };
 
 /** 繁体中文 */
@@ -523,6 +527,8 @@ const zhTW: Record<string, string> = {
   'compare.identical': '兩個分支沒有差異',
   'compare.sameBranch': '請選擇兩個不同的分支',
   'compare.tooMany': '最多選擇兩個分支進行比較',
+  'sidebar.showMyBranches': '只顯示我的分支',
+  'sidebar.myBranchesFailed': '載入我的分支失敗',
 };
 
 /** 德语 */
@@ -695,6 +701,8 @@ const de: Record<string, string> = {
   'compare.identical': 'Branches sind identisch',
   'compare.sameBranch': 'Bitte zwei unterschiedliche Branches wählen',
   'compare.tooMany': 'Höchstens zwei Branches zum Vergleichen auswählen',
+  'sidebar.showMyBranches': 'Nur meine Branches zeigen',
+  'sidebar.myBranchesFailed': 'Meine Branches konnten nicht geladen werden',
 };
 
 /** 法语 */
@@ -867,6 +875,8 @@ const fr: Record<string, string> = {
   'compare.identical': 'Les branches sont identiques',
   'compare.sameBranch': 'Sélectionnez deux branches différentes',
   'compare.tooMany': 'Sélectionnez au plus deux branches à comparer',
+  'sidebar.showMyBranches': 'Afficher mes branches',
+  'sidebar.myBranchesFailed': 'Échec du chargement de mes branches',
 };
 
 /** 乌克兰语 */
@@ -1039,6 +1049,8 @@ const uk: Record<string, string> = {
   'compare.identical': 'Гілки однакові',
   'compare.sameBranch': 'Виберіть дві різні гілки',
   'compare.tooMany': 'Виберіть щонайбільше дві гілки для порівняння',
+  'sidebar.showMyBranches': 'Показати мої гілки',
+  'sidebar.myBranchesFailed': 'Не вдалося завантажити мої гілки',
 };
 
 /** 西班牙语 */
@@ -1211,6 +1223,8 @@ const es: Record<string, string> = {
   'compare.identical': 'Las ramas son idénticas',
   'compare.sameBranch': 'Seleccione dos ramas diferentes',
   'compare.tooMany': 'Seleccione como máximo dos ramas para comparar',
+  'sidebar.showMyBranches': 'Mostrar mis ramas',
+  'sidebar.myBranchesFailed': 'Error al cargar mis ramas',
 };
 
 /** 巴西葡萄牙语 */
@@ -1383,6 +1397,8 @@ const ptBR: Record<string, string> = {
   'compare.identical': 'Os branches são idênticos',
   'compare.sameBranch': 'Selecione dois branches diferentes',
   'compare.tooMany': 'Selecione no máximo dois branches para comparar',
+  'sidebar.showMyBranches': 'Mostrar meus branches',
+  'sidebar.myBranchesFailed': 'Falha ao carregar meus branches',
 };
 
 /** 韩语 */
@@ -1555,6 +1571,8 @@ const ko: Record<string, string> = {
   'compare.identical': '두 브랜치가 동일합니다',
   'compare.sameBranch': '서로 다른 브랜치 두 개를 선택하세요',
   'compare.tooMany': '비교할 브랜치는 최대 두 개까지 선택할 수 있습니다',
+  'sidebar.showMyBranches': '내 브랜치만 표시',
+  'sidebar.myBranchesFailed': '내 브랜치를 불러오지 못했습니다',
 };
 
 /** 波兰语 */
@@ -1727,6 +1745,8 @@ const pl: Record<string, string> = {
   'compare.identical': 'Gałęzie są identyczne',
   'compare.sameBranch': 'Wybierz dwie różne gałęzie',
   'compare.tooMany': 'Wybierz najwyżej dwie gałęzie do porównania',
+  'sidebar.showMyBranches': 'Pokaż moje gałęzie',
+  'sidebar.myBranchesFailed': 'Nie udało się wczytać moich gałęzi',
 };
 
 /** 日语 */
@@ -1899,6 +1919,8 @@ const ja: Record<string, string> = {
   'compare.identical': 'ブランチに差異はありません',
   'compare.sameBranch': '異なる 2 つのブランチを選択してください',
   'compare.tooMany': '比較できるブランチは最大 2 つです',
+  'sidebar.showMyBranches': '自分のブランチのみ表示',
+  'sidebar.myBranchesFailed': '自分のブランチを読み込めませんでした',
 };
 
 /** 土耳其语 */
@@ -2071,6 +2093,8 @@ const tr: Record<string, string> = {
   'compare.identical': 'Dallar aynı',
   'compare.sameBranch': 'İki farklı dal seçin',
   'compare.tooMany': 'Karşılaştırmak için en fazla iki dal seçin',
+  'sidebar.showMyBranches': 'Yalnızca kendi dallarımı göster',
+  'sidebar.myBranchesFailed': 'Kendi dallarım yüklenemedi',
 };
 
 /** 全部语言字典（导出用于测试完整性校验） */

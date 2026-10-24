@@ -22,7 +22,8 @@ export interface SidebarHandlers {
   /** 与当前分支比较 */
   onCompareBranch: () => void;
   /** 聚焦提交搜索框 */
-  onSearch: () => void;
+  /** 切换「只显示我的分支」筛选 */
+  onToggleMyBranches: () => void;
   /** 收藏/取消收藏目标分支 */
   onFavorite: () => void;
   /** 打开显示设置菜单（接收触发事件定位菜单） */
@@ -66,7 +67,7 @@ const ITEMS: readonly SidebarItem[] = [
   { key: 'refresh', icon: 'updateSelected', titleKey: 'sidebar.update', handler: 'onRefresh' },
   { key: 'delete', icon: 'deleteBranch', titleKey: 'sidebar.deleteBranch', handler: 'onDeleteBranch' },
   { key: 'compare', icon: 'compareBranch', titleKey: 'sidebar.compareBranch', handler: 'onCompareBranch' },
-  { key: 'search', icon: 'search', titleKey: 'sidebar.search', handler: 'onSearch' },
+  { key: 'search', icon: 'search', titleKey: 'sidebar.showMyBranches', handler: 'onToggleMyBranches' },
   { key: 'favorite', icon: 'favorite', titleKey: 'sidebar.favorite', handler: 'onFavorite' },
   { key: 'settings', icon: 'settings', titleKey: 'sidebar.settings', handler: 'onSettings' },
   { key: 'pull', icon: 'pull', titleKey: 'sidebar.pull', handler: 'onPull' },

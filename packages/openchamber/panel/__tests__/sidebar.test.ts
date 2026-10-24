@@ -20,13 +20,13 @@ const KEYS = [
 
 /** 简体中文 tooltip（branchPanelHidden=false 初始态） */
 const TITLES_ZH = [
-  '隐藏 Git 分支', '新建分支', '更新所选', '删除分支', '与当前分支比较', '搜索',
+  '隐藏 Git 分支', '新建分支', '更新所选', '删除分支', '与当前分支比较', '只显示我的分支',
   '收藏', '设置', '拉取', '展开全部', '排序', '关闭',
 ];
 
 /** 英文 tooltip（branchPanelHidden=false 初始态） */
 const TITLES_EN = [
-  'Hide Git Branches', 'New Branch', 'Update Selected', 'Delete Branch', 'Compare with Current', 'Search',
+  'Hide Git Branches', 'New Branch', 'Update Selected', 'Delete Branch', 'Compare with Current', 'Show My Branches',
   'Favorite', 'Settings', 'Pull', 'Expand All', 'Sort', 'Close',
 ];
 
@@ -37,7 +37,7 @@ const HANDLER_OF: Record<string, keyof SidebarHandlers> = {
   refresh: 'onRefresh',
   delete: 'onDeleteBranch',
   compare: 'onCompareBranch',
-  search: 'onSearch',
+  search: 'onToggleMyBranches',
   favorite: 'onFavorite',
   settings: 'onSettings',
   pull: 'onPull',
@@ -65,7 +65,7 @@ describe('sidebar', () => {
       onRefresh: vi.fn(),
       onDeleteBranch: vi.fn(),
       onCompareBranch: vi.fn(),
-      onSearch: vi.fn(),
+      onToggleMyBranches: vi.fn(),
       onFavorite: vi.fn(),
       onSettings: vi.fn(),
       onPull: vi.fn(),

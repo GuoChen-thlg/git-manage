@@ -248,10 +248,7 @@ async function render(): Promise<void> {
           showCompareBranchesView(service, getDir(), getState().branches, branch.name, current);
         })();
       },
-      onSearch: () => {
-        // data-search-input 由 commit-list 搜索框提供，缺失时静默忽略
-        commitListPanel.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
-      },
+      onToggleMyBranches: () => { void toggleMyBranches(); },
       onFavorite: () => { void runSidebarFavorite(); },
       onSettings: (e) => { showSettingsMenu(e); },
       onPull: () => { void runSidebarPull(); },
@@ -458,6 +455,38 @@ async function loadBranches(): Promise<void> {
     setState(s => { s.branches = branches; });
   } catch (e) {
     console.error("[git-manager] 加载分支失败:", e);
+  }
+}
+
+/**
+ * 切换「只显示我的分支」筛选
+ * 首次开启时向服务端查询我的分支集合（独有提交全部由当前作者创作的分支），
+ * 之后复用缓存；关闭筛选只改标志位，不清缓存
+ */
+async function toggleMyBranches(): Promise<void> {
+  const next = !getState().showOnlyMyBranches;
+  console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'toggle_my_branches', enabled: next }));
+
+  if (!next) {
+    setState(s => { s.showOnlyMyBranches = false; });
+    return;
+  }
+
+  // 开启：先标记开启（空集合会短暂把所有分支过滤掉），再异步填充
+  setState(s => { s.showOnlyMyBranches = true; });
+  try {
+    const mine = await service.getMyBranches(getDir());
+    console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'my_branches_loaded', count: mine.length, names: mine }));
+    setState(s => {
+      s.myBranches = new Set(mine);
+      // 查询期间用户可能已再次点击关闭，此时不回填标志位
+    });
+  } catch (e) {
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'my_branches_error', error: String(e) }));
+    setState(s => { s.showOnlyMyBranches = false; });
+    void host.toast({ kind: 'error', message: t('sidebar.myBranchesFailed') }).catch((toastErr) => {
+      console.error(JSON.stringify({ prefix: '[sidebar]', event: 'my_branches_toast_error', error: String(toastErr) }));
+    });
   }
 }
 

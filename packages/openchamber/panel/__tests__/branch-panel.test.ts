@@ -851,6 +851,52 @@ describe('branch-panel', () => {
     setLocale('zh-CN');
   });
 
+  it('showOnlyMyBranches 开启时应该只渲染我的分支（远程分支一并隐藏）', () => {
+    setState(s => {
+      s.branches = makeBranches();
+      s.showOnlyMyBranches = true;
+      s.myBranches = new Set(['main', 'develop']);
+    });
+    createPanel();
+
+    // 我的本地分支可见
+    expect(branchItem('main')).toBeTruthy();
+    expect(branchItem('develop')).toBeTruthy();
+    // 非我的本地分支被隐藏
+    expect(branchItem('feature/login')).toBeNull();
+    // 远程分支不参与我的分支判断，一律隐藏
+    expect(branchItem('origin/main')).toBeNull();
+  });
+
+  it('收藏分支但不在我的分支集合内时，开启筛选后也应隐藏', () => {
+    setState(s => {
+      s.branches = makeBranches();
+      s.favorites = new Set(['feature/login']);
+      s.showOnlyMyBranches = true;
+      s.myBranches = new Set(['develop']);
+    });
+    createPanel();
+
+    expect(branchItem('develop')).toBeTruthy();
+    expect(branchItem('feature/login')).toBeNull();
+  });
+
+  it('关闭筛选后应该恢复显示全部分支', () => {
+    setState(s => {
+      s.branches = makeBranches();
+      s.showOnlyMyBranches = true;
+      s.myBranches = new Set(['develop']);
+    });
+    createPanel();
+    expect(branchItem('main')).toBeNull();
+
+    // 关闭筛选：订阅应触发重渲染，全部分支恢复
+    // 断言默认展开分组内的分支（feature/login 在折叠的文件夹分组内，不可见属正常）
+    setState(s => { s.showOnlyMyBranches = false; });
+    expect(branchItem('main')).toBeTruthy();
+    expect(branchItem('develop')).toBeTruthy();
+  });
+
   it('expandAll 应输出含精确分组计数的 expand_all 日志（文件夹 key 只取首段、根分支不入集合）', () => {
     setState(s => {
       s.branches = [

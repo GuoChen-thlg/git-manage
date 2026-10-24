@@ -413,3 +413,67 @@ export async function getBranchDiff(
   const result = await gitExecStrict(`diff --name-only ${base}...${branch}`, options);
   return result.stdout ? result.stdout.split('\n').filter(Boolean) : [];
 }
+
+/**
+ * 获取当前 Git 作者的名称与邮箱（git config user.name / user.email）
+ * @param options - Git 命令选项
+ * @returns 作者信息；未配置时对应字段为空字符串
+ */
+export async function getCurrentAuthor(
+  options: GitCommandOptions
+): Promise<{ name: string; email: string }> {
+  const name = await gitExec('config user.name', options).catch(() => null);
+  const email = await gitExec('config user.email', options).catch(() => null);
+  return {
+    name: (name?.stdout ?? '').trim(),
+    email: (email?.stdout ?? '').trim(),
+  };
+}
+
+/**
+ * 找出「我的分支」：分支的独有提交全部由当前作者创作，且至少有一条独有提交
+ * 独有提交指该分支有、而其他本地分支都没有的提交（对齐 IDEA Show My Branches 语义）
+ * @param options - Git 命令选项
+ * @returns 属于当前作者的分支名列表（含当前分支）；无法确定作者时返回空数组
+ */
+export async function findMyBranches(options: GitCommandOptions): Promise<string[]> {
+  const author = await getCurrentAuthor(options);
+  if (!author.email && !author.name) return [];
+
+  // 本地分支列表（--format 输出每行一个分支名）
+  const branchResult = await gitExec('branch --format=%(refname:short)', options);
+  const branches = (branchResult.stdout ?? '').split('\n').map(b => b.trim()).filter(Boolean);
+  if (branches.length === 0) return [];
+
+  const result: string[] = [];
+
+  for (const branch of branches) {
+    // 该分支相对其他分支的独有提交（左闭右开：其他分支...分支）
+    // 用 --not 排除所有其他本地分支，得到仅存在于该分支的提交
+    const others = branches.filter(b => b !== branch);
+    // gitExec 数组形式不经 shell，分支名原样作为参数，无需转义
+    const logArgs = ['log', '--format=%ae%n%an', branch];
+    if (others.length > 0) logArgs.push('--not', ...others);
+    const logResult = await gitExec(logArgs, options).catch(() => null);
+    if (!logResult) continue;
+
+    const lines = (logResult.stdout ?? '').split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue; // 无独有提交 → 不算我的分支
+
+    // 每两条为一次提交：邮箱、名称
+    let allMine = true;
+    for (let i = 0; i < lines.length; i += 2) {
+      const email = lines[i] ?? '';
+      const name = lines[i + 1] ?? '';
+      const emailMatch = author.email && email.toLowerCase() === author.email.toLowerCase();
+      const nameMatch = author.name && name === author.name;
+      if (!emailMatch && !nameMatch) {
+        allMine = false;
+        break;
+      }
+    }
+    if (allMine) result.push(branch);
+  }
+
+  return result;
+}

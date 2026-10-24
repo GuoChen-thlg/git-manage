@@ -72,6 +72,10 @@ export interface PanelState {
   selectedBranch: Branch | null;
   /** 多选分支名集合（Cmd/Ctrl 点击累加，用于两分支比较；不可变替换） */
   selectedBranches: Set<string>;
+  /** 是否只显示我的分支（分支独有提交全部由当前作者创作） */
+  showOnlyMyBranches: boolean;
+  /** 我的分支名集合（按需异步计算，未启用筛选时为空） */
+  myBranches: Set<string>;
   commitDetail: CommitInfo | null;
   diffs: FileDiff[];
   gitStatus: GitStatusResult | null;
@@ -107,6 +111,8 @@ export function createInitialState(): PanelState {
     selectedCommits: new Set<string>(),
     selectedBranch: null,
     selectedBranches: new Set<string>(),
+    showOnlyMyBranches: false,
+    myBranches: new Set<string>(),
     commitDetail: null,
     diffs: [],
     gitStatus: null,

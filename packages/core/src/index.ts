@@ -27,6 +27,8 @@ export {
   rebaseAbort,
   rebaseContinue,
   getBranchDiff,
+  getCurrentAuthor,
+  findMyBranches,
 } from './git/branches.js';
 
 // 暂存区管理

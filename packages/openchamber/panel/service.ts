@@ -74,6 +74,11 @@ export function createServiceClient(host: HostClient) {
 
   // ── 分支相关 API ──
 
+  /** 获取「我的分支」（独有提交全部由当前作者创作的分支） */
+  async function getMyBranches(directory: string) {
+    return serviceCall<string[]>('git-my-branches', { directory });
+  }
+
   /** 获取分支列表 */
   async function getBranches(directory: string) {
     return serviceCall<{ name: string; isCurrent: boolean; isRemote: boolean; commit?: string; message?: string }[]>(
@@ -312,6 +317,7 @@ export function createServiceClient(host: HostClient) {
     serviceCall,
     safeServiceCall,
     getBranches,
+    getMyBranches,
     checkoutBranch,
     mergeBranch,
     deleteBranch,
