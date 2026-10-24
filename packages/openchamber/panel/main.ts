@@ -174,9 +174,9 @@ async function render(): Promise<void> {
         void performBranchDelete(service, getDir(), branch);
       },
       onCompareBranch: () => {
-        // 选中分支按名字从最新 branches 数组取：selectedBranch 可能是刷新前的旧对象快照，
-        // 其 isCurrent 等字段会过期，直接用会导致误判
+        // 分支来源优先级：Cmd 多选的两个分支 > 单选分支 + 当前分支
         const state = getState();
+        const multi = [...state.selectedBranches];
         const selectedName = state.selectedBranch?.name ?? null;
         const branch = selectedName
           ? state.branches.find(b => b.name === selectedName) ?? state.selectedBranch
@@ -185,11 +185,26 @@ async function render(): Promise<void> {
           prefix: '[sidebar]',
           event: 'compare_branch_click',
           selectedName,
-          resolvedName: branch?.name ?? null,
+          multiSelected: multi,
           branchCount: state.branches.length,
           branchesWithIsCurrent: state.branches.filter(b => b.isCurrent).map(b => b.name),
           logBranch: state.logBranch,
         }));
+
+        // 已多选两个分支：直接比较这两个，不再依赖当前分支
+        if (multi.length === 2) {
+          const [left, right] = multi;
+          void service.debugLog('compare-branch-open', { left, right, via: 'multi' });
+          showCompareBranchesView(service, getDir(), getState().branches, left, right);
+          return;
+        }
+        if (multi.length > 2) {
+          void host.toast({ kind: 'error', message: t('compare.tooMany') }).catch((toastErr) => {
+            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));
+          });
+          return;
+        }
+
         if (!branch) {
           void host.toast({ kind: 'error', message: t('compare.selectBranch') }).catch((toastErr) => {
             console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));

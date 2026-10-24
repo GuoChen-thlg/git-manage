@@ -22,6 +22,7 @@ import { ServiceClient } from '../service';
 import { t, getLang } from '../i18n';
 import { getIcon } from '../icons';
 import { showDropdownMenu } from './dropdown-menu';
+import { createDiffLine } from './file-diff';
 
 /** 视图关闭时的清理句柄 */
 export interface CompareViewHandle {
@@ -172,7 +173,7 @@ export function showCompareBranchesView(
             </div>
           </div>
 
-          <!-- 右：选中提交的详情与变更文件 -->
+          <!-- 右：选中提交的详情 + 变更文件 + 具体 diff -->
           <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
             <div id="compare-detail" style="flex: 1; overflow-y: auto; padding: 8px; font-size: 12px;">
               <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #888;">${t('commit.noSelection')}</div>
@@ -217,12 +218,15 @@ export function showCompareBranchesView(
 
   /**
    * 渲染提交详情与变更文件到右侧面板
+   * 点击文件行会在其下方展开该文件的具体改动（逐行 diff）
    * @param commit 提交
    * @param detail 提交详情（可为空）
    * @param diffs 变更文件列表
    */
   const renderDetail = (commit: CommitInfo, detail: CommitInfo | null, diffs: FileDiff[]): void => {
     detailEl.innerHTML = '';
+    /** 当前展开的文件路径（null 表示全部收起） */
+    let expandedPath: string | null = null;
 
     const head = document.createElement('div');
     head.style.cssText = 'margin-bottom: 8px;';
@@ -266,7 +270,13 @@ export function showCompareBranchesView(
 
     for (const diff of diffs) {
       const row = document.createElement('div');
-      row.style.cssText = 'display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 11px;';
+      row.dataset.comparePath = diff.path;
+      row.style.cssText = 'display: flex; align-items: center; gap: 6px; padding: 2px 4px; font-size: 11px; cursor: pointer; border-radius: 2px;';
+
+      const caret = document.createElement('span');
+      caret.style.cssText = 'color: #888; width: 10px; flex-shrink: 0;';
+      caret.textContent = expandedPath === diff.path ? '▾' : '▸';
+      row.appendChild(caret);
 
       const pathEl = document.createElement('span');
       pathEl.style.cssText = 'flex: 1; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
@@ -284,7 +294,36 @@ export function showCompareBranchesView(
       delEl.textContent = `-${diff.deletions}`;
       row.appendChild(delEl);
 
-      detailEl.appendChild(row);
+      // 文件展开区：点击文件行切换展开，逐行渲染该文件改动
+      const content = document.createElement('div');
+      content.dataset.compareDiff = diff.path;
+      content.style.cssText = 'display: none; font-family: monospace; font-size: 11px; background: #1e1e1e; border: 1px solid #333; border-radius: 3px; margin: 2px 0 6px 14px; overflow-x: auto;';
+
+      row.addEventListener('click', () => {
+        const willExpand = expandedPath !== diff.path;
+        expandedPath = willExpand ? diff.path : null;
+        caret.textContent = willExpand ? '▾' : '▸';
+        row.style.background = willExpand ? '#2a3a4a' : 'transparent';
+
+        if (willExpand) {
+          content.innerHTML = '';
+          if (!diff.lines || diff.lines.length === 0) {
+            const noDiff = document.createElement('div');
+            noDiff.style.cssText = 'padding: 6px; color: #888;';
+            noDiff.textContent = t('file.noDiff');
+            content.appendChild(noDiff);
+          } else {
+            for (const line of diff.lines) content.appendChild(createDiffLine(line));
+          }
+          content.style.display = 'block';
+        } else {
+          content.style.display = 'none';
+        }
+      });
+
+      const wrapper = document.createElement('div');
+      wrapper.append(row, content);
+      detailEl.appendChild(wrapper);
     }
 
     // detail 字段（父提交等）存在时补充展示，便于定位提交关系

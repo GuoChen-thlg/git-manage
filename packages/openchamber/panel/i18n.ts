@@ -178,6 +178,7 @@ const en: Record<string, string> = {
   'compare.with': 'with',
   'compare.identical': 'Branches are identical',
   'compare.sameBranch': 'Select two different branches',
+  'compare.tooMany': 'Select at most two branches to compare',
 };
 
 /** 简体中文 */
@@ -349,6 +350,7 @@ const zhCN: Record<string, string> = {
   'compare.with': '与',
   'compare.identical': '两个分支没有差异',
   'compare.sameBranch': '请选择两个不同的分支',
+  'compare.tooMany': '最多选择两个分支进行比较',
 };
 
 /** 繁体中文 */
@@ -520,6 +522,7 @@ const zhTW: Record<string, string> = {
   'compare.with': '與',
   'compare.identical': '兩個分支沒有差異',
   'compare.sameBranch': '請選擇兩個不同的分支',
+  'compare.tooMany': '最多選擇兩個分支進行比較',
 };
 
 /** 德语 */
@@ -691,6 +694,7 @@ const de: Record<string, string> = {
   'compare.with': 'mit',
   'compare.identical': 'Branches sind identisch',
   'compare.sameBranch': 'Bitte zwei unterschiedliche Branches wählen',
+  'compare.tooMany': 'Höchstens zwei Branches zum Vergleichen auswählen',
 };
 
 /** 法语 */
@@ -862,6 +866,7 @@ const fr: Record<string, string> = {
   'compare.with': 'avec',
   'compare.identical': 'Les branches sont identiques',
   'compare.sameBranch': 'Sélectionnez deux branches différentes',
+  'compare.tooMany': 'Sélectionnez au plus deux branches à comparer',
 };
 
 /** 乌克兰语 */
@@ -1033,6 +1038,7 @@ const uk: Record<string, string> = {
   'compare.with': 'з',
   'compare.identical': 'Гілки однакові',
   'compare.sameBranch': 'Виберіть дві різні гілки',
+  'compare.tooMany': 'Виберіть щонайбільше дві гілки для порівняння',
 };
 
 /** 西班牙语 */
@@ -1204,6 +1210,7 @@ const es: Record<string, string> = {
   'compare.with': 'con',
   'compare.identical': 'Las ramas son idénticas',
   'compare.sameBranch': 'Seleccione dos ramas diferentes',
+  'compare.tooMany': 'Seleccione como máximo dos ramas para comparar',
 };
 
 /** 巴西葡萄牙语 */
@@ -1375,6 +1382,7 @@ const ptBR: Record<string, string> = {
   'compare.with': 'com',
   'compare.identical': 'Os branches são idênticos',
   'compare.sameBranch': 'Selecione dois branches diferentes',
+  'compare.tooMany': 'Selecione no máximo dois branches para comparar',
 };
 
 /** 韩语 */
@@ -1546,6 +1554,7 @@ const ko: Record<string, string> = {
   'compare.with': '와',
   'compare.identical': '두 브랜치가 동일합니다',
   'compare.sameBranch': '서로 다른 브랜치 두 개를 선택하세요',
+  'compare.tooMany': '비교할 브랜치는 최대 두 개까지 선택할 수 있습니다',
 };
 
 /** 波兰语 */
@@ -1717,6 +1726,7 @@ const pl: Record<string, string> = {
   'compare.with': 'z',
   'compare.identical': 'Gałęzie są identyczne',
   'compare.sameBranch': 'Wybierz dwie różne gałęzie',
+  'compare.tooMany': 'Wybierz najwyżej dwie gałęzie do porównania',
 };
 
 /** 日语 */
@@ -1888,6 +1898,7 @@ const ja: Record<string, string> = {
   'compare.with': 'と',
   'compare.identical': 'ブランチに差異はありません',
   'compare.sameBranch': '異なる 2 つのブランチを選択してください',
+  'compare.tooMany': '比較できるブランチは最大 2 つです',
 };
 
 /** 土耳其语 */
@@ -2059,6 +2070,7 @@ const tr: Record<string, string> = {
   'compare.with': 'ile',
   'compare.identical': 'Dallar aynı',
   'compare.sameBranch': 'İki farklı dal seçin',
+  'compare.tooMany': 'Karşılaştırmak için en fazla iki dal seçin',
 };
 
 /** 全部语言字典（导出用于测试完整性校验） */

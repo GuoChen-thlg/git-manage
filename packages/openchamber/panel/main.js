@@ -1296,6 +1296,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       selectedCommit: null,
       selectedCommits: /* @__PURE__ */ new Set(),
       selectedBranch: null,
+      selectedBranches: /* @__PURE__ */ new Set(),
       commitDetail: null,
       diffs: [],
       gitStatus: null,
@@ -1539,7 +1540,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "Current branch not loaded yet, please retry",
     "compare.with": "with",
     "compare.identical": "Branches are identical",
-    "compare.sameBranch": "Select two different branches"
+    "compare.sameBranch": "Select two different branches",
+    "compare.tooMany": "Select at most two branches to compare"
   };
   var zhCN = {
     "branch.checkout": "\u7B7E\u51FA\u5206\u652F",
@@ -1708,7 +1710,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "\u5F53\u524D\u5206\u652F\u5C1A\u672A\u52A0\u8F7D\u5B8C\u6210\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5",
     "compare.with": "\u4E0E",
     "compare.identical": "\u4E24\u4E2A\u5206\u652F\u6CA1\u6709\u5DEE\u5F02",
-    "compare.sameBranch": "\u8BF7\u9009\u62E9\u4E24\u4E2A\u4E0D\u540C\u7684\u5206\u652F"
+    "compare.sameBranch": "\u8BF7\u9009\u62E9\u4E24\u4E2A\u4E0D\u540C\u7684\u5206\u652F",
+    "compare.tooMany": "\u6700\u591A\u9009\u62E9\u4E24\u4E2A\u5206\u652F\u8FDB\u884C\u6BD4\u8F83"
   };
   var zhTW = {
     "branch.checkout": "\u7C3D\u51FA\u5206\u652F",
@@ -1877,7 +1880,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "\u76EE\u524D\u5206\u652F\u5C1A\u672A\u8F09\u5165\u5B8C\u6210\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66",
     "compare.with": "\u8207",
     "compare.identical": "\u5169\u500B\u5206\u652F\u6C92\u6709\u5DEE\u7570",
-    "compare.sameBranch": "\u8ACB\u9078\u64C7\u5169\u500B\u4E0D\u540C\u7684\u5206\u652F"
+    "compare.sameBranch": "\u8ACB\u9078\u64C7\u5169\u500B\u4E0D\u540C\u7684\u5206\u652F",
+    "compare.tooMany": "\u6700\u591A\u9078\u64C7\u5169\u500B\u5206\u652F\u9032\u884C\u6BD4\u8F03"
   };
   var de = {
     "branch.checkout": "Branch auschecken",
@@ -2046,7 +2050,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "Aktueller Branch noch nicht geladen, bitte erneut versuchen",
     "compare.with": "mit",
     "compare.identical": "Branches sind identisch",
-    "compare.sameBranch": "Bitte zwei unterschiedliche Branches w\xE4hlen"
+    "compare.sameBranch": "Bitte zwei unterschiedliche Branches w\xE4hlen",
+    "compare.tooMany": "H\xF6chstens zwei Branches zum Vergleichen ausw\xE4hlen"
   };
   var fr = {
     "branch.checkout": "Checkout de la branche",
@@ -2215,7 +2220,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "Branche actuelle pas encore charg\xE9e, veuillez r\xE9essayer",
     "compare.with": "avec",
     "compare.identical": "Les branches sont identiques",
-    "compare.sameBranch": "S\xE9lectionnez deux branches diff\xE9rentes"
+    "compare.sameBranch": "S\xE9lectionnez deux branches diff\xE9rentes",
+    "compare.tooMany": "S\xE9lectionnez au plus deux branches \xE0 comparer"
   };
   var uk = {
     "branch.checkout": "\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043D\u0430 \u0433\u0456\u043B\u043A\u0443",
@@ -2384,7 +2390,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "\u041F\u043E\u0442\u043E\u0447\u043D\u0443 \u0433\u0456\u043B\u043A\u0443 \u0449\u0435 \u043D\u0435 \u0437\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043E, \u0441\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u0456\u0437\u043D\u0456\u0448\u0435",
     "compare.with": "\u0437",
     "compare.identical": "\u0413\u0456\u043B\u043A\u0438 \u043E\u0434\u043D\u0430\u043A\u043E\u0432\u0456",
-    "compare.sameBranch": "\u0412\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0434\u0432\u0456 \u0440\u0456\u0437\u043D\u0456 \u0433\u0456\u043B\u043A\u0438"
+    "compare.sameBranch": "\u0412\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0434\u0432\u0456 \u0440\u0456\u0437\u043D\u0456 \u0433\u0456\u043B\u043A\u0438",
+    "compare.tooMany": "\u0412\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0449\u043E\u043D\u0430\u0439\u0431\u0456\u043B\u044C\u0448\u0435 \u0434\u0432\u0456 \u0433\u0456\u043B\u043A\u0438 \u0434\u043B\u044F \u043F\u043E\u0440\u0456\u0432\u043D\u044F\u043D\u043D\u044F"
   };
   var es = {
     "branch.checkout": "Checkout de la rama",
@@ -2553,7 +2560,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "La rama actual a\xFAn no se ha cargado, int\xE9ntelo de nuevo",
     "compare.with": "con",
     "compare.identical": "Las ramas son id\xE9nticas",
-    "compare.sameBranch": "Seleccione dos ramas diferentes"
+    "compare.sameBranch": "Seleccione dos ramas diferentes",
+    "compare.tooMany": "Seleccione como m\xE1ximo dos ramas para comparar"
   };
   var ptBR = {
     "branch.checkout": "Fazer checkout do branch",
@@ -2722,7 +2730,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "O branch atual ainda n\xE3o foi carregado, tente novamente",
     "compare.with": "com",
     "compare.identical": "Os branches s\xE3o id\xEAnticos",
-    "compare.sameBranch": "Selecione dois branches diferentes"
+    "compare.sameBranch": "Selecione dois branches diferentes",
+    "compare.tooMany": "Selecione no m\xE1ximo dois branches para comparar"
   };
   var ko = {
     "branch.checkout": "\uBE0C\uB79C\uCE58 \uCCB4\uD06C\uC544\uC6C3",
@@ -2891,7 +2900,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "\uD604\uC7AC \uBE0C\uB79C\uCE58\uAC00 \uC544\uC9C1 \uB85C\uB4DC\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694",
     "compare.with": "\uC640",
     "compare.identical": "\uB450 \uBE0C\uB79C\uCE58\uAC00 \uB3D9\uC77C\uD569\uB2C8\uB2E4",
-    "compare.sameBranch": "\uC11C\uB85C \uB2E4\uB978 \uBE0C\uB79C\uCE58 \uB450 \uAC1C\uB97C \uC120\uD0DD\uD558\uC138\uC694"
+    "compare.sameBranch": "\uC11C\uB85C \uB2E4\uB978 \uBE0C\uB79C\uCE58 \uB450 \uAC1C\uB97C \uC120\uD0DD\uD558\uC138\uC694",
+    "compare.tooMany": "\uBE44\uAD50\uD560 \uBE0C\uB79C\uCE58\uB294 \uCD5C\uB300 \uB450 \uAC1C\uAE4C\uC9C0 \uC120\uD0DD\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4"
   };
   var pl = {
     "branch.checkout": "Przejd\u017A na ga\u0142\u0105\u017A",
@@ -3060,7 +3070,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "Bie\u017C\u0105ca ga\u0142\u0105\u017A nie zosta\u0142a jeszcze wczytana, spr\xF3buj ponownie",
     "compare.with": "z",
     "compare.identical": "Ga\u0142\u0119zie s\u0105 identyczne",
-    "compare.sameBranch": "Wybierz dwie r\xF3\u017Cne ga\u0142\u0119zie"
+    "compare.sameBranch": "Wybierz dwie r\xF3\u017Cne ga\u0142\u0119zie",
+    "compare.tooMany": "Wybierz najwy\u017Cej dwie ga\u0142\u0119zie do por\xF3wnania"
   };
   var ja = {
     "branch.checkout": "\u30D6\u30E9\u30F3\u30C1\u3092\u30C1\u30A7\u30C3\u30AF\u30A2\u30A6\u30C8",
@@ -3229,7 +3240,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "\u73FE\u5728\u306E\u30D6\u30E9\u30F3\u30C1\u304C\u307E\u3060\u8AAD\u307F\u8FBC\u307E\u308C\u3066\u3044\u307E\u305B\u3093\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044",
     "compare.with": "\u3068",
     "compare.identical": "\u30D6\u30E9\u30F3\u30C1\u306B\u5DEE\u7570\u306F\u3042\u308A\u307E\u305B\u3093",
-    "compare.sameBranch": "\u7570\u306A\u308B 2 \u3064\u306E\u30D6\u30E9\u30F3\u30C1\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044"
+    "compare.sameBranch": "\u7570\u306A\u308B 2 \u3064\u306E\u30D6\u30E9\u30F3\u30C1\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044",
+    "compare.tooMany": "\u6BD4\u8F03\u3067\u304D\u308B\u30D6\u30E9\u30F3\u30C1\u306F\u6700\u5927 2 \u3064\u3067\u3059"
   };
   var tr = {
     "branch.checkout": "Dal\u0131 checkout et",
@@ -3398,7 +3410,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "compare.noCurrentBranch": "Ge\xE7erli dal hen\xFCz y\xFCklenmedi, l\xFCtfen tekrar deneyin",
     "compare.with": "ile",
     "compare.identical": "Dallar ayn\u0131",
-    "compare.sameBranch": "\u0130ki farkl\u0131 dal se\xE7in"
+    "compare.sameBranch": "\u0130ki farkl\u0131 dal se\xE7in",
+    "compare.tooMany": "Kar\u015F\u0131la\u015Ft\u0131rmak i\xE7in en fazla iki dal se\xE7in"
   };
   var dicts = {
     en,
@@ -5076,11 +5089,25 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       listContainer.addEventListener("click", (e) => {
         const branch = findBranchFromEvent(e);
         if (branch) {
+          const multi = e.metaKey || e.ctrlKey;
           console.debug(JSON.stringify({
             prefix: "[branch-panel]",
             event: "branch_click",
-            branchName: branch.name
+            branchName: branch.name,
+            multi
           }));
+          if (multi) {
+            setState((s) => {
+              const next = new Set(s.selectedBranches);
+              if (next.has(branch.name)) next.delete(branch.name);
+              else next.add(branch.name);
+              s.selectedBranches = next;
+              const names = [...next];
+              s.selectedBranch = names.length === 1 ? s.branches.find((b) => b.name === names[0]) ?? branch : null;
+            });
+            renderList();
+            return;
+          }
           try {
             console.debug(JSON.stringify({ prefix: "[branch-panel]", event: "before_on_branch_select", branchName: branch.name }));
             onBranchSelect(branch);
@@ -5090,7 +5117,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
           }
           setState((s) => {
             s.selectedBranch = s.branches.find((b) => b.name === branch.name) ?? branch;
+            s.selectedBranches = /* @__PURE__ */ new Set();
           });
+          renderList();
           return;
         }
         const groupEl = findGroupFromEvent(e);
@@ -5268,7 +5297,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     function createBranchItem(branch) {
       const state = getState();
       const isFavorite = state.favorites.has(branch.name);
-      const isSelected = state.selectedBranch?.name === branch.name;
+      const isSelected = state.selectedBranches.has(branch.name) || state.selectedBranches.size === 0 && state.selectedBranch?.name === branch.name;
       const bgStyle = isSelected ? "background: #2e4a6e;" : branch.isCurrent ? "background: #2a3a4a;" : "";
       return html`
       <div 
@@ -6881,7 +6910,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
             </div>
           </div>
 
-          <!-- 右：选中提交的详情与变更文件 -->
+          <!-- 右：选中提交的详情 + 变更文件 + 具体 diff -->
           <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
             <div id="compare-detail" style="flex: 1; overflow-y: auto; padding: 8px; font-size: 12px;">
               <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #888;">${t("commit.noSelection")}</div>
@@ -6918,6 +6947,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     });
     const renderDetail = (commit, detail, diffs) => {
       detailEl.innerHTML = "";
+      let expandedPath = null;
       const head = document.createElement("div");
       head.style.cssText = "margin-bottom: 8px;";
       const msg = document.createElement("div");
@@ -6955,7 +6985,12 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       }
       for (const diff of diffs) {
         const row = document.createElement("div");
-        row.style.cssText = "display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 11px;";
+        row.dataset.comparePath = diff.path;
+        row.style.cssText = "display: flex; align-items: center; gap: 6px; padding: 2px 4px; font-size: 11px; cursor: pointer; border-radius: 2px;";
+        const caret = document.createElement("span");
+        caret.style.cssText = "color: #888; width: 10px; flex-shrink: 0;";
+        caret.textContent = expandedPath === diff.path ? "\u25BE" : "\u25B8";
+        row.appendChild(caret);
         const pathEl = document.createElement("span");
         pathEl.style.cssText = "flex: 1; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
         pathEl.textContent = diff.path;
@@ -6969,7 +7004,32 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
         delEl.style.cssText = "color: #f44336; flex-shrink: 0;";
         delEl.textContent = `-${diff.deletions}`;
         row.appendChild(delEl);
-        detailEl.appendChild(row);
+        const content = document.createElement("div");
+        content.dataset.compareDiff = diff.path;
+        content.style.cssText = "display: none; font-family: monospace; font-size: 11px; background: #1e1e1e; border: 1px solid #333; border-radius: 3px; margin: 2px 0 6px 14px; overflow-x: auto;";
+        row.addEventListener("click", () => {
+          const willExpand = expandedPath !== diff.path;
+          expandedPath = willExpand ? diff.path : null;
+          caret.textContent = willExpand ? "\u25BE" : "\u25B8";
+          row.style.background = willExpand ? "#2a3a4a" : "transparent";
+          if (willExpand) {
+            content.innerHTML = "";
+            if (!diff.lines || diff.lines.length === 0) {
+              const noDiff = document.createElement("div");
+              noDiff.style.cssText = "padding: 6px; color: #888;";
+              noDiff.textContent = t("file.noDiff");
+              content.appendChild(noDiff);
+            } else {
+              for (const line of diff.lines) content.appendChild(createDiffLine(line));
+            }
+            content.style.display = "block";
+          } else {
+            content.style.display = "none";
+          }
+        });
+        const wrapper = document.createElement("div");
+        wrapper.append(row, content);
+        detailEl.appendChild(wrapper);
       }
       if (detail && Array.isArray(detail.parents)) {
         const parents = detail.parents ?? [];
@@ -7218,17 +7278,30 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
         },
         onCompareBranch: () => {
           const state = getState();
+          const multi = [...state.selectedBranches];
           const selectedName = state.selectedBranch?.name ?? null;
           const branch = selectedName ? state.branches.find((b) => b.name === selectedName) ?? state.selectedBranch : null;
           console.debug(JSON.stringify({
             prefix: "[sidebar]",
             event: "compare_branch_click",
             selectedName,
-            resolvedName: branch?.name ?? null,
+            multiSelected: multi,
             branchCount: state.branches.length,
             branchesWithIsCurrent: state.branches.filter((b) => b.isCurrent).map((b) => b.name),
             logBranch: state.logBranch
           }));
+          if (multi.length === 2) {
+            const [left, right] = multi;
+            void service.debugLog("compare-branch-open", { left, right, via: "multi" });
+            showCompareBranchesView(service, getDir(), getState().branches, left, right);
+            return;
+          }
+          if (multi.length > 2) {
+            void host.toast({ kind: "error", message: t("compare.tooMany") }).catch((toastErr) => {
+              console.error(JSON.stringify({ prefix: "[sidebar]", event: "compare_toast_error", error: String(toastErr) }));
+            });
+            return;
+          }
           if (!branch) {
             void host.toast({ kind: "error", message: t("compare.selectBranch") }).catch((toastErr) => {
               console.error(JSON.stringify({ prefix: "[sidebar]", event: "compare_toast_error", error: String(toastErr) }));

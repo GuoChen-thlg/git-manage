@@ -97,11 +97,32 @@ export function createBranchPanel(
       // 先处理分支选择（分支项可能嵌套在分组结构内，需优先匹配）
       const branch = findBranchFromEvent(e);
       if (branch) {
+        // 对齐 IDEA 分支树多选：Cmd/Ctrl 点击累加选中，普通点击单选
+        const multi = e.metaKey || e.ctrlKey;
         console.debug(JSON.stringify({
           prefix: '[branch-panel]',
           event: 'branch_click',
           branchName: branch.name,
+          multi,
         }));
+
+        if (multi) {
+          // 多选：只维护选中集合，不切换提交列表（交由比较图标使用）
+          setState(s => {
+            const next = new Set(s.selectedBranches);
+            if (next.has(branch.name)) next.delete(branch.name);
+            else next.add(branch.name);
+            s.selectedBranches = next;
+            // 仅剩一个选中项时仍作为主选中分支，多于一个时主选中置空
+            const names = [...next];
+            s.selectedBranch = names.length === 1
+              ? s.branches.find(b => b.name === names[0]) ?? branch
+              : null;
+          });
+          renderList();
+          return;
+        }
+
         // 先触发选择回调，再更新选中态（避免订阅回调异常阻断加载）
         try {
           console.debug(JSON.stringify({ prefix: '[branch-panel]', event: 'before_on_branch_select', branchName: branch.name }));
@@ -113,7 +134,10 @@ export function createBranchPanel(
         setState(s => {
           // 存最新数组里的对象（避免存快照后刷新导致字段过期）；找不到时退回点击时的对象
           s.selectedBranch = s.branches.find(b => b.name === branch.name) ?? branch;
+          // 普通点击清空多选集合，与 IDEA 单选语义一致
+          s.selectedBranches = new Set<string>();
         });
+        renderList();
         return;
       }
 
@@ -340,8 +364,9 @@ export function createBranchPanel(
   function createBranchItem(branch: Branch): HTMLElement {
     const state = getState();
     const isFavorite = state.favorites.has(branch.name);
-    // 选中态：点击的分支（区别于 HEAD 当前分支）
-    const isSelected = state.selectedBranch?.name === branch.name;
+    // 选中态：点击的分支（多选集合优先，其次单选分支；区别于 HEAD 当前分支）
+    const isSelected = state.selectedBranches.has(branch.name)
+      || (state.selectedBranches.size === 0 && state.selectedBranch?.name === branch.name);
     const bgStyle = isSelected
       ? 'background: #2e4a6e;'
       : branch.isCurrent

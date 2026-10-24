@@ -244,6 +244,48 @@ describe('branch-panel', () => {
     expect(getState().selectedBranch).toBe(branches[1]);
   });
 
+  it('Cmd/Ctrl 点击分支应该累加多选且不切换提交列表', () => {
+    const branches = makeBranches();
+    setState(s => { s.branches = branches; });
+    const onBranchSelect = vi.fn();
+    createPanel(onBranchSelect);
+
+    // Cmd 点击选中 develop
+    branchItem('develop').dispatchEvent(new MouseEvent('click', { metaKey: true, bubbles: true }));
+    expect([...getState().selectedBranches]).toEqual(['develop']);
+    // 多选不触发提交列表切换
+    expect(onBranchSelect).not.toHaveBeenCalled();
+
+    // Cmd 点击再选中 main（多选累加）
+    branchItem('main').dispatchEvent(new MouseEvent('click', { metaKey: true, bubbles: true }));
+    expect([...getState().selectedBranches].sort()).toEqual(['develop', 'main']);
+    // 两个选中时主选中分支置空
+    expect(getState().selectedBranch).toBeNull();
+    expect(onBranchSelect).not.toHaveBeenCalled();
+
+    // 再次 Cmd 点击 develop 应取消该项
+    branchItem('develop').dispatchEvent(new MouseEvent('click', { metaKey: true, bubbles: true }));
+    expect([...getState().selectedBranches]).toEqual(['main']);
+    // 回到单选：主选中分支同步
+    expect(getState().selectedBranch?.name).toBe('main');
+  });
+
+  it('普通点击应该清空多选集合并切换提交列表', () => {
+    const branches = makeBranches();
+    setState(s => {
+      s.branches = branches;
+      s.selectedBranches = new Set(['main', 'develop']);
+    });
+    const onBranchSelect = vi.fn();
+    createPanel(onBranchSelect);
+
+    branchItem('main').click();
+
+    expect(onBranchSelect).toHaveBeenCalledTimes(1);
+    expect(getState().selectedBranches.size).toBe(0);
+    expect(getState().selectedBranch?.name).toBe('main');
+  });
+
   it('搜索输入应该过滤分支显示并写入 state.branchFilter', () => {
     setState(s => { s.branches = makeBranches(); });
     createPanel();
@@ -433,7 +475,7 @@ describe('branch-panel', () => {
     branchItem('develop').click();
 
     expect(parsePayloads(debugSpy.mock.calls)).toEqual([
-      { prefix: '[branch-panel]', event: 'branch_click', branchName: 'develop' },
+      { prefix: '[branch-panel]', event: 'branch_click', branchName: 'develop', multi: false },
       { prefix: '[branch-panel]', event: 'before_on_branch_select', branchName: 'develop' },
       { prefix: '[branch-panel]', event: 'after_on_branch_select', branchName: 'develop' },
     ]);

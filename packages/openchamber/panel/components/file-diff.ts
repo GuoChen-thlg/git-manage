@@ -171,7 +171,12 @@ export function createFileDiffPanel(
   return { dispose };
 }
 
-function createDiffLine(line: DiffLine): HTMLElement {
+/**
+ * 渲染单行差异（比较视图等处复用）
+ * @param line 差异行
+ * @returns 差异行元素
+ */
+export function createDiffLine(line: DiffLine): HTMLElement {
   let bgColor = 'transparent';
   let color = '#ccc';
   let prefix = ' ';

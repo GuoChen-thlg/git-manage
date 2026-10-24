@@ -104,6 +104,48 @@ describe('compare-view', () => {
     expect(detail.textContent).toContain('-1');
   });
 
+  it('点击变更文件应该展开该文件的具体 diff 行', async () => {
+    const target = commit('aaaaaaa1', 'feat: 带 diff');
+    const withLines: FileDiff = {
+      path: 'src/a.ts',
+      additions: 1,
+      deletions: 1,
+      lines: [
+        { type: 'context', content: 'const a = 1;', oldLine: 1, newLine: 1 },
+        { type: 'delete', content: 'const b = 2;', oldLine: 2 },
+        { type: 'add', content: 'const b = 3;', newLine: 2 },
+      ],
+    };
+    const service = {
+      getLog: vi.fn(async (_dir: string, range?: string) => (range === 'main..feature' ? [target] : [])),
+      getCommitDetail: vi.fn(async () => target),
+      getCommitDiffs: vi.fn(async () => [withLines]),
+    } as unknown as ServiceClient;
+
+    const handle = showCompareBranchesView(
+      service, '/repo', [branch('feature'), branch('main', true)], 'feature', 'main');
+    disposed = handle.dispose;
+    await flush();
+
+    (document.querySelector('#compare-left-list [data-hash]') as HTMLElement).click();
+    await flush();
+
+    // 未点击文件时 diff 区隐藏
+    const content = document.querySelector('#compare-detail [data-compare-diff="src/a.ts"]') as HTMLElement;
+    expect(content.style.display).toBe('none');
+
+    (document.querySelector('#compare-detail [data-compare-path="src/a.ts"]') as HTMLElement).click();
+
+    expect(content.style.display).toBe('block');
+    expect(content.textContent).toContain('const a = 1;');
+    expect(content.textContent).toContain('const b = 2;');
+    expect(content.textContent).toContain('const b = 3;');
+
+    // 再次点击收起
+    (document.querySelector('#compare-detail [data-compare-path="src/a.ts"]') as HTMLElement).click();
+    expect(content.style.display).toBe('none');
+  });
+
   it('提交详情加载失败时应该在右侧显示错误', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const target = commit('aaaaaaa1', 'boom');
