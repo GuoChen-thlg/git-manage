@@ -431,52 +431,205 @@ export async function getCurrentAuthor(
 }
 
 /**
+ * 姓名标准化用的两段式模式：两个单词由标点或空白分隔（对齐 IDEA VcsUserUtil.NAME_PATTERN）
+ * 使用显式字符类代替 \p{Punct}，兼容当前编译目标
+ */
+const NAME_PATTERN = /^(\w+)[!-/:-@[-`{-~\s](\w+)$/;
+
+/** 可打印 ASCII 判定（对齐 IDEA PRINTABLE_ASCII_PATTERN） */
+const PRINTABLE_ASCII = /^[ -~]*$/;
+
+/**
+ * 取姓名中的「名 姓」两段（仅当恰好两个单词时成立）
+ * @param name 原始姓名
+ * @returns 两段姓名，或 null 表示不适用
+ */
+function getFirstAndLastName(name: string): [string, string] | null {
+  const m = NAME_PATTERN.exec(name);
+  return m ? [m[1], m[2]] : null;
+}
+
+/**
+ * 姓名转小写（仅对纯可打印 ASCII 生效，中文等保持原样）
+ * @param name 姓名
+ * @returns 小写后的姓名
+ */
+function nameToLowerCase(name: string): string {
+  return PRINTABLE_ASCII.test(name) ? name.toLowerCase() : name;
+}
+
+/**
+ * 姓名标准化：两段式姓名统一为「名 姓」小写，其余整体小写
+ * 用于容忍「Zhang San」「zhang.san」「zhang-s#an」等写法差异
+ * @param name 姓名
+ * @returns 标准化后的姓名
+ */
+function getNameInStandardForm(name: string): string {
+  const pair = getFirstAndLastName(name);
+  if (pair) return `${pair[0].toLowerCase()} ${pair[1].toLowerCase()}`;
+  return nameToLowerCase(name);
+}
+
+/**
+ * 从邮箱取用户名部分（@ 之前）
+ * @param email 邮箱
+ * @returns 用户名部分；无 @ 时返回 null
+ */
+function getNameFromEmail(email: string): string | null {
+  const at = email.indexOf('@');
+  return at > 0 ? email.slice(0, at) : null;
+}
+
+/** 一位作者（姓名 + 邮箱） */
+interface Author {
+  name: string;
+  email: string;
+}
+
+/**
+ * 导入所有提交作者并按姓名标准化建立索引
+ * 同时建立「邮箱用户名部分 → 作者」索引，用于容忍姓名写法差异
+ * @param commits 提交作者列表（每条含 name/email）
+ * @returns 按标准化姓名与邮箱用户名索引的作者集合
+ */
+function buildAuthorIndex(commits: Author[]): {
+  byName: Map<string, Author[]>;
+  byEmailName: Map<string, Author[]>;
+} {
+  const byName = new Map<string, Author[]>();
+  const byEmailName = new Map<string, Author[]>();
+  const push = (map: Map<string, Author[]>, key: string, value: Author): void => {
+    const list = map.get(key);
+    if (list) list.push(value);
+    else map.set(key, [value]);
+  };
+  for (const commit of commits) {
+    if (commit.name) push(byName, getNameInStandardForm(commit.name), commit);
+    const emailName = getNameFromEmail(commit.email);
+    if (emailName) push(byEmailName, getNameInStandardForm(emailName), commit);
+  }
+  return { byName, byEmailName };
+}
+
+/**
+ * 按姓名解析出「可能是我」的作者集合（对齐 IDEA resolveUserName）
+ * 姓名标准化后在姓名索引与邮箱用户名索引中都查一遍并取并集
+ * @param name 姓名或邮箱用户名
+ * @param index 全部作者索引
+ * @returns 匹配到的作者集合
+ */
+function resolveUsersByName(
+  name: string,
+  index: { byName: Map<string, Author[]>; byEmailName: Map<string, Author[]> },
+): Author[] {
+  const key = getNameInStandardForm(name);
+  return [...(index.byName.get(key) ?? []), ...(index.byEmailName.get(key) ?? [])];
+}
+
+/**
+ * 构造当前用户可能对应的作者集合（对齐 IDEA VcsLogUserResolver.resolveCurrentUser）
+ * ① 用配置姓名解析出的作者集合
+ * ② 再用邮箱用户名解析；结果要过滤掉同名不同人——
+ *    只保留邮箱出现在 ① 集合中的候选（如 ivan@ivanov.com 与 ivan@petrov.com 不是同一人）
+ * @param current 当前 Git 配置的作者
+ * @param index 全部作者索引
+ * @returns 可能属于当前用户的作者集合
+ */
+function resolveCurrentUsers(
+  current: Author,
+  index: { byName: Map<string, Author[]>; byEmailName: Map<string, Author[]> },
+): Set<string> {
+  const result = new Set<string>();
+  const usersByName = current.name ? resolveUsersByName(current.name, index) : [];
+  for (const user of usersByName) result.add(`${user.name}\u0000${user.email.toLowerCase()}`);
+
+  const emailName = getNameFromEmail(current.email);
+  if (emailName) {
+    const knownEmails = new Set(usersByName.map(u => u.email.toLowerCase()));
+    for (const candidate of resolveUsersByName(emailName, index)) {
+      // 同名不同人过滤：候选邮箱必须在姓名匹配出的邮箱集合内
+      if (knownEmails.has(candidate.email.toLowerCase())) {
+        result.add(`${candidate.name}\u0000${candidate.email.toLowerCase()}`);
+      }
+    }
+  }
+  return result;
+}
+
+/**
  * 找出「我的分支」：分支的独有提交全部由当前作者创作，且至少有一条独有提交
- * 独有提交指该分支有、而其他本地分支都没有的提交（对齐 IDEA Show My Branches 语义）
+ * 独有提交指该分支相对其他本地分支独有的提交（对齐 IDEA Show My Branches 语义）
+ * 本地与远程分支都参与判定；远程分支按 upstream 归属关系独立计算
  * @param options - Git 命令选项
- * @returns 属于当前作者的分支名列表（含当前分支）；无法确定作者时返回空数组
+ * @returns 属于当前作者的分支名列表（本地为短名，远程为 remote/name 形式）
  */
 export async function findMyBranches(options: GitCommandOptions): Promise<string[]> {
-  const author = await getCurrentAuthor(options);
-  if (!author.email && !author.name) return [];
+  const current = await getCurrentAuthor(options);
+  if (!current.email && !current.name) return [];
 
-  // 严格只取本地分支：for-each-ref refs/heads 不会混入 remotes/* 与 origin/HEAD，
-  // 否则 origin 这类远程引用会被误判为本地分支，并干扰「独有提交」的排除集合
+  // 本地分支（严格 refs/heads）与远程分支（refs/remotes，排除 */HEAD）
   const branchResult = await gitExec(
-    ['for-each-ref', '--format=%(refname:short)', 'refs/heads'],
+    ['for-each-ref', '--format=%(refname:short)|%(refname)', 'refs/heads', 'refs/remotes'],
     options
   );
-  const branches = (branchResult.stdout ?? '').split('\n').map(b => b.trim()).filter(Boolean);
-  if (branches.length === 0) return [];
+  const local: string[] = [];
+  const remote: string[] = [];
+  for (const line of (branchResult.stdout ?? '').split('\n')) {
+    const [shortName, fullRef] = line.split('|');
+    if (!shortName || !fullRef) continue;
+    if (fullRef.startsWith('refs/heads/')) local.push(shortName);
+    else if (fullRef.startsWith('refs/remotes/') && !fullRef.endsWith('/HEAD')) remote.push(shortName);
+  }
+  if (local.length === 0 && remote.length === 0) return [];
+
+  // 收集仓库全部提交作者，用于姓名/邮箱口径匹配
+  const allAuthorsResult = await gitExec(
+    ['log', '--all', '--format=%ae%n%an'],
+    options
+  ).catch(() => null);
+  const authorLines = (allAuthorsResult?.stdout ?? '').split('\n').map(l => l.trim()).filter(Boolean);
+  const allAuthors: Author[] = [];
+  for (let i = 0; i < authorLines.length; i += 2) {
+    allAuthors.push({ email: authorLines[i] ?? '', name: authorLines[i + 1] ?? '' });
+  }
+  const index = buildAuthorIndex(allAuthors);
+  // 当前用户可能对应的作者集合（姓名/邮箱两种口径，已过滤同名不同人）
+  const meKeySet = resolveCurrentUsers(current, index);
+
+  /**
+   * 判断单个 ref 的独有提交是否全部由我创作
+   * @param ref 分支引用
+   * @param excludeRefs 计算独有提交时要排除的其他分支
+   * @returns 是否属于我的分支
+   */
+  const checkRef = async (ref: string, excludeRefs: string[]): Promise<boolean> => {
+    const logArgs = ['log', '--format=%ae%n%an', ref];
+    if (excludeRefs.length > 0) logArgs.push('--not', ...excludeRefs);
+    const logResult = await gitExec(logArgs, options).catch(() => null);
+    if (!logResult) return false;
+
+    const lines = (logResult.stdout ?? '').split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return false; // 无独有提交 → 不算我的分支
+
+    for (let i = 0; i < lines.length; i += 2) {
+      const author: Author = { email: lines[i] ?? '', name: lines[i + 1] ?? '' };
+      if (!meKeySet.has(`${author.name}\u0000${author.email.toLowerCase()}`)) return false;
+    }
+    return true;
+  };
 
   const result: string[] = [];
 
-  for (const branch of branches) {
-    // 该分支相对其他分支的独有提交（左闭右开：其他分支...分支）
-    // 用 --not 排除所有其他本地分支，得到仅存在于该分支的提交
-    const others = branches.filter(b => b !== branch);
-    // gitExec 数组形式不经 shell，分支名原样作为参数，无需转义
-    const logArgs = ['log', '--format=%ae%n%an', branch];
-    if (others.length > 0) logArgs.push('--not', ...others);
-    const logResult = await gitExec(logArgs, options).catch(() => null);
-    if (!logResult) continue;
+  // 本地分支：排除其他本地分支与其他远程分支（远程独有的提交不算本地分支独有）
+  for (const branch of local) {
+    const others = [...local.filter(b => b !== branch), ...remote];
+    if (await checkRef(branch, others)) result.push(branch);
+  }
 
-    const lines = (logResult.stdout ?? '').split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length === 0) continue; // 无独有提交 → 不算我的分支
-
-    // 每两条为一次提交：邮箱、名称
-    let allMine = true;
-    for (let i = 0; i < lines.length; i += 2) {
-      const email = lines[i] ?? '';
-      const name = lines[i + 1] ?? '';
-      const emailMatch = author.email && email.toLowerCase() === author.email.toLowerCase();
-      const nameMatch = author.name && name === author.name;
-      if (!emailMatch && !nameMatch) {
-        allMine = false;
-        break;
-      }
-    }
-    if (allMine) result.push(branch);
+  // 远程分支：只与其他远程分支比较（与本地分支指向同一提交时仍应判定为独有）
+  for (const branch of remote) {
+    const others = remote.filter(b => b !== branch);
+    if (await checkRef(branch, others)) result.push(branch);
   }
 
   return result;

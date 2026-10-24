@@ -851,7 +851,7 @@ describe('branch-panel', () => {
     setLocale('zh-CN');
   });
 
-  it('showOnlyMyBranches 开启时应该只渲染我的分支（远程分支一并隐藏）', () => {
+  it('showOnlyMyBranches 开启时应该只渲染我的分支', () => {
     setState(s => {
       s.branches = makeBranches();
       s.showOnlyMyBranches = true;
@@ -864,8 +864,24 @@ describe('branch-panel', () => {
     expect(branchItem('develop')).toBeTruthy();
     // 非我的本地分支被隐藏
     expect(branchItem('feature/login')).toBeNull();
-    // 远程分支不参与我的分支判断，一律隐藏
+    // 远程分支按判定结果过滤：不在集合内则隐藏
     expect(branchItem('origin/main')).toBeNull();
+  });
+
+  it('远程分支判定为我的分支时也应该显示', () => {
+    setState(s => {
+      s.branches = makeBranches();
+      s.showOnlyMyBranches = true;
+      s.myBranches = new Set(['develop', 'origin/main']);
+    });
+    createPanel();
+
+    expect(branchItem('develop')).toBeTruthy();
+    // 远程分组默认折叠，展开后应能看到被判定的远程分支
+    const remoteGroup = groupHeader('远程');
+    expect(remoteGroup).toBeTruthy();
+    remoteGroup!.click();
+    expect(branchItem('origin/main')).toBeTruthy();
   });
 
   it('收藏分支但不在我的分支集合内时，开启筛选后也应隐藏', () => {

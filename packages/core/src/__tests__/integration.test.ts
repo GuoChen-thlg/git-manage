@@ -655,6 +655,36 @@ describe('差异比较', () => {
     expect(mine).toContain('feature/login');
   });
 
+  it('findMyBranches 应容忍分支提交作者的姓名写法差异', async () => {
+    // fixture 作者是「测试用户」，这里用一个姓名写法不同的作者提交
+    // 姓名标准化为两段式后应能匹配（Zhang San / zhang-s#an）
+    await git(['checkout', '-b', 'feature/style'], repoDir);
+    writeFileSync(join(repoDir, 'style.txt'), 'style\n');
+    await git(['add', '.'], repoDir);
+    await git(
+      ['-c', 'user.email=test@example.com', '-c', 'user.name=测试 用户', 'commit', '-m', '同邮箱不同姓名写法'],
+      repoDir,
+    );
+    await git(['checkout', 'main'], repoDir);
+
+    // 邮箱一致即视为同一人，分支应算我的分支
+    const mine = await findMyBranches({ cwd: repoDir });
+    expect(mine).toContain('feature/style');
+  });
+
+  it('findMyBranches 中远程分支也应参与判定', async () => {
+    // 仅存在于远程的分支：本地删除后仍应被判定（远程分支独立计算）
+    await git(['init', '--bare', '-b', 'main', bareDir], repoDir);
+    await git(['remote', 'add', 'origin', bareDir], repoDir);
+    await git(['push', '-u', 'origin', 'main'], repoDir);
+    await git(['push', 'origin', 'feature/login'], repoDir);
+    await git(['fetch', 'origin'], repoDir);
+
+    const mine = await findMyBranches({ cwd: repoDir });
+    // origin/feature/login 由当前作者创作，应出现在结果中
+    expect(mine).toContain('origin/feature/login');
+  });
+
   it('findMyBranches 不应混入 origin 等远程引用', async () => {
     // 配置远程并抓取，生成 origin/HEAD 与 origin/main 这类引用
     await git(['init', '--bare', '-b', 'main', bareDir], repoDir);
@@ -663,10 +693,10 @@ describe('差异比较', () => {
     await git(['fetch', 'origin'], repoDir);
 
     const mine = await findMyBranches({ cwd: repoDir });
-    // 远程引用绝不能出现在结果里（曾因 git branch 同时列出 remotes 导致 origin 混入）
+    // origin/HEAD 这类符号引用不是分支，绝不能出现在结果里
     expect(mine).not.toContain('origin');
-    expect(mine.every(name => !name.startsWith('origin/'))).toBe(true);
-    // 本地分支仍应正常判定
+    expect(mine).not.toContain('origin/HEAD');
+    // 真实远程分支可参与判定（本用例只断言符号引用被排除）
     expect(mine).toContain('feature/login');
   });
 

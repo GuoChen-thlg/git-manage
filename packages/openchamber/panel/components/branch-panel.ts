@@ -197,8 +197,8 @@ export function createBranchPanel(
     listContainer.innerHTML = '';
 
     const filteredBranches = state.branches.filter(branch => {
-      // 只显示我的分支：远程分支与当前作者无关，一并过滤
-      if (state.showOnlyMyBranches && (branch.isRemote || !state.myBranches.has(branch.name))) {
+      // 只显示我的分支：本地与远程分支都按判定结果过滤（远程分支名形如 origin/xxx）
+      if (state.showOnlyMyBranches && !state.myBranches.has(branch.name)) {
         return false;
       }
       if (!state.branchFilter) return true;
