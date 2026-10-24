@@ -18,6 +18,37 @@
 
 ![面板截图](docs/images/panel.png)
 
+## 安装
+
+在 OpenChamber 的 **设置 → 扩展** 中安装，支持三种方式：
+
+### 1. 从 ZIP 安装
+
+下载对应版本的 `git-manager-<version>.zip`（见 [Releases](https://github.com/GuoChen-thlg/git-manage/releases)），在设置中选择该 zip 文件，或直接拖入安装区域。
+
+### 2. 从文件夹安装
+
+先在本地构建，再选择构建产物所在目录：
+
+```sh
+pnpm install
+pnpm build
+```
+
+安装时选择 `packages/openchamber` 目录。宿主会按 manifest 加载 `dist/` 下的构建产物，因此必须先完成构建，否则会提示 `missing-build`。
+
+### 3. 从 Git URL 安装
+
+直接填入仓库地址，宿主会浅克隆后再安装（同样要求仓库中已包含构建产物）：
+
+```
+https://github.com/GuoChen-thlg/git-manage.git#release
+```
+
+`#release` 指向存放构建产物的发布分支。
+
+> 说明：扩展的面板与服务为打包后的产物，不随源码分支提交，因此源码分支无法直接安装。发布仅从主分支（`dev`）产出，功能分支不发布。
+
 ## 未来规划
 
 - 让专业的 Git 可视化能力不再绑定于某一款编辑器，任何环境下都能获得顺手的分支与提交管理体验

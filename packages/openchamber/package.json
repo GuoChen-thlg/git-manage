@@ -7,6 +7,7 @@
     "build:panel": "npx esbuild panel/main.ts --bundle --format=iife --outfile=dist/panel/main.js --platform=browser && cp panel/index.html dist/panel/index.html",
     "build:service": "npx esbuild service/main.ts --bundle --format=cjs --outfile=dist/service/main.js --platform=node --target=node20",
     "build": "npm run build:panel && npm run build:service",
+    "pack": "node scripts/pack.mjs",
     "typecheck": "tsc --noEmit"
   },
   "openchamber": {
