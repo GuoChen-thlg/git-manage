@@ -31,6 +31,13 @@ import {
   forcePush,
   listTrackedFiles,
   findMyBranches,
+  isHeadCommit,
+  isMergeCommit,
+  isWorkingTreeClean,
+  uncommitHead,
+  rewordCommit,
+  dropCommit,
+  pushUpToCommit,
   GitError,
 } from "../../core/dist/index.js";
 
@@ -71,7 +78,13 @@ async function captureLocalRestoreData(
 }
 
 /** 处理请求 */
-async function handleRequest(request: Request): Promise<Response> {
+/**
+ * 处理一次 service 请求
+ * 导出以便单元测试直接调用，无需启动真实服务器
+ * @param request HTTP 请求
+ * @returns HTTP 响应
+ */
+export async function handleRequest(request: Request): Promise<Response> {
   if (!verifyToken(request)) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -364,6 +377,29 @@ async function handleRequest(request: Request): Promise<Response> {
         await execFileAsync("git", ["reset", `--${mode}`, hash], { cwd: directory });
         return Response.json({ success: true });
       }
+      case "/git-commit-edit-info": {
+        // 提交是否可用于编辑/删除（是否为 HEAD、是否为合并提交）
+        const hash = body.hash as string;
+        const head = await isHeadCommit(hash, { cwd: directory });
+        const merge = await isMergeCommit(hash, { cwd: directory });
+        return Response.json({ isHead: head, isMerge: merge });
+      }
+      case "/git-working-tree-clean": {
+        const clean = await isWorkingTreeClean({ cwd: directory });
+        return Response.json(clean);
+      }
+      case "/git-reword-commit": {
+        await rewordCommit(body.hash as string, body.message as string, { cwd: directory });
+        return Response.json({ success: true });
+      }
+      case "/git-drop-commit": {
+        await dropCommit(body.hash as string, { cwd: directory });
+        return Response.json({ success: true });
+      }
+      case "/git-push-up-to": {
+        const ref = await pushUpToCommit(body.hash as string, body.branch as string, { cwd: directory });
+        return Response.json({ success: true, ref });
+      }
       case "/git-revert": {
         const { execFile } = await import("child_process");
         const { promisify } = await import("util");
@@ -372,10 +408,8 @@ async function handleRequest(request: Request): Promise<Response> {
         return Response.json({ success: true });
       }
       case "/git-undo-commit": {
-        const { execFile } = await import("child_process");
-        const { promisify } = await import("util");
-        const execFileAsync = promisify(execFile);
-        await execFileAsync("git", ["reset", "--soft", "HEAD~1"], { cwd: directory });
+        // 撤销提交：校验目标确为当前 HEAD 且工作区干净（对齐 IDEA Uncommit）
+        await uncommitHead(body.hash as string, { cwd: directory });
         return Response.json({ success: true });
       }
       case "/git-is-repo": {
@@ -398,10 +432,40 @@ async function handleRequest(request: Request): Promise<Response> {
   }
 }
 
-// 启动服务器
-Bun.serve({
-  port: PORT,
-  fetch: handleRequest,
-});
+// 仅在作为入口脚本直接运行时启动服务器；被测试 import 时不启动
+// Bun 用 import.meta.main，Node（含 esbuild 打包成 cjs 后的产物）用 require.main === module
+const isMainModule =
+  (import.meta as { main?: boolean }).main === true ||
+  (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module);
 
-console.log(`Service running on port ${PORT}`);
+if (isMainModule) {
+  if (typeof Bun !== 'undefined') {
+    Bun.serve({ port: PORT, fetch: handleRequest });
+    console.log(`Service running on port ${PORT}`);
+  } else {
+    // Node 运行时：用 http 模块适配 handleRequest，便于脱离 Bun 做黑盒测试
+    void import('node:http').then(({ createServer }) => {
+      createServer((req, res) => {
+        const chunks: Buffer[] = [];
+        req.on('data', (c: Buffer) => chunks.push(c));
+        req.on('end', () => {
+          const body = Buffer.concat(chunks);
+          const url = `http://127.0.0.1:${PORT}${req.url ?? '/'}`;
+          const request = new Request(url, {
+            method: req.method,
+            headers: req.headers as Record<string, string>,
+            body: body.length > 0 ? body : undefined,
+          });
+          void handleRequest(request).then(async (response) => {
+            res.writeHead(response.status, Object.fromEntries(response.headers));
+            res.end(await response.text());
+          }).catch(() => {
+            res.writeHead(500);
+            res.end('internal error');
+          });
+        });
+      }).listen(PORT);
+      console.log(`Service running on port ${PORT} (node)`);
+    });
+  }
+}

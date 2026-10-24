@@ -9,7 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createCommitListPanel, filterCommits } from '../components/commit-list';
-import { createInitialState, getState, setState, stateManager, CommitInfo, FileDiff } from '../state';
+import { createInitialState, getState, setState, stateManager, CommitInfo } from '../state';
 import { ServiceClient } from '../service';
 import { setLocale } from '../i18n';
 
@@ -36,6 +36,8 @@ function createServiceMock(): {
     checkoutNewBranch: vi.fn().mockResolvedValue(undefined),
     getBranches: vi.fn().mockResolvedValue([]),
     listFiles: listFilesMock,
+    // 右键菜单打开前会查询工作区状态，默认干净（否则改写历史的项会被置灰）
+    isWorkingTreeClean: vi.fn().mockResolvedValue(true),
   } as unknown as ServiceClient;
   return { service, getLogMock, pullMock, diffVsLocalMock, listFilesMock };
 }
@@ -44,15 +46,49 @@ function createServiceMock(): {
  * 构造提交夹具（新→旧 4 条）
  * 每次调用返回全新对象，保证可与 state 中的引用做严格比较
  */
+/**
+ * 由简短标识生成 40 位完整哈希（前 7 位即短哈希）
+ * 所有夹具统一走这里，保证形状与真实 git 输出一致
+ * @param id 简短标识（如 t1、h2）
+ * @returns 完整哈希
+ */
+/**
+ * 从完整或短哈希中取出精简标识（去掉尾部补零），用于断言比较
+ * @param hash 完整哈希或短哈希
+ * @returns 精简标识（如 h1）
+ */
+export function prefixOf(hash: string): string {
+  return hash.slice(0, 7).replace(/0+$/, '');
+}
+
+export function fullHash(id: string): string {
+  const short = id.length >= 7 ? id.slice(0, 7) : `${id}${'0'.repeat(7 - id.length)}`;
+  return `${short}${'0'.repeat(40 - short.length)}`;
+}
+
 function makeCommits(): CommitInfo[] {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
-  return [
-    { hash: 'h1', shortHash: 'h1', message: 'feat: 新增分支面板', authorName: '张三', authorEmail: 'a@example.com', date: new Date(now - day).toISOString(), parents: [] },
-    { hash: 'h2', shortHash: 'h2', message: 'fix: 修复提交列表渲染', authorName: '李四', authorEmail: 'b@example.com', date: new Date(now - 2 * day).toISOString(), parents: [] },
-    { hash: 'h3', shortHash: 'h3', message: 'docs: 更新说明文档', authorName: '张三', authorEmail: 'a@example.com', date: new Date(now - 3 * day).toISOString(), parents: [] },
-    { hash: 'h4', shortHash: 'h4', message: 'chore: 调整构建脚本', authorName: '王五', authorEmail: 'c@example.com', date: new Date(now - 4 * day).toISOString(), parents: [] },
-  ];
+  // 哈希必须复刻真实 git 的 40 位形式：短哈希取前 7 位。
+  // 若用 'h1' 这类短占位，会掩盖「分支短哈希与提交完整哈希不匹配」等真实缺陷
+  const raw = [
+    ['h1', 'feat: 新增分支面板', '张三', 'a@example.com'],
+    ['h2', 'fix: 修复提交列表渲染', '李四', 'b@example.com'],
+    ['h3', 'docs: 更新说明文档', '张三', 'a@example.com'],
+    ['h4', 'chore: 调整构建脚本', '王五', 'c@example.com'],
+  ] as const;
+  return raw.map(([prefix, message, authorName, authorEmail], i) => {
+    const hash = fullHash(prefix);
+    return {
+      hash,
+      shortHash: hash.slice(0, 7),
+      message,
+      authorName,
+      authorEmail,
+      date: new Date(now - (i + 1) * day).toISOString(),
+      parents: [],
+    };
+  });
 }
 
 /**
@@ -64,9 +100,9 @@ function makeRelativeCommits(): CommitInfo[] {
   const min = 60_000;
   const hour = 60 * min;
   const day = 24 * hour;
-  const pick = (hash: string, message: string, agoMs: number): CommitInfo => ({
-    hash,
-    shortHash: hash,
+  const pick = (id: string, message: string, agoMs: number): CommitInfo => ({
+    hash: fullHash(id),
+    shortHash: fullHash(id).slice(0, 7),
     message,
     authorName: '张三',
     authorEmail: 'a@example.com',
@@ -114,8 +150,6 @@ describe('commit-list', () => {
   let dispose: (() => void) | null = null;
   let service: ServiceClient;
   let getLogMock: ReturnType<typeof vi.fn>;
-  let pullMock: ReturnType<typeof vi.fn>;
-  let diffVsLocalMock: ReturnType<typeof vi.fn>;
   let listFilesMock: ReturnType<typeof vi.fn>;
   /**
    * 本次用例内捕获到的窗口 error 事件（事件回调异常经 jsdom reportException 派发到 window）
@@ -132,7 +166,7 @@ describe('commit-list', () => {
     setState(s => Object.assign(s, createInitialState()));
     container = document.createElement('div');
     document.body.appendChild(container);
-    ({ service, getLogMock, pullMock, diffVsLocalMock, listFilesMock } = createServiceMock());
+    ({ service, getLogMock, listFilesMock } = createServiceMock());
     // 安装窗口错误捕获：记录回调异常并阻止其冒泡到 runner
     windowErrors = [];
     onWindowError = (e: ErrorEvent) => {
@@ -178,29 +212,61 @@ describe('commit-list', () => {
     return commits;
   }
 
-  /** 获取提交行元素 */
-  const row = (hash: string) => container.querySelector(`[data-hash="${hash}"]`) as HTMLElement;
+  /**
+   * 获取提交行元素
+   * 入参可用 h1/h2 这类前缀简写，内部补全为 40 位完整哈希
+   * @param hash 完整哈希或前缀简写
+   * @returns 行元素
+   */
+  const row = (hash: string) => {
+    // 已是完整哈希（40 位）时原样使用；否则按夹具规则补成 40 位
+    if (hash.length === 40) {
+      return container.querySelector(`[data-hash="${hash}"]`) as HTMLElement;
+    }
+    const short = hash.length < 7 ? `${hash}${'0'.repeat(7 - hash.length)}` : hash.slice(0, 7);
+    const full = `${short}${'0'.repeat(40 - short.length)}`;
+    return container.querySelector(`[data-hash="${full}"]`) as HTMLElement;
+  };
 
   /** 点击提交行（可带修饰键） */
   const clickRow = (hash: string, init: MouseEventInit = {}) =>
     row(hash).dispatchEvent(new MouseEvent('click', { bubbles: true, ...init }));
 
   /** 右键提交行 */
-  const contextRow = (hash: string) =>
+  /**
+   * 右键提交行并等待菜单渲染
+   * 菜单打开前会异步查询工作区状态，故需等待一个微任务周期
+   * @param hash 提交哈希
+   */
+  const contextRow = async (hash: string) => {
     row(hash).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 0));
+  };
 
   /** 读取多选集合（排序后返回，便于断言） */
-  const selectedHashes = () => [...getState().selectedCommits].sort();
+  // 返回精简标识（h1/h2）：去掉补零，便于与测试夹具前缀断言
+  const selectedHashes = () =>
+    [...getState().selectedCommits].map(h => h.slice(0, 7).replace(/0+$/, '')).sort();
+
+  /**
+   * 把夹具中的完整哈希转成精简标识（h1/h2），用于与 selectedHashes 比较
+   * @param list 哈希数组（完整或任意形式）
+   * @returns 精简标识数组
+   */
+  const shortIds = (list: string[]) => list.map(h => h.slice(0, 7).replace(/0+$/, ''));
 
   /** 获取右键菜单元素 */
   const menuEl = () => document.getElementById('git-context-menu');
 
   /** 读取当前过滤结果的哈希列表 */
-  const filteredHashes = () => getState().filteredCommits.map(c => c.hash);
+  // 返回精简标识（h1/h2），与夹具前缀断言保持一致
+  const filteredHashes = () => shortIds(getState().filteredCommits.map(c => c.hash));
 
   /** 读取 DOM 中提交行的渲染顺序（哈希列表） */
+  // 返回精简标识（h1/h2），与夹具前缀断言保持一致
   const rowOrder = () =>
-    [...container.querySelectorAll('[data-hash]')].map(el => el.getAttribute('data-hash'));
+    [...container.querySelectorAll('[data-hash]')]
+      .map(el => (el.getAttribute('data-hash') ?? '').slice(0, 7).replace(/0+$/, ''));
 
   /** 读取全局状态管理器当前的监听器数量（用于断言 dispose 是否真正取消订阅） */
   const listenerCount = () =>
@@ -247,8 +313,13 @@ describe('commit-list', () => {
     // 未选中行的初始背景由模板写入 transparent（jsdom 不解析 background 简写，断言原始样式串）
     expect(row('h1').getAttribute('style')).toContain('background: transparent');
 
-    for (const action of ['btn-select-all', 'btn-refresh', 'btn-regex', 'btn-case', 'btn-filter-branch']) {
+    // 左侧过滤控件 + 右侧角三项（刷新 / 设置 / 跳转）
+    for (const action of ['btn-regex', 'btn-case', 'btn-filter-branch', 'btn-filter-user', 'btn-filter-date', 'btn-filter-path', 'btn-refresh', 'btn-settings', 'btn-goto']) {
       expect(container.querySelector(`[data-action="${action}"]`)).toBeTruthy();
+    }
+    // 已按 IDEA 移除的按钮不应存在
+    for (const action of ['btn-select-all', 'btn-download', 'btn-compare', 'btn-search']) {
+      expect(container.querySelector(`[data-action="${action}"]`)).toBeNull();
     }
     expect(container.querySelector('input[placeholder="文本或哈希"]')).toBeTruthy();
   });
@@ -301,11 +372,11 @@ describe('commit-list', () => {
     clickRow('h2'); // 普通点击建立锚点（idx=1）
     clickRow('h4', { shiftKey: true }); // 范围 1..3
     expect(selectedHashes()).toEqual(['h2', 'h3', 'h4']);
-    expect(getState().selectedCommit?.hash).toBe('h4');
+    expect(getState().selectedCommit?.hash.slice(0, 7).replace(/0+$/, '')).toBe('h4');
 
     clickRow('h1', { shiftKey: true }); // 锚点保持不变 → 范围 0..1
     expect(selectedHashes()).toEqual(['h1', 'h2']);
-    expect(getState().selectedCommit?.hash).toBe('h1');
+    expect(getState().selectedCommit?.hash.slice(0, 7).replace(/0+$/, '')).toBe('h1');
   });
 
   it('无锚点时 Shift 点击应该退化为单选', () => {
@@ -317,67 +388,38 @@ describe('commit-list', () => {
     expect(selectedHashes()).toEqual(['h3']);
   });
 
-  it('全选按钮应该在全选与取消全选之间切换', () => {
-    setupCommits();
-    createPanel();
-
-    const selectAll = container.querySelector('[data-action="btn-select-all"]') as HTMLElement;
-
-    selectAll.click();
-    expect(selectedHashes()).toEqual(['h1', 'h2', 'h3', 'h4']);
-    // 全选后所有行高亮
-    expect(row('h3').style.backgroundColor).toBe('rgb(42, 58, 74)');
-
-    selectAll.click();
-    expect(getState().selectedCommits.size).toBe(0);
-  });
-
-  it('部分选中时全选按钮应该先补齐全选再清空', () => {
-    setupCommits();
-    createPanel();
-
-    const selectAll = container.querySelector('[data-action="btn-select-all"]') as HTMLElement;
-
-    clickRow('h1'); // 仅选中 1 条
-    selectAll.click(); // 未全选 → 补齐全选
-    expect(getState().selectedCommits.size).toBe(4);
-
-    selectAll.click(); // 已全选 → 清空
-    expect(getState().selectedCommits.size).toBe(0);
-  });
-
-  it('右键单选状态的提交应该显示单提交菜单', () => {
+  it('右键单选状态的提交应该显示单提交菜单', async () => {
     setupCommits();
     createPanel();
 
     clickRow('h1');
-    contextRow('h1');
+    await contextRow('h1');
 
     expect(menuEl()).toBeTruthy();
     expect(menuEl()!.textContent).toContain('复制提交哈希');
     expect(menuEl()!.textContent).not.toContain('已选中');
   });
 
-  it('右键多选集合内的提交应该显示批量菜单并包含数量', () => {
+  it('右键多选集合内的提交应该显示批量菜单并包含数量', async () => {
     setupCommits();
     createPanel();
 
     clickRow('h1');
     clickRow('h2', { ctrlKey: true });
-    contextRow('h2'); // 右键目标在多选集合内且选中数 > 1
+    await contextRow('h2'); // 右键目标在多选集合内且选中数 > 1
 
     expect(menuEl()).toBeTruthy();
     expect(menuEl()!.textContent).toContain('已选中 2 个提交');
     expect(menuEl()!.textContent).toContain('复制哈希列表');
   });
 
-  it('右键未选中的提交应该显示单提交菜单', () => {
+  it('右键未选中的提交应该显示单提交菜单', async () => {
     setupCommits();
     createPanel();
 
     clickRow('h1');
     clickRow('h2', { ctrlKey: true });
-    contextRow('h3'); // 目标不在多选集合内
+    await contextRow('h3'); // 目标不在多选集合内
 
     expect(menuEl()).toBeTruthy();
     expect(menuEl()!.textContent).toContain('复制提交哈希');
@@ -427,7 +469,7 @@ describe('commit-list', () => {
     createPanel();
 
     const newCommits: CommitInfo[] = [
-      { hash: 'h9', shortHash: 'h9', message: 'feat: 刷新后的提交', authorName: '张三', authorEmail: 'a@example.com', date: new Date().toISOString(), parents: [] },
+      { hash: fullHash('h9'), shortHash: fullHash('h9').slice(0, 7), message: 'feat: 刷新后的提交', authorName: '张三', authorEmail: 'a@example.com', date: new Date().toISOString(), parents: [] },
     ];
     getLogMock.mockResolvedValue(newCommits);
 
@@ -437,7 +479,7 @@ describe('commit-list', () => {
       expect(container.querySelectorAll('[data-hash]').length).toBe(1);
     });
     expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, undefined);
-    expect(getState().filteredCommits.map(c => c.hash)).toEqual(['h9']);
+    expect(getState().filteredCommits.map(c => prefixOf(c.hash))).toEqual(['h9']);
     expect(row('h9')).toBeTruthy();
   });
 
@@ -478,8 +520,8 @@ describe('commit-list', () => {
     expect(container.childNodes.length).toBe(2);
     expect(container.textContent).not.toContain('Stryker was here!');
 
-    // 各操作按钮都应渲染出对应 svg 图标（含搜索按钮）
-    for (const action of ['btn-download', 'btn-refresh', 'btn-compare', 'btn-settings', 'btn-goto', 'btn-search']) {
+    // 右侧角三项都应渲染出对应 svg 图标
+    for (const action of ['btn-refresh', 'btn-settings', 'btn-goto']) {
       const btn = container.querySelector(`[data-action="${action}"]`) as HTMLElement;
       expect(btn.querySelector('svg'), `${action} 应含 svg 图标`).toBeTruthy();
     }
@@ -545,11 +587,13 @@ describe('commit-list', () => {
   it('分支标签应该按提交映射渲染本地/远程配色并在分支变化时刷新', () => {
     const commits = setupCommits();
     setState(s => {
+      // 真实 git 返回的 branch.commit 是 7 位短哈希，测试须复刻该形状，
+      // 否则用完整哈希喂进去会掩盖「短哈希 vs 完整哈希匹配失败」的缺陷
       s.branches = [
-        { name: 'dev', isCurrent: true, isRemote: false, commit: commits[0].hash },
-        { name: 'feature/x', isCurrent: false, isRemote: true, commit: commits[0].hash },
-        { name: 'origin/main', isCurrent: false, isRemote: true, commit: commits[1].hash },
-        { name: 'HEAD', isCurrent: false, isRemote: false, commit: commits[2].hash },
+        { name: 'dev', isCurrent: true, isRemote: false, commit: commits[0].hash.slice(0, 7) },
+        { name: 'feature/x', isCurrent: false, isRemote: true, commit: commits[0].hash.slice(0, 7) },
+        { name: 'origin/main', isCurrent: false, isRemote: true, commit: commits[1].hash.slice(0, 7) },
+        { name: 'HEAD', isCurrent: false, isRemote: false, commit: commits[2].hash.slice(0, 7) },
         { name: 'wip', isCurrent: false, isRemote: false }, // 无 commit，不应映射到任何提交
       ];
     });
@@ -590,7 +634,7 @@ describe('commit-list', () => {
     expect(row('h4').textContent).not.toContain('Stryker was here');
 
     // 分支字段变化通过订阅局部刷新出新标签
-    setState(s => { s.branches = [{ name: 'feature/y', isCurrent: false, isRemote: true, commit: commits[3].hash }]; });
+    setState(s => { s.branches = [{ name: 'feature/y', isCurrent: false, isRemote: true, commit: commits[3].hash.slice(0, 7) }]; });
     expect(row('h4').textContent).toContain('feature/y');
   });
 
@@ -626,7 +670,7 @@ describe('commit-list', () => {
     expect(windowErrors).toEqual([]);
   });
 
-  it('右键列表空白处不应弹出菜单且右键提交会阻止默认菜单', () => {
+  it('右键列表空白处不应弹出菜单且右键提交会阻止默认菜单', async () => {
     setupCommits();
     createPanel();
 
@@ -637,6 +681,8 @@ describe('commit-list', () => {
     // 右键真实提交行：preventDefault 生效（dispatchEvent 返回 false）
     const allowed = row('h1').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
     expect(allowed).toBe(false);
+    // 菜单在异步查询工作区状态后才渲染
+    await new Promise(r => setTimeout(r, 0));
     expect(menuEl()).toBeTruthy();
   });
 
@@ -650,14 +696,14 @@ describe('commit-list', () => {
     const writeTextMock = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: writeTextMock }, configurable: true });
     try {
-      contextRow('h2');
+      await contextRow('h2');
       const menu = menuEl() as HTMLElement;
       const copyItem = [...menu.children].find(el => el.textContent === '复制哈希列表') as HTMLElement;
       expect(copyItem).toBeTruthy();
       copyItem.click();
 
       await vi.waitFor(() => {
-        expect(writeTextMock).toHaveBeenCalledWith('h2\nh1');
+        expect(writeTextMock).toHaveBeenCalledWith(`${fullHash('h2')}\n${fullHash('h1')}`);
       });
     } finally {
       if (clipboardDesc) {
@@ -695,19 +741,6 @@ describe('commit-list', () => {
     expect(container.textContent).not.toContain('分支:');
   });
 
-  it('列表为空时全选按钮不应清空已有选中', () => {
-    setupCommits();
-    createPanel();
-
-    clickRow('h1');
-    setState(s => { s.filteredCommits = []; });
-
-    (container.querySelector('[data-action="btn-select-all"]') as HTMLElement).click();
-
-    // 过滤列表为空时应直接返回，不动 selectedCommits
-    expect(selectedHashes()).toEqual(['h1']);
-  });
-
   it('Ctrl 建立的锚点与普通点击锚点都应支持后续 Shift 范围选', () => {
     setupCommits();
     createPanel();
@@ -727,8 +760,8 @@ describe('commit-list', () => {
   it('搜索应该大小写不敏感地匹配短哈希与作者', () => {
     const commits = makeCommits();
     commits.push({
-      hash: 'h5',
-      shortHash: 'h5',
+      hash: `h500000${'0'.repeat(33)}`,
+      shortHash: 'h500000',
       message: 'refactor: 重命名模块',
       authorName: 'alice',
       authorEmail: 'd@example.com',
@@ -1035,13 +1068,13 @@ describe('commit-list', () => {
     createPanel();
     const hashCol = row('h1').querySelector('[data-col="hash"]');
     expect(hashCol).toBeTruthy();
-    expect(hashCol!.textContent).toBe('h1');
+    expect(prefixOf(hashCol!.textContent ?? '')).toBe('h1');
 
     setState(s => { s.displaySettings.showHash = false; });
     expect(row('h1').querySelector('[data-col="hash"]')).toBeNull();
 
     setState(s => { s.displaySettings.showHash = true; });
-    expect(row('h1').querySelector('[data-col="hash"]')?.textContent).toBe('h1');
+    expect(prefixOf(row('h1').querySelector('[data-col="hash"]')?.textContent ?? '')).toBe('h1');
   });
 
   it('全部列关闭时提交行仍应渲染并保留消息列', () => {
@@ -1049,7 +1082,7 @@ describe('commit-list', () => {
     createPanel();
 
     setState(s => {
-      s.displaySettings = { showAuthor: false, showDate: false, showHash: false };
+      s.displaySettings = { showAuthor: false, showDate: false, showHash: false, showLongEdges: true, showTagNames: true, compactReferences: false, preferCommitDate: false, referencesOnLeft: false };
     });
 
     expect(container.querySelectorAll('[data-hash]').length).toBe(4);
@@ -1063,110 +1096,6 @@ describe('commit-list', () => {
   });
 
   // ===== 工具栏按钮接线 =====
-
-  it('拉取按钮应调用 pull 并在成功后触发既有刷新逻辑', async () => {
-    setupCommits();
-    createPanel();
-    const newCommits: CommitInfo[] = [
-      { hash: 'h9', shortHash: 'h9', message: 'feat: 拉取后的提交', authorName: '张三', authorEmail: 'a@example.com', date: new Date().toISOString(), parents: [] },
-    ];
-    getLogMock.mockResolvedValue(newCommits);
-
-    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
-    try {
-      (container.querySelector('[data-action="btn-download"]') as HTMLElement).click();
-
-      await vi.waitFor(() => {
-        expect(row('h9')).toBeTruthy();
-      });
-      expect(pullMock).toHaveBeenCalledWith('/repo');
-      expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, undefined);
-      expect(getState().filteredCommits.map(c => c.hash)).toEqual(['h9']);
-
-      // 拉取成功应输出带前缀/事件/目录的结构化调试日志
-      const pullLog = parseDebugLogs(debugSpy).find(p => p.event === 'pull_success');
-      expect(pullLog).toMatchObject({
-        prefix: '[commit-list]',
-        event: 'pull_success',
-        directory: '/repo',
-      });
-    } finally {
-      debugSpy.mockRestore();
-    }
-  });
-
-  it('拉取失败时应输出结构化错误日志且不触发刷新', async () => {
-    setupCommits();
-    createPanel();
-
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    try {
-      pullMock.mockRejectedValue(new Error('网络断开'));
-      (container.querySelector('[data-action="btn-download"]') as HTMLElement).click();
-
-      await vi.waitFor(() => {
-        expect(errorSpy).toHaveBeenCalled();
-      });
-      expect(JSON.parse(String(errorSpy.mock.calls[0][0]))).toMatchObject({
-        prefix: '[commit-list]',
-        event: 'pull_error',
-        error: 'Error: 网络断开',
-      });
-      expect(getLogMock).not.toHaveBeenCalled();
-    } finally {
-      errorSpy.mockRestore();
-    }
-  });
-
-  it('对比按钮无选中提交时应输出结构化日志且不发起请求', () => {
-    setupCommits();
-    createPanel();
-
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    try {
-      (container.querySelector('[data-action="btn-compare"]') as HTMLElement).click();
-
-      expect(errorSpy).toHaveBeenCalledTimes(1);
-      expect(JSON.parse(String(errorSpy.mock.calls[0][0]))).toMatchObject({
-        prefix: '[commit-list]',
-        event: 'compare_no_selection',
-      });
-      expect(diffVsLocalMock).not.toHaveBeenCalled();
-    } finally {
-      errorSpy.mockRestore();
-    }
-  });
-
-  it('对比按钮应调用 diffVsLocal 并把结果写入 state.diffs', async () => {
-    setupCommits();
-    createPanel();
-    clickRow('h2');
-    const diffs: FileDiff[] = [
-      { path: 'src/a.ts', additions: 1, deletions: 0, lines: [{ type: 'add', content: 'x' }] },
-    ];
-    diffVsLocalMock.mockResolvedValue(diffs);
-
-    (container.querySelector('[data-action="btn-compare"]') as HTMLElement).click();
-
-    await vi.waitFor(() => {
-      expect(getState().diffs).toEqual(diffs);
-    });
-    expect(diffVsLocalMock).toHaveBeenCalledWith('/repo', 'h2');
-  });
-
-  it('搜索按钮应聚焦带 data-search-input 的工具栏输入框', () => {
-    setupCommits();
-    createPanel();
-
-    const input = container.querySelector('[data-search-input]') as HTMLInputElement;
-    expect(input).toBeTruthy();
-    expect(input.getAttribute('placeholder')).toBe('文本或哈希');
-    input.blur();
-
-    (container.querySelector('[data-action="btn-search"]') as HTMLElement).click();
-
-    expect(document.activeElement).toBe(input);
-  });
 
   it('设置按钮应打开显示设置菜单并可通过菜单项联动列显隐', () => {
     setupCommits();
@@ -1189,11 +1118,9 @@ describe('commit-list', () => {
     createPanel();
 
     const titles: Record<string, string> = {
-      'btn-download': '拉取',
       'btn-refresh': '刷新',
-      'btn-compare': '与本地比较',
-      'btn-search': '搜索',
-      'btn-settings': '设置',
+      'btn-cherry-pick': 'Cherry-pick',
+      'btn-settings': '显示设置',
       'btn-goto': '跳转到引用',
     };
     for (const [action, title] of Object.entries(titles)) {
@@ -1235,7 +1162,7 @@ describe('commit-list', () => {
     const { onCommitSelect } = createPanel();
     setState(s => {
       s.branches = [
-        { name: 'dev', isCurrent: true, isRemote: false, commit: 'h3' },
+        { name: 'dev', isCurrent: true, isRemote: false, commit: fullHash('h3').slice(0, 7) },
         { name: 'feature/x', isCurrent: false, isRemote: true },
       ];
     });
@@ -1292,7 +1219,7 @@ describe('commit-list', () => {
       expect(selectedHashes()).toEqual(['h1']);
       expect(windowErrors).toEqual([]);
       const log = parseDebugLogs(debugSpy).find(p => p.event === 'goto_commit');
-      expect(log).toMatchObject({ prefix: '[commit-list]', event: 'goto_commit', hash: 'h1' });
+      expect(log).toMatchObject({ prefix: '[commit-list]', event: 'goto_commit', hash: fullHash('h1') });
     } finally {
       debugSpy.mockRestore();
     }
@@ -1304,7 +1231,7 @@ describe('commit-list', () => {
     setState(s => {
       s.branches = [
         { name: 'other', isCurrent: false, isRemote: false }, // 首项非查询名
-        { name: 'dev', isCurrent: true, isRemote: false, commit: 'h3' },
+        { name: 'dev', isCurrent: true, isRemote: false, commit: fullHash('h3').slice(0, 7) },
       ];
     });
 
@@ -1394,7 +1321,7 @@ describe('commit-list', () => {
       // 目标行缺失时应直接返回，不得解引用 null
       expect(windowErrors).toEqual([]);
       const log = parseDebugLogs(debugSpy).find(p => p.event === 'goto_commit');
-      expect(log).toMatchObject({ prefix: '[commit-list]', event: 'goto_commit', hash: 'h1' });
+      expect(log).toMatchObject({ prefix: '[commit-list]', event: 'goto_commit', hash: fullHash('h1') });
     } finally {
       debugSpy.mockRestore();
     }
@@ -1447,59 +1374,6 @@ describe('commit-list', () => {
   });
 
   // ===== 工具栏错误日志与点击边界 =====
-
-  it('搜索按钮在输入框缺失时应输出结构化错误日志且不抛错', () => {
-    setupCommits();
-    createPanel();
-    const searchInput = container.querySelector('[data-search-input]') as HTMLInputElement;
-    searchInput.removeAttribute('data-search-input'); // 模拟契约选择器缺失
-
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    try {
-      (container.querySelector('[data-action="btn-search"]') as HTMLElement).click();
-
-      expect(errorSpy).toHaveBeenCalledTimes(1);
-      expect(JSON.parse(String(errorSpy.mock.calls[0][0]))).toMatchObject({
-        prefix: '[commit-list]',
-        event: 'search_input_missing',
-      });
-      // 输入框缺失时应提前返回，不得解引用 null
-      expect(windowErrors).toEqual([]);
-    } finally {
-      errorSpy.mockRestore();
-    }
-  });
-
-  it('对比失败时应输出带前缀/事件/哈希/错误的结构化日志', async () => {
-    setupCommits();
-    createPanel();
-    clickRow('h2');
-
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    try {
-      diffVsLocalMock.mockRejectedValue(new Error('对比失败'));
-      (container.querySelector('[data-action="btn-compare"]') as HTMLElement).click();
-
-      await vi.waitFor(() => {
-        expect(errorSpy).toHaveBeenCalled();
-      });
-      const payload = errorSpy.mock.calls
-        .map(c => String(c[0]))
-        .map(l => {
-          try { return JSON.parse(l) as Record<string, unknown>; } catch { return null; }
-        })
-        .find(p => p?.event === 'compare_error');
-      expect(payload).toMatchObject({
-        prefix: '[commit-list]',
-        event: 'compare_error',
-        hash: 'h2',
-        error: 'Error: 对比失败',
-      });
-      expect(windowErrors).toEqual([]);
-    } finally {
-      errorSpy.mockRestore();
-    }
-  });
 
   it('点击分支过滤按钮不应打开跳转对话框', () => {
     setupCommits();
@@ -1572,8 +1446,8 @@ describe('commit-list', () => {
   it('作者名中的特殊字符应经转义后按原文渲染', () => {
     const commits = makeCommits();
     commits.unshift({
-      hash: 'hx',
-      shortHash: 'hx',
+      hash: fullHash('hx'),
+      shortHash: fullHash('hx').slice(0, 7),
       message: 'feat: 特殊字符',
       authorName: 'A&quot;B<C>D"E', // 含实体样序列、尖括号与引号
       authorEmail: 'x@example.com',
@@ -2436,6 +2310,228 @@ describe('commit-list', () => {
     expect(toolbarBtn('btn-filter-user').textContent).toContain('用户');
     expect(toolbarBtn('btn-filter-date').textContent).toContain('日期');
     expect(toolbarBtn('btn-filter-path').textContent).toContain('路径');
-    expect(toolbarBtn('btn-select-all').textContent).toBe('全选');
+  });
+
+  it('Ctrl+A 应该全选当前过滤后的提交', () => {
+    setupCommits();
+    createPanel();
+
+    const list = row('h1').parentElement as HTMLElement;
+    list.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true }));
+
+    expect(getState().selectedCommits.size).toBe(4);
+  });
+
+  it('提交列表应该禁止文字选中', () => {
+    setupCommits();
+    createPanel();
+
+    const list = row('h1').parentElement as HTMLElement;
+    expect(list.style.userSelect).toBe('none');
+  });
+
+  it('拖拽应该连续选中经过的提交行', () => {
+    const commits = setupCommits();
+    createPanel();
+
+    const list = row('h1').parentElement as HTMLElement;
+    row('h1').dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true }));
+    row('h3').dispatchEvent(new MouseEvent('mousemove', { button: 0, bubbles: true }));
+
+    // h1..h3 连续三行被选中
+    expect([...getState().selectedCommits].sort()).toEqual(
+      [commits[0].hash, commits[1].hash, commits[2].hash].sort(),
+    );
+
+    // 松开后拖拽结束，再移动不再改变选择
+    window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    row('h4').dispatchEvent(new MouseEvent('mousemove', { button: 0, bubbles: true }));
+    expect(getState().selectedCommits.size).toBe(3);
+    void list;
+  });
+
+  it('Cherry-pick 按钮应该按由旧到新依次挑选选中提交并刷新', async () => {
+    const commits = setupCommits();
+    createPanel();
+    const cherryPickMock = vi.mocked(service.cherryPick);
+    cherryPickMock.mockResolvedValue(undefined as never);
+
+    // 选中前两条（列表顺序为新→旧，挑选应按旧→新）
+    setState(s => { s.selectedCommits = new Set([commits[0].hash, commits[1].hash]); });
+    toolbarBtn('btn-cherry-pick').click();
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(cherryPickMock).toHaveBeenCalledTimes(2);
+    expect(cherryPickMock.mock.calls[0][1]).toBe(commits[1].hash);
+    expect(cherryPickMock.mock.calls[1][1]).toBe(commits[0].hash);
+  });
+
+  it('未选中提交时点击 Cherry-pick 不应发起请求', async () => {
+    setupCommits();
+    createPanel();
+    const cherryPickMock = vi.mocked(service.cherryPick);
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    toolbarBtn('btn-cherry-pick').click();
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(cherryPickMock).not.toHaveBeenCalled();
+    expect(errSpy.mock.calls.some(c => String(c[0]).includes('cherry_pick_no_selection'))).toBe(true);
+  });
+
+  /** 读取某行上的引用标签名（去空后） */
+  const refNames = (hash: string) =>
+    [...row(hash).querySelectorAll<HTMLElement>('span[data-ref]')]
+      .map(el => el.textContent ?? '')
+      .filter(Boolean);
+
+  /** 构造带三个引用的提交（本地分支 + 远程分支 + 标签） */
+  function setupRefs() {
+    const commits = setupCommits();
+    setState(s => {
+      s.branches = [
+        { name: 'dev', isCurrent: true, isRemote: false, commit: commits[0].hash.slice(0, 7) },
+        { name: 'origin/dev', isCurrent: false, isRemote: true, commit: commits[0].hash.slice(0, 7) },
+        { name: 'tag:v1.0', isCurrent: false, isRemote: false, commit: commits[0].hash.slice(0, 7) },
+      ];
+    });
+    return commits;
+  }
+
+  it('紧凑引用视图应该只显示第一个引用', () => {
+    setupRefs();
+    createPanel();
+    expect(refNames('h1')).toEqual(['dev', 'origin/dev', 'tag:v1.0']);
+
+    setState(s => { s.displaySettings.compactReferences = true; });
+    expect(refNames('h1')).toEqual(['dev']);
+  });
+
+  it('关闭标签名称应隐藏标签文字但保留标签色块', () => {
+    setupRefs();
+    createPanel();
+    setState(s => { s.displaySettings.showTagNames = false; });
+
+    // 标签色块仍在（data-ref 保留），但文字为空，因此不出现在 refNames 里
+    expect(row('h1').querySelectorAll('span[data-ref]').length).toBe(3);
+    expect(refNames('h1')).toEqual(['dev', 'origin/dev']);
+  });
+
+  it('紧凑引用与标签名称开关组合结果与应用顺序无关', () => {
+    // 先紧凑、再隐藏标签
+    setupRefs();
+    createPanel();
+    setState(s => { s.displaySettings.compactReferences = true; });
+    setState(s => { s.displaySettings.showTagNames = false; });
+    const orderA = refNames('h1');
+
+    // 先隐藏标签、再紧凑
+    setState(s => {
+      s.displaySettings.compactReferences = false;
+      s.displaySettings.showTagNames = true;
+    });
+    setState(s => { s.displaySettings.showTagNames = false; });
+    setState(s => { s.displaySettings.compactReferences = true; });
+    const orderB = refNames('h1');
+
+    expect(orderA).toEqual(orderB);
+    // 紧凑下首个引用是分支，标签名开关不影响其显示
+    expect(orderA).toEqual(['dev']);
+  });
+
+  it('首个引用为标签且标签名隐藏时紧凑模式只保留色块', () => {
+    setupRefs();
+    // 让标签成为首个引用
+    setState(s => {
+      const tags = s.branches.filter(b => b.name.startsWith('tag:'));
+      const others = s.branches.filter(b => !b.name.startsWith('tag:'));
+      s.branches = [...tags, ...others];
+    });
+    createPanel();
+
+    setState(s => {
+      s.displaySettings.compactReferences = true;
+      s.displaySettings.showTagNames = false;
+    });
+
+    const refs = row('h1').querySelectorAll('span[data-ref]');
+    // 只渲染一个标签色块，且文字被隐藏
+    expect(refs.length).toBe(1);
+    expect(refs[0].textContent).toBe('');
+  });
+
+  it('引用显示在左侧时标签应出现在提交消息之前', () => {
+    setupRefs();
+    createPanel();
+
+    /** 取行内文本顺序中的位置：引用索引与消息索引 */
+    const orderOf = () => {
+      const spans = [...row('h1').querySelectorAll('span')];
+      const refIdx = spans.findIndex(el => el.hasAttribute('data-ref'));
+      const msgIdx = spans.findIndex(el => (el.textContent ?? '').includes('feat: 新增分支面板'));
+      return { refIdx, msgIdx };
+    };
+
+    // 默认在右：引用索引大于消息索引
+    const right = orderOf();
+    expect(right.refIdx).toBeGreaterThan(right.msgIdx);
+
+    setState(s => { s.displaySettings.referencesOnLeft = true; });
+    // 在左：引用索引小于消息索引
+    const left = orderOf();
+    expect(left.refIdx).toBeLessThan(left.msgIdx);
+  });
+
+  it('提交时间戳开关应该在创作时间与提交时间之间切换日期列', () => {
+    const now = new Date();
+    const authorDate = new Date(now.getTime() - 10 * 86400_000).toISOString(); // 10 天前
+    const commitDate = new Date(now.getTime() - 60_000).toISOString();         // 1 分钟前
+    setupCommits([
+      { hash: fullHash('c1'), shortHash: fullHash('c1').slice(0, 7), message: 'feat: 时间切换',
+        authorName: '张三', authorEmail: 'a@example.com', date: authorDate, commitDate, parents: [] },
+    ]);
+    createPanel();
+
+    const dateText = () => row('c1').querySelector('[data-col="date"]')?.textContent ?? '';
+
+    // 默认显示创作时间（10 天前 → 本地日期，不会是「1分钟前」）
+    expect(dateText()).not.toContain('1分钟前');
+
+    setState(s => { s.displaySettings.preferCommitDate = true; });
+    expect(dateText()).toContain('1分钟前');
+  });
+
+  it('工作区有未提交改动时，编辑提交信息与删除提交应置灰', async () => {
+    setupCommits();
+    // 让工作区检查返回 false（有未提交改动）
+    vi.mocked(service.isWorkingTreeClean).mockResolvedValueOnce(false);
+    createPanel();
+
+    await contextRow('h1');
+
+    const menu = menuEl()!;
+    /** 按文案取菜单项 */
+    const findItem = (label: string) =>
+      [...menu.querySelectorAll<HTMLElement>('div')].find(el => el.textContent === label);
+
+    // 改写历史的项置灰（对齐 IDEA：不可用时菜单项直接禁用，而非点击后报错）
+    expect(findItem('编辑提交信息')?.style.color).toBe('rgb(102, 102, 102)');
+    expect(findItem('删除提交')?.style.color).toBe('rgb(102, 102, 102)');
+    // 不影响历史的项仍可用
+    expect(findItem('复制提交哈希')?.style.color).not.toBe('rgb(102, 102, 102)');
+  });
+
+  it('工作区干净时，编辑提交信息与删除提交应可用', async () => {
+    setupCommits();
+    createPanel();
+
+    await contextRow('h1');
+
+    const menu = menuEl()!;
+    const findItem = (label: string) =>
+      [...menu.querySelectorAll<HTMLElement>('div')].find(el => el.textContent === label);
+
+    expect(findItem('编辑提交信息')?.style.color).not.toBe('rgb(102, 102, 102)');
+    expect(findItem('删除提交')?.style.color).not.toBe('rgb(102, 102, 102)');
   });
 });

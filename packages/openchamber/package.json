@@ -9,7 +9,8 @@
     "build": "npm run build:panel && npm run build:service",
     "dev": "node scripts/dev.mjs",
     "pack": "node scripts/pack.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:blackbox": "node --test service/__test-blackbox__/*.test.mjs"
   },
   "openchamber": {
     "apiVersion": 1,

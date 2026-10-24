@@ -31,6 +31,17 @@ export {
   findMyBranches,
 } from './git/branches.js';
 
+// 提交改写（编辑信息 / 删除提交 / 推送至指定提交）
+export {
+  isHeadCommit,
+  isMergeCommit,
+  isWorkingTreeClean,
+  uncommitHead,
+  rewordCommit,
+  dropCommit,
+  pushUpToCommit,
+} from './git/commit-edit.js';
+
 // 暂存区管理
 export {
   getStatus,

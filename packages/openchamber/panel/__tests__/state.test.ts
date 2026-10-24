@@ -27,7 +27,7 @@ describe('state', () => {
       s.searchCaseSensitive = false;
       s.branchPanelHidden = false;
       s.sortMode = 'default';
-      s.displaySettings = { showAuthor: true, showDate: true, showHash: true };
+      s.displaySettings = { showAuthor: true, showDate: true, showHash: true, showLongEdges: true, showTagNames: true, compactReferences: false, preferCommitDate: false, referencesOnLeft: false };
     });
   });
 
@@ -58,7 +58,16 @@ describe('state', () => {
       // 侧边栏图标功能新增字段的初始值
       expect(state.branchPanelHidden).toBe(false);
       expect(state.sortMode).toBe('default');
-      expect(state.displaySettings).toEqual({ showAuthor: true, showDate: true, showHash: true });
+            expect(state.displaySettings).toEqual({
+        showAuthor: true,
+        showDate: true,
+        showHash: true,
+        showLongEdges: true,
+        showTagNames: true,
+        compactReferences: false,
+        preferCommitDate: false,
+        referencesOnLeft: false,
+      });
       // 工具栏搜索标志新增字段的初始值
       expect(state.searchRegex).toBe(false);
       expect(state.searchCaseSensitive).toBe(false);

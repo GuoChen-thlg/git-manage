@@ -147,8 +147,10 @@ export interface Commit {
   authorName: string;
   /** 作者邮箱 */
   authorEmail: string;
-  /** 提交时间 */
+  /** 作者创作时间（%ai） */
   date: string;
+  /** 提交时间（%ci），可能晚于创作时间（rebase、cherry-pick 后） */
+  commitDate?: string;
   /** 父提交哈希 */
   parents: string[];
 }

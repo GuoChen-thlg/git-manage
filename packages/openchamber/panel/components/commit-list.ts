@@ -66,52 +66,17 @@ export function createCommitListPanel(
   /**
    * 拉取远端更新：成功后复用既有刷新逻辑，失败输出结构化错误日志
    */
-  const handlePull = async (): Promise<void> => {
-    try {
-      await service.pull(directory);
-      console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'pull_success', directory }));
-      await refreshCommits(service, directory);
-    } catch (e) {
-      console.error(JSON.stringify({ prefix: '[commit-list]', event: 'pull_error', error: String(e) }));
-    }
-  };
-
+  
   /**
    * 与本地比较：取当前单选提交的差异写入 state.diffs
    * 无选中提交时输出结构化日志并不发起请求
    */
-  const handleCompare = async (): Promise<void> => {
-    const selected = getState().selectedCommit;
-    if (!selected) {
-      console.error(JSON.stringify({ prefix: '[commit-list]', event: 'compare_no_selection' }));
-      return;
-    }
-    try {
-      const diffs = await service.diffVsLocal(directory, selected.hash);
-      setState(s => { s.diffs = diffs; });
-    } catch (e) {
-      console.error(JSON.stringify({
-        prefix: '[commit-list]',
-        event: 'compare_error',
-        hash: selected.hash,
-        error: String(e),
-      }));
-    }
-  };
-
+  
   /**
    * 聚焦工具栏搜索框
    * data-search-input 是侧边栏搜索图标的契约选择器（main.ts 按其聚焦）
    */
-  const focusSearchInput = (): void => {
-    const input = toolbar?.querySelector<HTMLInputElement>('[data-search-input]');
-    if (!input) {
-      console.error(JSON.stringify({ prefix: '[commit-list]', event: 'search_input_missing' }));
-      return;
-    }
-    input.focus();
-  };
-
+  
   /**
    * 在列表容器内滚动到指定提交行
    * 环境未实现 scrollIntoView（如 jsdom）时降级为按行偏移滚动容器
@@ -155,8 +120,11 @@ export function createCommitListPanel(
     // 2. 分支名精确匹配
     const hitBranch = state.branches.find(b => b.name === query);
     if (hitBranch) {
+      // 分支 commit 为短哈希，提交为完整哈希：用前缀匹配，避免永远匹配不上
       const branchCommit =
-        (hitBranch.commit ? state.allCommits.find(c => c.hash === hitBranch.commit) : undefined)
+        (hitBranch.commit
+          ? state.allCommits.find(c => c.hash.startsWith(hitBranch.commit as string))
+          : undefined)
         ?? state.filteredCommits[0]
         ?? state.allCommits[0]
         ?? null;
@@ -212,7 +180,7 @@ export function createCommitListPanel(
     toolbar = html`
       <div style="display: flex; align-items: center; gap: 2px; padding: 4px 6px; border-bottom: 1px solid #333; flex-shrink: 0; background: #1e1e1e; flex-wrap: wrap;">
         <!-- 搜索输入框 -->
-        <div style="display: flex; align-items: center; background: #2a2a2a; border: 1px solid #444; border-radius: 3px; padding: 0 6px; flex: 1; min-width: 120px;">
+        <div style="display: flex; align-items: center; background: #2a2a2a; border: 1px solid #444; border-radius: 3px; padding: 0 6px; width: 280px; max-width: 280px; flex: 0 1 280px; min-width: 120px;">
           <span style="color: #888; font-size: 12px; margin-right: 4px;">${getIcon('search')}</span>
           <input 
             type="text" 
@@ -231,16 +199,13 @@ export function createCommitListPanel(
         <button data-action="btn-filter-user" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.user')} ▾</button>
         <button data-action="btn-filter-date" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.date')} ▾</button>
         <button data-action="btn-filter-path" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.path')} ▾</button>
-        <button data-action="btn-select-all" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;" title="${t('filter.selectAllToggle')}">${t('filter.selectAll')}</button>
         <!-- 分隔线 -->
         <div style="width: 1px; height: 16px; background: #444; margin: 0 3px;"></div>
-        <!-- 操作按钮 -->
-        <button data-action="btn-download" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('sidebar.pull')}">${getIcon('download')}</button>
+        <!-- 右侧角：刷新 / Cherry-pick / 视图选项 / 搜索 -->
         <button data-action="btn-refresh" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('sidebar.refresh')}">${getIcon('refresh')}</button>
-        <button data-action="btn-compare" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('commit.compareLocal')}">${getIcon('compare')}</button>
-        <button data-action="btn-search" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('sidebar.search')}">${getIcon('search')}</button>
-        <button data-action="btn-settings" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('sidebar.settings')}">${getIcon('gearSettings')}</button>
-        <button data-action="btn-goto" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('goto.title')}">${getIcon('goToRef')}</button>
+        <button data-action="btn-cherry-pick" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('commit.cherryPick')}">${getIcon('cherryPick')}</button>
+        <button data-action="btn-settings" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('settings.title')}">${getIcon('gearSettings')}</button>
+        <button data-action="btn-goto" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('goto.title')}">${getIcon('search')}</button>
       </div>
     `;
 
@@ -252,6 +217,36 @@ export function createCommitListPanel(
       // 订阅回调会触发 filterCommits，filterCommits 更新 filteredCommits 后再触发 renderList
     });
 
+    /**
+     * Cherry-pick 选中提交到当前分支
+     * 多选时按列表由旧到新依次挑选；未选中时输出结构化日志并返回
+     */
+    const handleCherryPick = async (): Promise<void> => {
+      const state = getState();
+      const hashes = state.selectedCommits.size > 0
+        ? state.filteredCommits.filter(c => state.selectedCommits.has(c.hash)).map(c => c.hash).reverse()
+        : (state.selectedCommit ? [state.selectedCommit.hash] : []);
+      if (hashes.length === 0) {
+        console.error(JSON.stringify({ prefix: '[commit-list]', event: 'cherry_pick_no_selection' }));
+        return;
+      }
+      console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'cherry_pick_start', count: hashes.length, hashes }));
+      try {
+        for (const hash of hashes) {
+          await service.cherryPick(directory, hash);
+        }
+        await refreshCommits(service, directory);
+        console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'cherry_pick_done', count: hashes.length }));
+      } catch (e) {
+        console.error(JSON.stringify({
+          prefix: '[commit-list]',
+          event: 'cherry_pick_error',
+          hashes,
+          error: String(e),
+        }));
+      }
+    };
+
     toolbar.addEventListener('click', (e) => {
       const target = (e.target as HTMLElement).closest('[data-action]');
       if (!target) return;
@@ -259,14 +254,11 @@ export function createCommitListPanel(
       if (action === 'btn-refresh') refreshCommits(service, directory);
       else if (action === 'btn-regex') toggleRegex();
       else if (action === 'btn-case') toggleCase();
-      else if (action === 'btn-select-all') toggleSelectAll();
       else if (action === 'btn-filter-branch') openBranchDropdown(target as HTMLElement);
       else if (action === 'btn-filter-user') openUserDropdown(target as HTMLElement);
       else if (action === 'btn-filter-date') openDateDropdown(target as HTMLElement);
       else if (action === 'btn-filter-path') openPathDropdown(target as HTMLElement);
-      else if (action === 'btn-download') void handlePull();
-      else if (action === 'btn-compare') void handleCompare();
-      else if (action === 'btn-search') focusSearchInput();
+      else if (action === 'btn-cherry-pick') void handleCherryPick();
       else if (action === 'btn-settings') showSettingsMenu(e);
       else if (action === 'btn-goto') showGotoDialog(gotoReference);
     });
@@ -287,8 +279,54 @@ export function createCommitListPanel(
 
     // 提交列表
     listContainer = html`
-      <div style="flex: 1; overflow-y: auto; overflow-x: hidden;"></div>
+      <div tabindex="0" style="flex: 1; overflow-y: auto; overflow-x: hidden; user-select: none; outline: none;"></div>
     `;
+
+    // Ctrl/Cmd+A 全选提交（列表获得焦点时生效，对齐 IDEA）
+    listContainer.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        const all = getState().filteredCommits.map(c => c.hash);
+        setState(s => { s.selectedCommits = new Set(all); });
+        console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'select_all', count: all.length }));
+      }
+    });
+
+    // 鼠标拖拽连续选中：按下记录锚点，移动时按范围更新选择
+    let dragging = false;
+    let dragStartIndex = -1;
+    listContainer.addEventListener('mousedown', (e) => {
+      // 仅左键且点在提交行上时启动拖拽
+      if (e.button !== 0) return;
+      const commit = findCommitFromEvent(e);
+      if (!commit) return;
+      const idx = getState().filteredCommits.findIndex(c => c.hash === commit.hash);
+      if (idx < 0) return;
+      dragging = true;
+      dragStartIndex = idx;
+      // 聚焦列表以支持 Ctrl+A 等键盘操作
+      listContainer?.focus();
+    });
+    listContainer.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const commit = findCommitFromEvent(e);
+      if (!commit) return;
+      const idx = getState().filteredCommits.findIndex(c => c.hash === commit.hash);
+      if (idx < 0) return;
+      const start = Math.min(dragStartIndex, idx);
+      const end = Math.max(dragStartIndex, idx);
+      const range = getState().filteredCommits.slice(start, end + 1).map(c => c.hash);
+      setState(s => {
+        // 拖拽期间整体替换选集，保持与鼠标划过的范围一致
+        if (s.selectedCommits.size === range.length && range.every(h => s.selectedCommits.has(h))) return;
+        s.selectedCommits = new Set(range);
+      });
+    });
+    // 松开鼠标与移出容器都结束拖拽
+    const endDrag = () => { dragging = false; dragStartIndex = -1; };
+    listContainer.addEventListener('mouseup', endDrag);
+    listContainer.addEventListener('mouseleave', endDrag);
+    window.addEventListener('mouseup', endDrag);
 
     listContainer.addEventListener('mouseenter', (e) => {
       const target = (e.target as HTMLElement).closest('[data-hash]');
@@ -358,7 +396,17 @@ export function createCommitListPanel(
           .map(c => c.hash)
           .reverse();
       }
-      showCommitContextMenu(e, commit, service, directory, batch);
+
+      // 先查工作区是否干净，再弹菜单：不干净时编辑信息/删除提交等改写历史的项直接置灰
+      // （对齐 IDEA 的禁用策略），避免用户点击后才看到 git 报错。
+      // 菜单定位只用坐标，故异步回调里构造仅含坐标的最小事件对象即可
+      const { clientX, clientY } = e;
+      void service.isWorkingTreeClean(directory)
+        .catch(() => false)
+        .then((clean) => {
+          const anchor = { clientX, clientY } as MouseEvent;
+          showCommitContextMenu(anchor, commit, service, directory, batch, !clean);
+        });
     });
 
     container.appendChild(listContainer);
@@ -439,13 +487,10 @@ export function createCommitListPanel(
     let prevDisplay = { ...getState().displaySettings };
     unsubscribeDisplay = subscribeState(() => {
       const settings = getState().displaySettings;
-      if (
-        settings.showAuthor === prevDisplay.showAuthor &&
-        settings.showDate === prevDisplay.showDate &&
-        settings.showHash === prevDisplay.showHash
-      ) {
-        return;
-      }
+      // 逐字段比较：displaySettings 可能被整体替换，用引用比较会漏掉原地修改
+      const changed = (Object.keys(settings) as Array<keyof typeof settings>)
+        .some(k => settings[k] !== prevDisplay[k]);
+      if (!changed) return;
       prevDisplay = { ...settings };
       if (disposed) return;
       console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'display_changed', settings: prevDisplay }));
@@ -739,18 +784,22 @@ export function createCommitListPanel(
       return;
     }
 
-    // 收集所有分支标签映射
+    // 收集所有分支引用映射
+    // 分支数据的 commit 是短哈希，提交为完整哈希：按前缀索引，避免永远匹配不上
     const branchMap = new Map<string, string[]>();
     for (const branch of state.branches) {
-      if (branch.commit) {
-        const existing = branchMap.get(branch.commit) || [];
-        existing.push(branch.name);
-        branchMap.set(branch.commit, existing);
-      }
+      if (!branch.commit) continue;
+      const existing = branchMap.get(branch.commit) ?? [];
+      existing.push(branch.name);
+      branchMap.set(branch.commit, existing);
     }
 
     for (const commit of commits) {
-      const branches = branchMap.get(commit.hash) || [];
+      // 短哈希可能为 7 位，用前缀比对（提交完整哈希以分支短哈希开头）
+      const branches: string[] = [];
+      for (const [shortHash, names] of branchMap) {
+        if (commit.hash.startsWith(shortHash)) branches.push(...names);
+      }
       const item = createCommitItem(commit, branches);
       listContainer.appendChild(item);
     }
@@ -780,22 +829,38 @@ function createCommitItem(commit: CommitInfo, branches: string[] = []): HTMLElem
     state.selectedCommit?.hash === commit.hash;
   const bgColor = isSelected ? '#2a3a4a' : 'transparent';
 
-  // 分支标签 (IntelliJ 风格彩色标签)
-  const branchTags = branches.length > 0
-    ? branches.map(b => {
-        const isLocal = !b.includes('/') && b !== 'HEAD';
-        const bgColor = isLocal ? '#4a3a1a' : '#1a3a4a';
-        const fgColor = isLocal ? '#e8a838' : '#589df6';
-        return `<span style="margin-left: 6px; padding: 0 5px; background: ${bgColor}; border-radius: 2px; font-size: 10px; color: ${fgColor}; flex-shrink: 0; white-space: nowrap;">${b}</span>`;
-      }).join('')
-    : '';
+  // 引用标签（IntelliJ 风格彩色标签）
+  // 语义对齐 IDEA SimpleRefGroup.buildGroups：
+  // - compactReferences：所有引用合并成一组，只渲染该组的首个名字
+  // - showTagNames：控制标签是否显示名字（不影响分支）；两者独立生效，与调整顺序无关
+  const renderRef = (name: string, isTag: boolean): string => {
+    const isLocal = !isTag && !name.includes('/') && name !== 'HEAD';
+    const bgColor = isTag ? '#2a3a2a' : (isLocal ? '#4a3a1a' : '#1a3a4a');
+    const fgColor = isTag ? '#6fbf73' : (isLocal ? '#e8a838' : '#589df6');
+    // 标签名被隐藏时仍保留标签色块，只是不显示文字（与 IDEA 传入空名一致）
+    const label = isTag && !settings.showTagNames ? '' : name;
+    return `<span data-ref="${name}" style="margin-left: 6px; padding: 0 5px; background: ${bgColor}; border-radius: 2px; font-size: 10px; color: ${fgColor}; flex-shrink: 0; white-space: nowrap;">${label}</span>`;
+  };
+
+  const refs = branches.map(b => ({ name: b, isTag: b.startsWith('tag:') }));
+  const branchTags = (() => {
+    if (refs.length === 0) return '';
+    if (settings.compactReferences) {
+      // 紧凑：只显示首个引用（若首个是标签且标签名隐藏，则只留色块）
+      const first = refs[0];
+      return renderRef(first.name, first.isTag);
+    }
+    return refs.map(r => renderRef(r.name, r.isTag)).join('');
+  })();
 
   // 哈希列 / 日期列 / 作者列按显示设置开关；日期列隐藏时作者列接替右对齐
   const hashCol = settings.showHash
     ? `<span data-col="hash" style="font-family: monospace; color: #888; font-size: 11px; flex-shrink: 0; margin-right: 6px; white-space: nowrap;">${escapeText(commit.shortHash)}</span>`
     : '';
   const dateCol = settings.showDate
-    ? `<span data-col="date" style="margin-left: auto; color: #888; font-size: 11px; flex-shrink: 0; white-space: nowrap;">${formatDate(commit.date)}</span>`
+    ? `<span data-col="date" style="margin-left: auto; color: #888; font-size: 11px; flex-shrink: 0; white-space: nowrap;">${formatDate(
+        settings.preferCommitDate && commit.commitDate ? commit.commitDate : commit.date,
+      )}</span>`
     : '';
   const authorCol = settings.showAuthor
     ? `<span data-col="author" style="margin-left: ${settings.showDate ? '12px' : 'auto'}; color: #888; font-size: 11px; flex-shrink: 0; white-space: nowrap;">${escapeText(commit.authorName)}</span>`
@@ -812,10 +877,12 @@ function createCommitItem(commit: CommitInfo, branches: string[] = []): HTMLElem
       </span>
       <!-- 哈希列 -->
       ${hashCol}
+      <!-- 引用在左：referencesOnLeft 开启时标签置于消息之前 -->
+      ${settings.referencesOnLeft ? branchTags : ''}
       <!-- 提交消息 -->
       <span style="flex: 1; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 4px;">${commit.message}</span>
-      <!-- 分支标签 -->
-      ${branchTags}
+      <!-- 引用在右（默认） -->
+      ${settings.referencesOnLeft ? '' : branchTags}
       <!-- 时间 -->
       ${dateCol}
       <!-- 作者 -->
@@ -1022,18 +1089,6 @@ async function refreshCommits(service: ServiceClient, directory: string): Promis
     filterCommits();
   } catch (e) {
     console.error('[git-manager] 刷新提交列表失败:', e);
-  }
-}
-
-/** 全选/取消全选当前过滤列表 */
-function toggleSelectAll(): void {
-  const state = getState();
-  if (state.filteredCommits.length === 0) return;
-  const allSelected = state.filteredCommits.every(c => state.selectedCommits.has(c.hash));
-  if (allSelected) {
-    setState(s => { s.selectedCommits = new Set<string>(); });
-  } else {
-    setState(s => { s.selectedCommits = new Set(state.filteredCommits.map(c => c.hash)); });
   }
 }
 
