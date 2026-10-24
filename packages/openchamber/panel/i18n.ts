@@ -165,6 +165,15 @@ const en: Record<string, string> = {
   'dialog.cancel': 'Cancel',
   'dialog.ok': 'OK',
   'filter.selectAllToggle': 'Select all / deselect all in the current list',
+  'sidebar.compareBranch': 'Compare with Current',
+  'compare.title': 'Comparing {branch} with {current}',
+  'compare.branchOnly': 'Unique to {branch}',
+  'compare.currentOnly': 'Unique to {current}',
+  'compare.empty': 'No commits',
+  'compare.loading': 'Loading…',
+  'compare.loadFailed': 'Failed to compare branches',
+  'compare.selectBranch': 'Select a branch to compare first',
+  'compare.currentBranch': 'The current branch cannot be compared with itself',
 };
 
 /** 简体中文 */
@@ -323,6 +332,15 @@ const zhCN: Record<string, string> = {
   'dialog.cancel': '取消',
   'dialog.ok': '确定',
   'filter.selectAllToggle': '全选/取消全选当前列表',
+  'sidebar.compareBranch': '与当前分支比较',
+  'compare.title': '比较 {branch} 与 {current}',
+  'compare.branchOnly': '{branch} 独有的提交',
+  'compare.currentOnly': '{current} 独有的提交',
+  'compare.empty': '无提交',
+  'compare.loading': '加载中…',
+  'compare.loadFailed': '分支比较失败',
+  'compare.selectBranch': '请先选择要比较的分支',
+  'compare.currentBranch': '当前分支无法与自己比较',
 };
 
 /** 繁体中文 */
@@ -481,6 +499,15 @@ const zhTW: Record<string, string> = {
   'dialog.cancel': '取消',
   'dialog.ok': '確定',
   'filter.selectAllToggle': '全選/取消全選目前清單',
+  'sidebar.compareBranch': '與目前分支比較',
+  'compare.title': '比較 {branch} 與 {current}',
+  'compare.branchOnly': '{branch} 獨有的提交',
+  'compare.currentOnly': '{current} 獨有的提交',
+  'compare.empty': '無提交',
+  'compare.loading': '載入中…',
+  'compare.loadFailed': '分支比較失敗',
+  'compare.selectBranch': '請先選擇要比較的分支',
+  'compare.currentBranch': '目前分支無法與自己比較',
 };
 
 /** 德语 */
@@ -639,6 +666,15 @@ const de: Record<string, string> = {
   'dialog.cancel': 'Abbrechen',
   'dialog.ok': 'OK',
   'filter.selectAllToggle': 'Alle auswählen / abwählen in der aktuellen Liste',
+  'sidebar.compareBranch': 'Mit aktuellem Branch vergleichen',
+  'compare.title': '{branch} mit {current} vergleichen',
+  'compare.branchOnly': 'Nur in {branch}',
+  'compare.currentOnly': 'Nur in {current}',
+  'compare.empty': 'Keine Commits',
+  'compare.loading': 'Wird geladen…',
+  'compare.loadFailed': 'Branch-Vergleich fehlgeschlagen',
+  'compare.selectBranch': 'Bitte zuerst einen Branch auswählen',
+  'compare.currentBranch': 'Der aktuelle Branch kann nicht mit sich selbst verglichen werden',
 };
 
 /** 法语 */
@@ -797,6 +833,15 @@ const fr: Record<string, string> = {
   'dialog.cancel': 'Annuler',
   'dialog.ok': 'OK',
   'filter.selectAllToggle': 'Tout sélectionner / désélectionner dans la liste actuelle',
+  'sidebar.compareBranch': 'Comparer avec la branche actuelle',
+  'compare.title': 'Comparaison de {branch} avec {current}',
+  'compare.branchOnly': 'Propres à {branch}',
+  'compare.currentOnly': 'Propres à {current}',
+  'compare.empty': 'Aucun commit',
+  'compare.loading': 'Chargement…',
+  'compare.loadFailed': 'Échec de la comparaison des branches',
+  'compare.selectBranch': 'Veuillez d’abord sélectionner une branche',
+  'compare.currentBranch': 'La branche actuelle ne peut pas être comparée à elle-même',
 };
 
 /** 乌克兰语 */
@@ -955,6 +1000,15 @@ const uk: Record<string, string> = {
   'dialog.cancel': 'Скасувати',
   'dialog.ok': 'Гаразд',
   'filter.selectAllToggle': 'Вибрати все / зняти вибір у поточному списку',
+  'sidebar.compareBranch': 'Порівняти з поточною',
+  'compare.title': 'Порівняння {branch} з {current}',
+  'compare.branchOnly': 'Лише в {branch}',
+  'compare.currentOnly': 'Лише в {current}',
+  'compare.empty': 'Немає комітів',
+  'compare.loading': 'Завантаження…',
+  'compare.loadFailed': 'Не вдалося порівняти гілки',
+  'compare.selectBranch': 'Спочатку виберіть гілку',
+  'compare.currentBranch': 'Поточну гілку не можна порівняти саму з собою',
 };
 
 /** 西班牙语 */
@@ -1113,6 +1167,15 @@ const es: Record<string, string> = {
   'dialog.cancel': 'Cancelar',
   'dialog.ok': 'Aceptar',
   'filter.selectAllToggle': 'Seleccionar todo / deseleccionar en la lista actual',
+  'sidebar.compareBranch': 'Comparar con la rama actual',
+  'compare.title': 'Comparando {branch} con {current}',
+  'compare.branchOnly': 'Exclusivos de {branch}',
+  'compare.currentOnly': 'Exclusivos de {current}',
+  'compare.empty': 'Sin commits',
+  'compare.loading': 'Cargando…',
+  'compare.loadFailed': 'Error al comparar las ramas',
+  'compare.selectBranch': 'Primero seleccione una rama',
+  'compare.currentBranch': 'La rama actual no se puede comparar consigo misma',
 };
 
 /** 巴西葡萄牙语 */
@@ -1271,6 +1334,15 @@ const ptBR: Record<string, string> = {
   'dialog.cancel': 'Cancelar',
   'dialog.ok': 'OK',
   'filter.selectAllToggle': 'Selecionar tudo / desmarcar na lista atual',
+  'sidebar.compareBranch': 'Comparar com o branch atual',
+  'compare.title': 'Comparando {branch} com {current}',
+  'compare.branchOnly': 'Exclusivos de {branch}',
+  'compare.currentOnly': 'Exclusivos de {current}',
+  'compare.empty': 'Sem commits',
+  'compare.loading': 'Carregando…',
+  'compare.loadFailed': 'Falha ao comparar branches',
+  'compare.selectBranch': 'Selecione um branch primeiro',
+  'compare.currentBranch': 'O branch atual não pode ser comparado consigo mesmo',
 };
 
 /** 韩语 */
@@ -1429,6 +1501,15 @@ const ko: Record<string, string> = {
   'dialog.cancel': '취소',
   'dialog.ok': '확인',
   'filter.selectAllToggle': '현재 목록 전체 선택/선택 해제',
+  'sidebar.compareBranch': '현재 브랜치와 비교',
+  'compare.title': '{branch}과 {current} 비교',
+  'compare.branchOnly': '{branch}에만 있는 커밋',
+  'compare.currentOnly': '{current}에만 있는 커밋',
+  'compare.empty': '커밋 없음',
+  'compare.loading': '불러오는 중…',
+  'compare.loadFailed': '브랜치 비교 실패',
+  'compare.selectBranch': '먼저 비교할 브랜치를 선택하세요',
+  'compare.currentBranch': '현재 브랜치는 자기 자신과 비교할 수 없습니다',
 };
 
 /** 波兰语 */
@@ -1587,6 +1668,15 @@ const pl: Record<string, string> = {
   'dialog.cancel': 'Anuluj',
   'dialog.ok': 'OK',
   'filter.selectAllToggle': 'Zaznacz wszystko / odznacz na bieżącej liście',
+  'sidebar.compareBranch': 'Porównaj z bieżącą gałęzią',
+  'compare.title': 'Porównywanie {branch} z {current}',
+  'compare.branchOnly': 'Tylko w {branch}',
+  'compare.currentOnly': 'Tylko w {current}',
+  'compare.empty': 'Brak commitów',
+  'compare.loading': 'Ładowanie…',
+  'compare.loadFailed': 'Nie udało się porównać gałęzi',
+  'compare.selectBranch': 'Najpierw wybierz gałąź',
+  'compare.currentBranch': 'Bieżącej gałęzi nie można porównać z nią samą',
 };
 
 /** 日语 */
@@ -1745,6 +1835,15 @@ const ja: Record<string, string> = {
   'dialog.cancel': 'キャンセル',
   'dialog.ok': 'OK',
   'filter.selectAllToggle': '現在のリストをすべて選択/解除',
+  'sidebar.compareBranch': '現在のブランチと比較',
+  'compare.title': '{branch} と {current} の比較',
+  'compare.branchOnly': '{branch} のみのコミット',
+  'compare.currentOnly': '{current} のみのコミット',
+  'compare.empty': 'コミットなし',
+  'compare.loading': '読み込み中…',
+  'compare.loadFailed': 'ブランチの比較に失敗しました',
+  'compare.selectBranch': '先に比較するブランチを選択してください',
+  'compare.currentBranch': '現在のブランチは自分自身と比較できません',
 };
 
 /** 土耳其语 */
@@ -1903,6 +2002,15 @@ const tr: Record<string, string> = {
   'dialog.cancel': 'İptal',
   'dialog.ok': 'Tamam',
   'filter.selectAllToggle': 'Geçerli listede tümünü seç / seçimi kaldır',
+  'sidebar.compareBranch': 'Geçerli dalla karşılaştır',
+  'compare.title': '{branch} ile {current} karşılaştırılıyor',
+  'compare.branchOnly': 'Yalnızca {branch} içinde',
+  'compare.currentOnly': 'Yalnızca {current} içinde',
+  'compare.empty': 'Commit yok',
+  'compare.loading': 'Yükleniyor…',
+  'compare.loadFailed': 'Dallar karşılaştırılamadı',
+  'compare.selectBranch': 'Önce karşılaştırılacak bir dal seçin',
+  'compare.currentBranch': 'Geçerli dal kendisiyle karşılaştırılamaz',
 };
 
 /** 全部语言字典（导出用于测试完整性校验） */

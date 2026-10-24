@@ -30,6 +30,7 @@ import {
   createSidebar,
   hideContextMenu,
   performBranchDelete,
+  showCompareBranchesView,
 } from './components';
 import { showCreateBranchDialog } from './components/dialogs';
 import { showSettingsMenu } from './components/settings-menu';
@@ -172,7 +173,33 @@ async function render(): Promise<void> {
         }
         void performBranchDelete(service, getDir(), branch);
       },
-      onMerge: () => { void runSidebarMerge(); },
+      onCompareBranch: () => {
+        // 对齐 IDEA Compare with Current：仅作用于选中分支，未选中或当前分支时 toast 提示
+        const branch = getState().selectedBranch;
+        if (!branch) {
+          void host.toast({ kind: 'error', message: t('compare.selectBranch') }).catch((toastErr) => {
+            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));
+          });
+          return;
+        }
+        if (branch.isCurrent) {
+          void host.toast({ kind: 'error', message: t('compare.currentBranch') }).catch((toastErr) => {
+            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));
+          });
+          return;
+        }
+        const current = getState().gitStatus?.currentBranch;
+        if (!current) {
+          void host.toast({ kind: 'error', message: t('compare.selectBranch') }).catch((toastErr) => {
+            console.error(JSON.stringify({ prefix: '[sidebar]', event: 'compare_toast_error', error: String(toastErr) }));
+          });
+          return;
+        }
+        void service.debugLog('compare-branch-open', { branch: branch.name, current });
+        showCompareBranchesView(service, getDir(), branch.name, current, (commit) => {
+          loadCommitDetail(commit.hash);
+        });
+      },
       onSearch: () => {
         // data-search-input 由 commit-list 搜索框提供，缺失时静默忽略
         commitListPanel.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
@@ -254,21 +281,6 @@ function createTabBar(): HTMLElement {
 function resolveSidebarTarget(): Branch | null {
   const state = getState();
   return state.selectedBranch ?? state.branches.find(b => b.isCurrent) ?? null;
-}
-
-/** 侧边栏合并：选中分支优先，成功后刷新数据 */
-async function runSidebarMerge(): Promise<void> {
-  const target = resolveSidebarTarget();
-  if (!target) {
-    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'merge_no_branch' }));
-    return;
-  }
-  try {
-    await service.mergeBranch(getDir(), target.name);
-    await loadData();
-  } catch (e) {
-    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'merge_error', branchName: target.name, error: String(e) }));
-  }
 }
 
 /** 侧边栏收藏切换：目标分支在收藏集间增删并持久化 */
