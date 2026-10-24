@@ -2,6 +2,17 @@ import { gitExec, gitExecStrict } from './executor.js';
 import { GitError, type GitCommandOptions, type Branch } from './types.js';
 
 /**
+ * 判断分支简称是否为远程符号引用（如 refs/remotes/origin/HEAD 会显示为裸的 "origin"）
+ * 通过远程 HEAD 的简称集合精确判定，避免误伤同名本地分支
+ * @param name 分支简称
+ * @param headAliases 远程 HEAD 简称集合
+ * @returns 是远程符号引用返回 true
+ */
+function isRemoteHeadAlias(name: string, headAliases: Set<string>): boolean {
+  return headAliases.has(name);
+}
+
+/**
  * 获取所有分支列表
  * @param options - Git 命令选项
  * @returns 分支列表
@@ -15,6 +26,18 @@ export async function listBranches(options: GitCommandOptions): Promise<Branch[]
   const branches: Branch[] = [];
   const seen = new Set<string>();
 
+  // 远程 HEAD 简称集合：refs/remotes/origin/HEAD → "origin"
+  const headAliases = new Set<string>();
+  const remotesResult = await gitExec(
+    ['for-each-ref', '--format=%(refname:short)', 'refs/remotes'],
+    options
+  ).catch(() => null);
+  for (const ref of (remotesResult?.stdout ?? '').split('\n')) {
+    const trimmed = ref.trim();
+    // 形如 "origin" 的裸远程名即 origin/HEAD 的简称
+    if (trimmed && !trimmed.includes('/')) headAliases.add(trimmed);
+  }
+
   // 解析 git branch 输出
   if (result.stdout) {
     // 获取未推送分支信息
@@ -26,6 +49,9 @@ export async function listBranches(options: GitCommandOptions): Promise<Branch[]
 
       const [name, commit, message] = line.split('|');
       if (!name) continue;
+      // 跳过远程符号引用：git 会把 refs/remotes/<remote>/HEAD 简称为裸的 <remote>
+      // （例如 "origin"），它不是真实分支，显示出来会误导
+      if (isRemoteHeadAlias(name, headAliases)) continue;
 
       const isCurrent = name === currentBranch;
       const isRemote = name.startsWith('origin/');
