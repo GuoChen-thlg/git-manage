@@ -152,6 +152,10 @@ async function render(): Promise<void> {
 
     // 左侧图标工具栏：12 个图标全部接线（依赖分支面板、提交列表、分支面板组件）
     const sidebarComp = createSidebar(sidebarHost, {
+      onToggleBranchPanel: () => {
+        setState(s => { s.branchPanelHidden = !s.branchPanelHidden; });
+        branchPanel.style.display = getState().branchPanelHidden ? 'none' : '';
+      },
       onNewBranch: () => {
         try {
           // 选中提交时基于该提交建分支（IDEA 语义），否则基于当前 HEAD
