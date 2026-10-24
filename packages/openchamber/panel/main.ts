@@ -251,7 +251,6 @@ async function render(): Promise<void> {
       onSettings: (e) => { showSettingsMenu(e); },
       onExpandAll: () => { branchPanelComp.expandAll(); },
       onCollapseAll: () => { branchPanelComp.collapseAll(); },
-      onClose: () => { void runSidebarClose(); },
     });
     disposables.push(sidebarComp);
 
@@ -413,15 +412,6 @@ async function runSidebarLocateBranch(): Promise<void> {
     s.selectedCommits = new Set([found.hash]);
   });
   await loadCommitDetail(found.hash);
-}
-
-/** 侧边栏关闭面板 */
-async function runSidebarClose(): Promise<void> {
-  try {
-    await host.close();
-  } catch (e) {
-    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'close_error', error: String(e) }));
-  }
 }
 
 async function loadCommitsForBranch(branchName: string): Promise<void> {
