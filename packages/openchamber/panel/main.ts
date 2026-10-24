@@ -71,8 +71,8 @@ async function render(): Promise<void> {
 
     if (!directory) {
       const empty = mountEmpty(root, {
-        title: "等待初始化...",
-        body: "正在加载项目信息。",
+        title: t('main.loadingTitle'),
+        body: t('main.loadingBody'),
       });
       disposables.push(empty);
       return;
@@ -82,8 +82,8 @@ async function render(): Promise<void> {
     if (!isGit) {
       root.innerHTML = '';
       const empty = mountEmpty(root, {
-        title: "非 Git 仓库",
-        body: "当前目录不是 Git 仓库。",
+        title: t('main.notGitTitle'),
+        body: t('main.notGitBody'),
       });
       disposables.push(empty);
       return;
@@ -236,7 +236,7 @@ function createTabBar(): HTMLElement {
     <div style="flex-shrink: 0; border-top: 1px solid #333;">
       <div style="display: flex; background: #2d2d2d; padding: 0; align-items: center;">
         <div style="padding: 4px 12px; font-size: 11px; color: #fff; background: #1e1e1e; border-right: 1px solid #333; cursor: pointer;">Git</div>
-        <div style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; border-right: 1px solid #333;">控制台</div>
+        <div style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; border-right: 1px solid #333;">${t('main.tabConsole')}</div>
         <div style="display: flex; align-items: center; padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; gap: 4px;">
           <span>Worktrees</span>
           <span style="color: #666; font-size: 10px; cursor: pointer;">×</span>
@@ -475,8 +475,8 @@ async function loadData(options: { reset?: boolean } = {}): Promise<void> {
       if (!isGit) {
         root.innerHTML = '';
         const empty = mountEmpty(root, {
-          title: "非 Git 仓库",
-          body: "当前目录不是 Git 仓库。",
+          title: t('main.notGitTitle'),
+          body: t('main.notGitBody'),
         });
         disposables.push(empty);
         return;

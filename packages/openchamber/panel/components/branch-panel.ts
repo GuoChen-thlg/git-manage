@@ -8,6 +8,7 @@ import { html } from '../html';
 import { getState, setState, subscribeFields, Branch } from '../state';
 import { ServiceClient } from '../service';
 import { getIcon } from '../icons';
+import { t } from '../i18n';
 import { showContextMenu } from './context-menu';
 
 /**
@@ -30,7 +31,7 @@ export function createBranchPanel(
 ): { dispose: () => void; expandAll: () => void } {
   let disposed = false;
   let listContainer: HTMLElement | null = null;
-  const expandedGroups = new Set<string>(['HEAD(当前分支)', '本地']);
+  const expandedGroups = new Set<string>([t('branch.groupHead'), t('branch.groupLocal')]);
   let unsubscribe: (() => void) | null = null;
 
   const findBranchFromEvent = (e: Event): Branch | null => {
@@ -71,7 +72,7 @@ export function createBranchPanel(
           <span style="color: #888; font-size: 12px; margin-right: 4px;">${getIcon('search')}</span>
           <input 
             type="text" 
-            placeholder="Branch or tag" 
+            placeholder="${t('branch.searchPlaceholder')}" 
             style="flex: 1; padding: 4px 0; background: transparent; border: none; color: #ccc; font-size: 12px; outline: none;"
           />
         </div>
@@ -180,21 +181,21 @@ export function createBranchPanel(
     // HEAD(当前分支)
     if (current.length > 0) {
       listContainer.appendChild(
-        createGroup('HEAD(当前分支)', current, expandedGroups.has('HEAD(当前分支)'))
+        createGroup(t('branch.groupHead'), current, expandedGroups.has(t('branch.groupHead')))
       );
     }
 
     // 本地分支 - 按文件夹分组
     if (local.length > 0) {
       const groups = groupBranches(local);
-      const localGroup = createCollapsibleGroup('本地', groups);
+      const localGroup = createCollapsibleGroup(t('branch.groupLocal'), groups);
       listContainer.appendChild(localGroup);
     }
 
     // 远程分支
     if (remote.length > 0) {
       listContainer.appendChild(
-        createGroup('远程', remote, expandedGroups.has('远程'))
+        createGroup(t('branch.groupRemote'), remote, expandedGroups.has(t('branch.groupRemote')))
       );
     }
   };
@@ -207,9 +208,9 @@ export function createBranchPanel(
    */
   const expandAll = () => {
     if (disposed) return;
-    expandedGroups.add('HEAD(当前分支)');
-    expandedGroups.add('本地');
-    expandedGroups.add('远程');
+    expandedGroups.add(t('branch.groupHead'));
+    expandedGroups.add(t('branch.groupLocal'));
+    expandedGroups.add(t('branch.groupRemote'));
     for (const branch of getState().branches) {
       const parts = branch.name.split('/');
       if (parts.length > 1) {

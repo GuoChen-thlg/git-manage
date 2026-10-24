@@ -3,6 +3,7 @@
  */
 
 import { html } from '../html';
+import { t, getLang } from '../i18n';
 import { getState, subscribeFields, CommitInfo } from '../state';
 import { ServiceClient } from '../service';
 
@@ -24,7 +25,7 @@ export function createCommitDetailPanel(
     // 标题
     container.appendChild(html`
       <div style="padding: 4px 8px; background: #252526; border-bottom: 1px solid #333; font-size: 12px; color: #ccc; flex-shrink: 0;">
-        提交详情
+        ${t('detail.title')}
       </div>
     `);
 
@@ -34,7 +35,7 @@ export function createCommitDetailPanel(
     `;
 
     if (!state.commitDetail) {
-      content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">选择要查看更改的提交</div>';
+      content.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">${t('commit.noSelection')}</div>`;
     } else {
       renderCommitDetail(content, state.commitDetail);
     }
@@ -53,9 +54,9 @@ export function createCommitDetailPanel(
     container.innerHTML = '';
 
     const fields = [
-      { label: '提交', value: commit.hash, mono: true },
-      { label: '作者', value: `${commit.authorName} <${commit.authorEmail}>` },
-      { label: '日期', value: new Date(commit.date).toLocaleString('zh-CN') },
+      { label: t('detail.hash'), value: commit.hash, mono: true },
+      { label: t('detail.author'), value: `${commit.authorName} <${commit.authorEmail}>` },
+      { label: t('detail.date'), value: new Date(commit.date).toLocaleString(getLang()) },
     ];
 
     for (const field of fields) {

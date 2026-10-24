@@ -6,6 +6,7 @@ import { html } from '../html';
 import { getState, subscribeFields, FileDiff, DiffLine } from '../state';
 import { ServiceClient } from '../service';
 import { showFileContextMenu } from './file-context-menu';
+import { t } from '../i18n';
 
 export function createFileDiffPanel(
   container: HTMLElement,
@@ -31,7 +32,7 @@ export function createFileDiffPanel(
     previewContainer.innerHTML = '';
 
     if (!diff) {
-      previewContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">选择文件查看差异</div>';
+      previewContainer.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">${t('file.selectDiff')}</div>`;
       return;
     }
 
@@ -51,7 +52,7 @@ export function createFileDiffPanel(
         diffContent.appendChild(createDiffLine(line));
       }
     } else {
-      diffContent.innerHTML = '<div style="padding: 8px; color: #888;">无差异内容</div>';
+      diffContent.innerHTML = `<div style="padding: 8px; color: #888;">${t('file.noDiff')}</div>`;
     }
 
     previewContainer.appendChild(diffContent);
@@ -65,7 +66,7 @@ export function createFileDiffPanel(
     const state = getState();
     titleEl = html`
       <div style="padding: 4px 8px; background: #252526; border-bottom: 1px solid #333; font-size: 12px; color: #ccc; flex-shrink: 0;">
-        变更文件 <span style="color: #888;">${state.diffs.length}</span>
+        ${t('file.changedFiles')} <span style="color: #888;">${state.diffs.length}</span>
       </div>
     `;
     container.appendChild(titleEl);
@@ -151,7 +152,7 @@ export function createFileDiffPanel(
     const state = getState();
     listContainer.innerHTML = '';
     if (state.diffs.length === 0) {
-      listContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">暂无变更文件</div>';
+      listContainer.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">${t('file.noChanges')}</div>`;
       return;
     }
     for (const diff of state.diffs) {

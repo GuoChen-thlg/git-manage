@@ -1390,6 +1390,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Delete Branch",
     "branch.selectBranch": "Please select a branch first",
     "branch.deleteCurrent": "Cannot delete the current branch",
+    "branch.searchPlaceholder": "Branch or tag",
     "branch.notifyDeleted": "Deleted branch: {name}",
     "branch.restore": "Restore",
     "branch.deleteTracking": "Delete Tracking Branch",
@@ -1475,7 +1476,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "Edit paths\u2026",
     "filter.maxPaths": "At most 100 paths allowed",
     "filter.noPaths": "No selectable paths",
-    "filter.loadPathsFailed": "Failed to load paths"
+    "filter.loadPathsFailed": "Failed to load paths",
+    "dialog.renameBranch": "Rename Branch",
+    "dialog.branchName": "Branch name",
+    "dialog.startPoint": "Start point",
+    "dialog.currentHead": "Current HEAD",
+    "dialog.inputBranchName": "Enter branch name\u2026",
+    "dialog.create": "Create",
+    "dialog.dateFilter": "Filter by Date",
+    "dialog.startDate": "Start date",
+    "dialog.endDate": "End date",
+    "dialog.clear": "Clear",
+    "dialog.resetTo": "Reset branch to {hash}",
+    "dialog.selectResetMode": "Select reset mode:",
+    "dialog.resetSoft": "Soft - move HEAD only",
+    "dialog.resetMixed": "Mixed - move HEAD + reset index (default)",
+    "dialog.resetHard": "Hard - move HEAD + reset index + reset working tree",
+    "dialog.reset": "Reset",
+    "dialog.branchFromCommit": "Create Branch from Commit",
+    "dialog.basedOn": "Based on: {info}",
+    "commit.searchPlaceholder": "Text or hash",
+    "branch.groupHead": "HEAD (current branch)",
+    "branch.groupLocal": "Local",
+    "branch.groupRemote": "Remote",
+    "file.noDiff": "No differences",
+    "file.changedFiles": "Changed files",
+    "detail.title": "Commit Details",
+    "detail.hash": "Hash",
+    "detail.author": "Author",
+    "detail.date": "Date",
+    "main.loadingTitle": "Loading\u2026",
+    "main.loadingBody": "Loading project information.",
+    "main.notGitTitle": "Not a Git Repository",
+    "main.notGitBody": "The current directory is not a Git repository.",
+    "time.justNow": "just now",
+    "time.minutesAgo": "{n} min ago",
+    "time.hoursAgo": "{n} h ago",
+    "time.daysAgo": "{n} d ago",
+    "commit.empty": "No commits",
+    "commit.noSelection": "Select a commit to view changes",
+    "file.selectDiff": "Select a file to view the diff",
+    "file.noChanges": "No changed files",
+    "main.tabConsole": "Console",
+    "reset.title": "Reset Current Branch to Here",
+    "reset.softDesc": "keep working tree and index",
+    "reset.mixedDesc": "keep working tree, reset index",
+    "reset.hardDesc": "discard all changes",
+    "dialog.createBranchTitle": "New Branch",
+    "dialog.pathPlaceholder": "src/ or packages/core",
+    "dialog.cancel": "Cancel",
+    "dialog.ok": "OK",
+    "filter.selectAllToggle": "Select all / deselect all in the current list"
   };
   var zhCN = {
     "branch.checkout": "\u7B7E\u51FA\u5206\u652F",
@@ -1495,6 +1546,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\u5220\u9664\u5206\u652F",
     "branch.selectBranch": "\u8BF7\u5148\u9009\u62E9\u5206\u652F",
     "branch.deleteCurrent": "\u5F53\u524D\u5206\u652F\u4E0D\u80FD\u5220\u9664",
+    "branch.searchPlaceholder": "\u5206\u652F\u6216\u6807\u7B7E",
     "branch.notifyDeleted": "\u5DF2\u5220\u9664\u7684\u5206\u652F: {name}",
     "branch.restore": "\u8FD8\u539F",
     "branch.deleteTracking": "\u5220\u9664\u8DDF\u8E2A\u7684\u5206\u652F",
@@ -1580,7 +1632,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "\u7F16\u8F91\u8DEF\u5F84\u2026",
     "filter.maxPaths": "\u6700\u591A\u53EF\u9009 100 \u9879",
     "filter.noPaths": "\u65E0\u53EF\u9009\u8DEF\u5F84",
-    "filter.loadPathsFailed": "\u52A0\u8F7D\u8DEF\u5F84\u5931\u8D25"
+    "filter.loadPathsFailed": "\u52A0\u8F7D\u8DEF\u5F84\u5931\u8D25",
+    "dialog.renameBranch": "\u91CD\u547D\u540D\u5206\u652F",
+    "dialog.branchName": "\u5206\u652F\u540D",
+    "dialog.startPoint": "\u8D77\u70B9",
+    "dialog.currentHead": "\u5F53\u524D HEAD",
+    "dialog.inputBranchName": "\u8F93\u5165\u5206\u652F\u540D\u79F0\u2026",
+    "dialog.create": "\u521B\u5EFA",
+    "dialog.dateFilter": "\u6309\u65E5\u671F\u8FC7\u6EE4",
+    "dialog.startDate": "\u5F00\u59CB\u65E5\u671F",
+    "dialog.endDate": "\u7ED3\u675F\u65E5\u671F",
+    "dialog.clear": "\u6E05\u9664",
+    "dialog.resetTo": "\u91CD\u7F6E\u5206\u652F\u5230 {hash}",
+    "dialog.selectResetMode": "\u9009\u62E9\u91CD\u7F6E\u6A21\u5F0F\uFF1A",
+    "dialog.resetSoft": "Soft - \u4EC5\u79FB\u52A8 HEAD",
+    "dialog.resetMixed": "Mixed - \u79FB\u52A8 HEAD + \u91CD\u7F6E\u7D22\u5F15\uFF08\u9ED8\u8BA4\uFF09",
+    "dialog.resetHard": "Hard - \u79FB\u52A8 HEAD + \u91CD\u7F6E\u7D22\u5F15 + \u91CD\u7F6E\u5DE5\u4F5C\u6811",
+    "dialog.reset": "\u91CD\u7F6E",
+    "dialog.branchFromCommit": "\u4ECE\u63D0\u4EA4\u521B\u5EFA\u5206\u652F",
+    "dialog.basedOn": "\u57FA\u4E8E\uFF1A{info}",
+    "commit.searchPlaceholder": "\u6587\u672C\u6216\u54C8\u5E0C",
+    "branch.groupHead": "HEAD(\u5F53\u524D\u5206\u652F)",
+    "branch.groupLocal": "\u672C\u5730",
+    "branch.groupRemote": "\u8FDC\u7A0B",
+    "file.noDiff": "\u65E0\u5DEE\u5F02\u5185\u5BB9",
+    "file.changedFiles": "\u53D8\u66F4\u6587\u4EF6",
+    "detail.title": "\u63D0\u4EA4\u8BE6\u60C5",
+    "detail.hash": "\u54C8\u5E0C",
+    "detail.author": "\u4F5C\u8005",
+    "detail.date": "\u65E5\u671F",
+    "main.loadingTitle": "\u7B49\u5F85\u521D\u59CB\u5316\u2026",
+    "main.loadingBody": "\u6B63\u5728\u52A0\u8F7D\u9879\u76EE\u4FE1\u606F\u3002",
+    "main.notGitTitle": "\u975E Git \u4ED3\u5E93",
+    "main.notGitBody": "\u5F53\u524D\u76EE\u5F55\u4E0D\u662F Git \u4ED3\u5E93\u3002",
+    "time.justNow": "\u521A\u521A",
+    "time.minutesAgo": "{n}\u5206\u949F\u524D",
+    "time.hoursAgo": "{n}\u5C0F\u65F6\u524D",
+    "time.daysAgo": "{n}\u5929\u524D",
+    "commit.empty": "\u6682\u65E0\u63D0\u4EA4\u8BB0\u5F55",
+    "commit.noSelection": "\u9009\u62E9\u8981\u67E5\u770B\u66F4\u6539\u7684\u63D0\u4EA4",
+    "file.selectDiff": "\u9009\u62E9\u6587\u4EF6\u67E5\u770B\u5DEE\u5F02",
+    "file.noChanges": "\u6682\u65E0\u53D8\u66F4\u6587\u4EF6",
+    "main.tabConsole": "\u63A7\u5236\u53F0",
+    "reset.title": "\u5C06\u5F53\u524D\u5206\u652F\u91CD\u7F6E\u5230\u6B64\u63D0\u4EA4",
+    "reset.softDesc": "\u4FDD\u7559\u5DE5\u4F5C\u533A\u548C\u6682\u5B58\u533A",
+    "reset.mixedDesc": "\u4FDD\u7559\u5DE5\u4F5C\u533A\uFF0C\u91CD\u7F6E\u6682\u5B58\u533A",
+    "reset.hardDesc": "\u4E22\u5F03\u6240\u6709\u66F4\u6539",
+    "dialog.createBranchTitle": "\u65B0\u5EFA\u5206\u652F",
+    "dialog.pathPlaceholder": "src/ \u6216 packages/core",
+    "dialog.cancel": "\u53D6\u6D88",
+    "dialog.ok": "\u786E\u5B9A",
+    "filter.selectAllToggle": "\u5168\u9009/\u53D6\u6D88\u5168\u9009\u5F53\u524D\u5217\u8868"
   };
   var zhTW = {
     "branch.checkout": "\u7C3D\u51FA\u5206\u652F",
@@ -1600,6 +1702,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\u522A\u9664\u5206\u652F",
     "branch.selectBranch": "\u8ACB\u5148\u9078\u64C7\u5206\u652F",
     "branch.deleteCurrent": "\u76EE\u524D\u5206\u652F\u4E0D\u80FD\u522A\u9664",
+    "branch.searchPlaceholder": "\u5206\u652F\u6216\u6A19\u7C64",
     "branch.notifyDeleted": "\u5DF2\u522A\u9664\u7684\u5206\u652F: {name}",
     "branch.restore": "\u9084\u539F",
     "branch.deleteTracking": "\u522A\u9664\u8FFD\u8E64\u7684\u5206\u652F",
@@ -1685,7 +1788,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "\u7DE8\u8F2F\u8DEF\u5F91\u2026",
     "filter.maxPaths": "\u6700\u591A\u53EF\u9078 100 \u9805",
     "filter.noPaths": "\u7121\u53EF\u9078\u8DEF\u5F91",
-    "filter.loadPathsFailed": "\u8F09\u5165\u8DEF\u5F91\u5931\u6557"
+    "filter.loadPathsFailed": "\u8F09\u5165\u8DEF\u5F91\u5931\u6557",
+    "dialog.renameBranch": "\u91CD\u65B0\u547D\u540D\u5206\u652F",
+    "dialog.branchName": "\u5206\u652F\u540D\u7A31",
+    "dialog.startPoint": "\u8D77\u9EDE",
+    "dialog.currentHead": "\u76EE\u524D HEAD",
+    "dialog.inputBranchName": "\u8F38\u5165\u5206\u652F\u540D\u7A31\u2026",
+    "dialog.create": "\u5EFA\u7ACB",
+    "dialog.dateFilter": "\u4F9D\u65E5\u671F\u7BE9\u9078",
+    "dialog.startDate": "\u958B\u59CB\u65E5\u671F",
+    "dialog.endDate": "\u7D50\u675F\u65E5\u671F",
+    "dialog.clear": "\u6E05\u9664",
+    "dialog.resetTo": "\u5C07\u5206\u652F\u91CD\u8A2D\u81F3 {hash}",
+    "dialog.selectResetMode": "\u9078\u64C7\u91CD\u8A2D\u6A21\u5F0F\uFF1A",
+    "dialog.resetSoft": "Soft - \u50C5\u79FB\u52D5 HEAD",
+    "dialog.resetMixed": "Mixed - \u79FB\u52D5 HEAD + \u91CD\u8A2D\u7D22\u5F15\uFF08\u9810\u8A2D\uFF09",
+    "dialog.resetHard": "Hard - \u79FB\u52D5 HEAD + \u91CD\u8A2D\u7D22\u5F15 + \u91CD\u8A2D\u5DE5\u4F5C\u6A39",
+    "dialog.reset": "\u91CD\u8A2D",
+    "dialog.branchFromCommit": "\u5F9E\u63D0\u4EA4\u5EFA\u7ACB\u5206\u652F",
+    "dialog.basedOn": "\u4F9D\u64DA\uFF1A{info}",
+    "commit.searchPlaceholder": "\u6587\u5B57\u6216\u96DC\u6E4A",
+    "branch.groupHead": "HEAD(\u76EE\u524D\u5206\u652F)",
+    "branch.groupLocal": "\u672C\u6A5F",
+    "branch.groupRemote": "\u9060\u7AEF",
+    "file.noDiff": "\u7121\u5DEE\u7570\u5167\u5BB9",
+    "file.changedFiles": "\u8B8A\u66F4\u6A94\u6848",
+    "detail.title": "\u63D0\u4EA4\u8A73\u7D30\u8CC7\u6599",
+    "detail.hash": "\u96DC\u6E4A",
+    "detail.author": "\u4F5C\u8005",
+    "detail.date": "\u65E5\u671F",
+    "main.loadingTitle": "\u7B49\u5F85\u521D\u59CB\u5316\u2026",
+    "main.loadingBody": "\u6B63\u5728\u8F09\u5165\u5C08\u6848\u8CC7\u8A0A\u3002",
+    "main.notGitTitle": "\u975E Git \u5132\u5B58\u5EAB",
+    "main.notGitBody": "\u76EE\u524D\u76EE\u9304\u4E0D\u662F Git \u5132\u5B58\u5EAB\u3002",
+    "time.justNow": "\u525B\u525B",
+    "time.minutesAgo": "{n}\u5206\u9418\u524D",
+    "time.hoursAgo": "{n}\u5C0F\u6642\u524D",
+    "time.daysAgo": "{n}\u5929\u524D",
+    "commit.empty": "\u66AB\u7121\u63D0\u4EA4\u8A18\u9304",
+    "commit.noSelection": "\u9078\u64C7\u8981\u67E5\u770B\u8B8A\u66F4\u7684\u63D0\u4EA4",
+    "file.selectDiff": "\u9078\u64C7\u6A94\u6848\u67E5\u770B\u5DEE\u7570",
+    "file.noChanges": "\u66AB\u7121\u8B8A\u66F4\u6A94\u6848",
+    "main.tabConsole": "\u4E3B\u63A7\u53F0",
+    "reset.title": "\u5C07\u76EE\u524D\u5206\u652F\u91CD\u8A2D\u81F3\u6B64\u63D0\u4EA4",
+    "reset.softDesc": "\u4FDD\u7559\u5DE5\u4F5C\u5340\u548C\u66AB\u5B58\u5340",
+    "reset.mixedDesc": "\u4FDD\u7559\u5DE5\u4F5C\u5340\uFF0C\u91CD\u8A2D\u66AB\u5B58\u5340",
+    "reset.hardDesc": "\u6368\u68C4\u6240\u6709\u8B8A\u66F4",
+    "dialog.createBranchTitle": "\u65B0\u5EFA\u5206\u652F",
+    "dialog.pathPlaceholder": "src/ \u6216 packages/core",
+    "dialog.cancel": "\u53D6\u6D88",
+    "dialog.ok": "\u78BA\u5B9A",
+    "filter.selectAllToggle": "\u5168\u9078/\u53D6\u6D88\u5168\u9078\u76EE\u524D\u6E05\u55AE"
   };
   var de = {
     "branch.checkout": "Branch auschecken",
@@ -1705,6 +1858,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Branch l\xF6schen",
     "branch.selectBranch": "Bitte zuerst einen Branch ausw\xE4hlen",
     "branch.deleteCurrent": "Den aktuellen Branch kann man nicht l\xF6schen",
+    "branch.searchPlaceholder": "Branch oder Tag",
     "branch.notifyDeleted": "Gel\xF6schter Branch: {name}",
     "branch.restore": "Wiederherstellen",
     "branch.deleteTracking": "Tracking-Branch l\xF6schen",
@@ -1790,7 +1944,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "Pfade bearbeiten\u2026",
     "filter.maxPaths": "H\xF6chstens 100 Pfade zul\xE4ssig",
     "filter.noPaths": "Keine ausw\xE4hlbaren Pfade",
-    "filter.loadPathsFailed": "Pfade konnten nicht geladen werden"
+    "filter.loadPathsFailed": "Pfade konnten nicht geladen werden",
+    "dialog.renameBranch": "Branch umbenennen",
+    "dialog.branchName": "Branch-Name",
+    "dialog.startPoint": "Startpunkt",
+    "dialog.currentHead": "Aktuelles HEAD",
+    "dialog.inputBranchName": "Branch-Namen eingeben\u2026",
+    "dialog.create": "Erstellen",
+    "dialog.dateFilter": "Nach Datum filtern",
+    "dialog.startDate": "Startdatum",
+    "dialog.endDate": "Enddatum",
+    "dialog.clear": "L\xF6schen",
+    "dialog.resetTo": "Branch zur\xFCcksetzen auf {hash}",
+    "dialog.selectResetMode": "Reset-Modus w\xE4hlen:",
+    "dialog.resetSoft": "Soft - nur HEAD verschieben",
+    "dialog.resetMixed": "Mixed - HEAD verschieben + Index zur\xFCcksetzen (Standard)",
+    "dialog.resetHard": "Hard - HEAD verschieben + Index + Arbeitsbaum zur\xFCcksetzen",
+    "dialog.reset": "Zur\xFCcksetzen",
+    "dialog.branchFromCommit": "Branch aus Commit erstellen",
+    "dialog.basedOn": "Basiert auf: {info}",
+    "commit.searchPlaceholder": "Text oder Hash",
+    "branch.groupHead": "HEAD (aktueller Branch)",
+    "branch.groupLocal": "Lokal",
+    "branch.groupRemote": "Remote",
+    "file.noDiff": "Keine Unterschiede",
+    "file.changedFiles": "Ge\xE4nderte Dateien",
+    "detail.title": "Commit-Details",
+    "detail.hash": "Hash",
+    "detail.author": "Autor",
+    "detail.date": "Datum",
+    "main.loadingTitle": "Initialisierung\u2026",
+    "main.loadingBody": "Projektinformationen werden geladen.",
+    "main.notGitTitle": "Kein Git-Repository",
+    "main.notGitBody": "Das aktuelle Verzeichnis ist kein Git-Repository.",
+    "time.justNow": "gerade eben",
+    "time.minutesAgo": "vor {n} Min.",
+    "time.hoursAgo": "vor {n} Std.",
+    "time.daysAgo": "vor {n} Tg.",
+    "commit.empty": "Keine Commits",
+    "commit.noSelection": "Commit ausw\xE4hlen, um \xC4nderungen zu sehen",
+    "file.selectDiff": "Datei ausw\xE4hlen, um den Diff anzuzeigen",
+    "file.noChanges": "Keine ge\xE4nderten Dateien",
+    "main.tabConsole": "Konsole",
+    "reset.title": "Aktuellen Branch hierher zur\xFCcksetzen",
+    "reset.softDesc": "Arbeitsbaum und Index behalten",
+    "reset.mixedDesc": "Arbeitsbaum behalten, Index zur\xFCcksetzen",
+    "reset.hardDesc": "Alle \xC4nderungen verwerfen",
+    "dialog.createBranchTitle": "Neue Branch",
+    "dialog.pathPlaceholder": "src/ oder packages/core",
+    "dialog.cancel": "Abbrechen",
+    "dialog.ok": "OK",
+    "filter.selectAllToggle": "Alle ausw\xE4hlen / abw\xE4hlen in der aktuellen Liste"
   };
   var fr = {
     "branch.checkout": "Checkout de la branche",
@@ -1810,6 +2014,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Supprimer la branche",
     "branch.selectBranch": "Veuillez d\u2019abord s\xE9lectionner une branche",
     "branch.deleteCurrent": "Impossible de supprimer la branche actuelle",
+    "branch.searchPlaceholder": "Branche ou tag",
     "branch.notifyDeleted": "Branche supprim\xE9e : {name}",
     "branch.restore": "Restaurer",
     "branch.deleteTracking": "Supprimer la branche de suivi",
@@ -1895,7 +2100,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "Modifier les chemins\u2026",
     "filter.maxPaths": "Au maximum 100 chemins autoris\xE9s",
     "filter.noPaths": "Aucun chemin s\xE9lectionnable",
-    "filter.loadPathsFailed": "\xC9chec du chargement des chemins"
+    "filter.loadPathsFailed": "\xC9chec du chargement des chemins",
+    "dialog.renameBranch": "Renommer la branche",
+    "dialog.branchName": "Nom de la branche",
+    "dialog.startPoint": "Point de d\xE9part",
+    "dialog.currentHead": "HEAD actuel",
+    "dialog.inputBranchName": "Saisir un nom de branche\u2026",
+    "dialog.create": "Cr\xE9er",
+    "dialog.dateFilter": "Filtrer par date",
+    "dialog.startDate": "Date de d\xE9but",
+    "dialog.endDate": "Date de fin",
+    "dialog.clear": "Effacer",
+    "dialog.resetTo": "R\xE9initialiser la branche vers {hash}",
+    "dialog.selectResetMode": "Choisir le mode de r\xE9initialisation :",
+    "dialog.resetSoft": "Soft - d\xE9placer HEAD uniquement",
+    "dialog.resetMixed": "Mixed - d\xE9placer HEAD + r\xE9initialiser l'index (par d\xE9faut)",
+    "dialog.resetHard": "Hard - d\xE9placer HEAD + r\xE9initialiser l'index et l'arbre de travail",
+    "dialog.reset": "R\xE9initialiser",
+    "dialog.branchFromCommit": "Cr\xE9er une branche \xE0 partir du commit",
+    "dialog.basedOn": "Bas\xE9 sur : {info}",
+    "commit.searchPlaceholder": "Texte ou hash",
+    "branch.groupHead": "HEAD (branche actuelle)",
+    "branch.groupLocal": "Locale",
+    "branch.groupRemote": "Distante",
+    "file.noDiff": "Aucune diff\xE9rence",
+    "file.changedFiles": "Fichiers modifi\xE9s",
+    "detail.title": "D\xE9tails du commit",
+    "detail.hash": "Hash",
+    "detail.author": "Auteur",
+    "detail.date": "Date",
+    "main.loadingTitle": "Initialisation\u2026",
+    "main.loadingBody": "Chargement des informations du projet.",
+    "main.notGitTitle": "Pas un d\xE9p\xF4t Git",
+    "main.notGitBody": "Le r\xE9pertoire courant n'est pas un d\xE9p\xF4t Git.",
+    "time.justNow": "\xE0 l'instant",
+    "time.minutesAgo": "il y a {n} min",
+    "time.hoursAgo": "il y a {n} h",
+    "time.daysAgo": "il y a {n} j",
+    "commit.empty": "Aucun commit",
+    "commit.noSelection": "S\xE9lectionnez un commit pour voir les modifications",
+    "file.selectDiff": "S\xE9lectionnez un fichier pour voir le diff",
+    "file.noChanges": "Aucun fichier modifi\xE9",
+    "main.tabConsole": "Console",
+    "reset.title": "R\xE9initialiser la branche actuelle ici",
+    "reset.softDesc": "conserver l'arbre de travail et l'index",
+    "reset.mixedDesc": "conserver l'arbre de travail, r\xE9initialiser l'index",
+    "reset.hardDesc": "abandonner toutes les modifications",
+    "dialog.createBranchTitle": "Nouvelle branche",
+    "dialog.pathPlaceholder": "src/ ou packages/core",
+    "dialog.cancel": "Annuler",
+    "dialog.ok": "OK",
+    "filter.selectAllToggle": "Tout s\xE9lectionner / d\xE9s\xE9lectionner dans la liste actuelle"
   };
   var uk = {
     "branch.checkout": "\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043D\u0430 \u0433\u0456\u043B\u043A\u0443",
@@ -1915,6 +2170,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0433\u0456\u043B\u043A\u0443",
     "branch.selectBranch": "\u0421\u043F\u043E\u0447\u0430\u0442\u043A\u0443 \u0432\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0433\u0456\u043B\u043A\u0443",
     "branch.deleteCurrent": "\u041D\u0435\u043C\u043E\u0436\u043B\u0438\u0432\u043E \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u043F\u043E\u0442\u043E\u0447\u043D\u0443 \u0433\u0456\u043B\u043A\u0443",
+    "branch.searchPlaceholder": "\u0413\u0456\u043B\u043A\u0430 \u0430\u0431\u043E \u0442\u0435\u0433",
     "branch.notifyDeleted": "\u0412\u0438\u0434\u0430\u043B\u0435\u043D\u0430 \u0433\u0456\u043B\u043A\u0430: {name}",
     "branch.restore": "\u0412\u0456\u0434\u043D\u043E\u0432\u0438\u0442\u0438",
     "branch.deleteTracking": "\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0433\u0456\u043B\u043A\u0443 \u0432\u0456\u0434\u0441\u0442\u0435\u0436\u0435\u043D\u043D\u044F",
@@ -2000,7 +2256,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "\u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u0442\u0438 \u0448\u043B\u044F\u0445\u0438\u2026",
     "filter.maxPaths": "\u0429\u043E\u043D\u0430\u0439\u0431\u0456\u043B\u044C\u0448\u0435 100 \u0448\u043B\u044F\u0445\u0456\u0432",
     "filter.noPaths": "\u041D\u0435\u043C\u0430\u0454 \u0448\u043B\u044F\u0445\u0456\u0432 \u0434\u043B\u044F \u0432\u0438\u0431\u043E\u0440\u0443",
-    "filter.loadPathsFailed": "\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0437\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0438\u0442\u0438 \u0448\u043B\u044F\u0445\u0438"
+    "filter.loadPathsFailed": "\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0437\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0438\u0442\u0438 \u0448\u043B\u044F\u0445\u0438",
+    "dialog.renameBranch": "\u041F\u0435\u0440\u0435\u0439\u043C\u0435\u043D\u0443\u0432\u0430\u0442\u0438 \u0433\u0456\u043B\u043A\u0443",
+    "dialog.branchName": "\u041D\u0430\u0437\u0432\u0430 \u0433\u0456\u043B\u043A\u0438",
+    "dialog.startPoint": "\u041F\u043E\u0447\u0430\u0442\u043A\u043E\u0432\u0430 \u0442\u043E\u0447\u043A\u0430",
+    "dialog.currentHead": "\u041F\u043E\u0442\u043E\u0447\u043D\u0438\u0439 HEAD",
+    "dialog.inputBranchName": "\u0412\u0432\u0435\u0434\u0456\u0442\u044C \u043D\u0430\u0437\u0432\u0443 \u0433\u0456\u043B\u043A\u0438\u2026",
+    "dialog.create": "\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438",
+    "dialog.dateFilter": "\u0424\u0456\u043B\u044C\u0442\u0440\u0443\u0432\u0430\u0442\u0438 \u0437\u0430 \u0434\u0430\u0442\u043E\u044E",
+    "dialog.startDate": "\u0414\u0430\u0442\u0430 \u043F\u043E\u0447\u0430\u0442\u043A\u0443",
+    "dialog.endDate": "\u0414\u0430\u0442\u0430 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043D\u044F",
+    "dialog.clear": "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u0438",
+    "dialog.resetTo": "\u0421\u043A\u0438\u043D\u0443\u0442\u0438 \u0433\u0456\u043B\u043A\u0443 \u043D\u0430 {hash}",
+    "dialog.selectResetMode": "\u0412\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0440\u0435\u0436\u0438\u043C \u0441\u043A\u0438\u0434\u0430\u043D\u043D\u044F:",
+    "dialog.resetSoft": "Soft - \u043B\u0438\u0448\u0435 \u043F\u0435\u0440\u0435\u043C\u0456\u0441\u0442\u0438\u0442\u0438 HEAD",
+    "dialog.resetMixed": "Mixed - \u043F\u0435\u0440\u0435\u043C\u0456\u0441\u0442\u0438\u0442\u0438 HEAD + \u0441\u043A\u0438\u043D\u0443\u0442\u0438 \u0456\u043D\u0434\u0435\u043A\u0441 (\u0442\u0438\u043F\u043E\u0432\u043E)",
+    "dialog.resetHard": "Hard - \u043F\u0435\u0440\u0435\u043C\u0456\u0441\u0442\u0438\u0442\u0438 HEAD + \u0441\u043A\u0438\u043D\u0443\u0442\u0438 \u0456\u043D\u0434\u0435\u043A\u0441 \u0456 \u0440\u043E\u0431\u043E\u0447\u0435 \u0434\u0435\u0440\u0435\u0432\u043E",
+    "dialog.reset": "\u0421\u043A\u0438\u043D\u0443\u0442\u0438",
+    "dialog.branchFromCommit": "\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 \u0433\u0456\u043B\u043A\u0443 \u0437 \u043A\u043E\u043C\u0456\u0442\u0443",
+    "dialog.basedOn": "\u041D\u0430 \u043E\u0441\u043D\u043E\u0432\u0456: {info}",
+    "commit.searchPlaceholder": "\u0422\u0435\u043A\u0441\u0442 \u0430\u0431\u043E \u0445\u0435\u0448",
+    "branch.groupHead": "HEAD (\u043F\u043E\u0442\u043E\u0447\u043D\u0430 \u0433\u0456\u043B\u043A\u0430)",
+    "branch.groupLocal": "\u041B\u043E\u043A\u0430\u043B\u044C\u043D\u0456",
+    "branch.groupRemote": "\u0412\u0456\u0434\u0434\u0430\u043B\u0435\u043D\u0456",
+    "file.noDiff": "\u0411\u0435\u0437 \u0440\u0456\u0437\u043D\u0438\u0446\u0456",
+    "file.changedFiles": "\u0417\u043C\u0456\u043D\u0435\u043D\u0456 \u0444\u0430\u0439\u043B\u0438",
+    "detail.title": "\u0414\u0435\u0442\u0430\u043B\u0456 \u043A\u043E\u043C\u0456\u0442\u0443",
+    "detail.hash": "\u0425\u0435\u0448",
+    "detail.author": "\u0410\u0432\u0442\u043E\u0440",
+    "detail.date": "\u0414\u0430\u0442\u0430",
+    "main.loadingTitle": "\u0406\u043D\u0456\u0446\u0456\u0430\u043B\u0456\u0437\u0430\u0446\u0456\u044F\u2026",
+    "main.loadingBody": "\u0417\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0435\u043D\u043D\u044F \u0456\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0456\u0457 \u043F\u0440\u043E \u043F\u0440\u043E\u0454\u043A\u0442.",
+    "main.notGitTitle": "\u041D\u0435 Git-\u0440\u0435\u043F\u043E\u0437\u0438\u0442\u043E\u0440\u0456\u0439",
+    "main.notGitBody": "\u041F\u043E\u0442\u043E\u0447\u043D\u0438\u0439 \u043A\u0430\u0442\u0430\u043B\u043E\u0433 \u043D\u0435 \u0454 Git-\u0440\u0435\u043F\u043E\u0437\u0438\u0442\u043E\u0440\u0456\u0454\u043C.",
+    "time.justNow": "\u0449\u043E\u0439\u043D\u043E",
+    "time.minutesAgo": "{n} \u0445\u0432 \u0442\u043E\u043C\u0443",
+    "time.hoursAgo": "{n} \u0433\u043E\u0434 \u0442\u043E\u043C\u0443",
+    "time.daysAgo": "{n} \u0434\u043D \u0442\u043E\u043C\u0443",
+    "commit.empty": "\u041D\u0435\u043C\u0430\u0454 \u043A\u043E\u043C\u0456\u0442\u0456\u0432",
+    "commit.noSelection": "\u0412\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u043A\u043E\u043C\u0456\u0442, \u0449\u043E\u0431 \u043F\u043E\u0431\u0430\u0447\u0438\u0442\u0438 \u0437\u043C\u0456\u043D\u0438",
+    "file.selectDiff": "\u0412\u0438\u0431\u0435\u0440\u0456\u0442\u044C \u0444\u0430\u0439\u043B, \u0449\u043E\u0431 \u043F\u043E\u0431\u0430\u0447\u0438\u0442\u0438 \u0440\u0456\u0437\u043D\u0438\u0446\u044E",
+    "file.noChanges": "\u041D\u0435\u043C\u0430\u0454 \u0437\u043C\u0456\u043D\u0435\u043D\u0438\u0445 \u0444\u0430\u0439\u043B\u0456\u0432",
+    "main.tabConsole": "\u041A\u043E\u043D\u0441\u043E\u043B\u044C",
+    "reset.title": "\u0421\u043A\u0438\u043D\u0443\u0442\u0438 \u043F\u043E\u0442\u043E\u0447\u043D\u0443 \u0433\u0456\u043B\u043A\u0443 \u043D\u0430 \u0446\u0435\u0439 \u043A\u043E\u043C\u0456\u0442",
+    "reset.softDesc": "\u0437\u0431\u0435\u0440\u0435\u0433\u0442\u0438 \u0440\u043E\u0431\u043E\u0447\u0435 \u0434\u0435\u0440\u0435\u0432\u043E \u0442\u0430 \u0456\u043D\u0434\u0435\u043A\u0441",
+    "reset.mixedDesc": "\u0437\u0431\u0435\u0440\u0435\u0433\u0442\u0438 \u0440\u043E\u0431\u043E\u0447\u0435 \u0434\u0435\u0440\u0435\u0432\u043E, \u0441\u043A\u0438\u043D\u0443\u0442\u0438 \u0456\u043D\u0434\u0435\u043A\u0441",
+    "reset.hardDesc": "\u0432\u0456\u0434\u0445\u0438\u043B\u0438\u0442\u0438 \u0432\u0441\u0456 \u0437\u043C\u0456\u043D\u0438",
+    "dialog.createBranchTitle": "\u041D\u043E\u0432\u0430 \u0433\u0456\u043B\u043A\u0430",
+    "dialog.pathPlaceholder": "src/ \u0430\u0431\u043E packages/core",
+    "dialog.cancel": "\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438",
+    "dialog.ok": "\u0413\u0430\u0440\u0430\u0437\u0434",
+    "filter.selectAllToggle": "\u0412\u0438\u0431\u0440\u0430\u0442\u0438 \u0432\u0441\u0435 / \u0437\u043D\u044F\u0442\u0438 \u0432\u0438\u0431\u0456\u0440 \u0443 \u043F\u043E\u0442\u043E\u0447\u043D\u043E\u043C\u0443 \u0441\u043F\u0438\u0441\u043A\u0443"
   };
   var es = {
     "branch.checkout": "Checkout de la rama",
@@ -2020,6 +2326,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Eliminar rama",
     "branch.selectBranch": "Primero seleccione una rama",
     "branch.deleteCurrent": "No se puede eliminar la rama actual",
+    "branch.searchPlaceholder": "Rama o etiqueta",
     "branch.notifyDeleted": "Rama eliminada: {name}",
     "branch.restore": "Restaurar",
     "branch.deleteTracking": "Eliminar rama de seguimiento",
@@ -2105,7 +2412,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "Editar rutas\u2026",
     "filter.maxPaths": "M\xE1ximo 100 rutas permitidas",
     "filter.noPaths": "No hay rutas seleccionables",
-    "filter.loadPathsFailed": "Error al cargar las rutas"
+    "filter.loadPathsFailed": "Error al cargar las rutas",
+    "dialog.renameBranch": "Renombrar rama",
+    "dialog.branchName": "Nombre de la rama",
+    "dialog.startPoint": "Punto de partida",
+    "dialog.currentHead": "HEAD actual",
+    "dialog.inputBranchName": "Introducir nombre de la rama\u2026",
+    "dialog.create": "Crear",
+    "dialog.dateFilter": "Filtrar por fecha",
+    "dialog.startDate": "Fecha de inicio",
+    "dialog.endDate": "Fecha de fin",
+    "dialog.clear": "Borrar",
+    "dialog.resetTo": "Restablecer rama a {hash}",
+    "dialog.selectResetMode": "Seleccionar modo de restablecimiento:",
+    "dialog.resetSoft": "Soft - solo mover HEAD",
+    "dialog.resetMixed": "Mixed - mover HEAD + restablecer \xEDndice (predeterminado)",
+    "dialog.resetHard": "Hard - mover HEAD + restablecer \xEDndice y \xE1rbol de trabajo",
+    "dialog.reset": "Restablecer",
+    "dialog.branchFromCommit": "Crear rama a partir del commit",
+    "dialog.basedOn": "Basado en: {info}",
+    "commit.searchPlaceholder": "Texto o hash",
+    "branch.groupHead": "HEAD (rama actual)",
+    "branch.groupLocal": "Local",
+    "branch.groupRemote": "Remota",
+    "file.noDiff": "Sin diferencias",
+    "file.changedFiles": "Archivos modificados",
+    "detail.title": "Detalles del commit",
+    "detail.hash": "Hash",
+    "detail.author": "Autor",
+    "detail.date": "Fecha",
+    "main.loadingTitle": "Inicializando\u2026",
+    "main.loadingBody": "Cargando informaci\xF3n del proyecto.",
+    "main.notGitTitle": "No es un repositorio Git",
+    "main.notGitBody": "El directorio actual no es un repositorio Git.",
+    "time.justNow": "hace un momento",
+    "time.minutesAgo": "hace {n} min",
+    "time.hoursAgo": "hace {n} h",
+    "time.daysAgo": "hace {n} d",
+    "commit.empty": "Sin commits",
+    "commit.noSelection": "Seleccione un commit para ver los cambios",
+    "file.selectDiff": "Seleccione un archivo para ver las diferencias",
+    "file.noChanges": "Sin archivos modificados",
+    "main.tabConsole": "Consola",
+    "reset.title": "Restablecer la rama actual aqu\xED",
+    "reset.softDesc": "conservar \xE1rbol de trabajo e \xEDndice",
+    "reset.mixedDesc": "conservar \xE1rbol de trabajo, restablecer \xEDndice",
+    "reset.hardDesc": "descartar todos los cambios",
+    "dialog.createBranchTitle": "Nueva rama",
+    "dialog.pathPlaceholder": "src/ o packages/core",
+    "dialog.cancel": "Cancelar",
+    "dialog.ok": "Aceptar",
+    "filter.selectAllToggle": "Seleccionar todo / deseleccionar en la lista actual"
   };
   var ptBR = {
     "branch.checkout": "Fazer checkout do branch",
@@ -2125,6 +2482,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Excluir branch",
     "branch.selectBranch": "Selecione uma branch primeiro",
     "branch.deleteCurrent": "N\xE3o \xE9 poss\xEDvel excluir a branch atual",
+    "branch.searchPlaceholder": "Branch ou tag",
     "branch.notifyDeleted": "Branch exclu\xEDdo: {name}",
     "branch.restore": "Restaurar",
     "branch.deleteTracking": "Excluir branch de rastreamento",
@@ -2210,7 +2568,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "Editar caminhos\u2026",
     "filter.maxPaths": "No m\xE1ximo 100 caminhos permitidos",
     "filter.noPaths": "Nenhum caminho selecion\xE1vel",
-    "filter.loadPathsFailed": "Falha ao carregar os caminhos"
+    "filter.loadPathsFailed": "Falha ao carregar os caminhos",
+    "dialog.renameBranch": "Renomear branch",
+    "dialog.branchName": "Nome do branch",
+    "dialog.startPoint": "Ponto de partida",
+    "dialog.currentHead": "HEAD atual",
+    "dialog.inputBranchName": "Digite o nome do branch\u2026",
+    "dialog.create": "Criar",
+    "dialog.dateFilter": "Filtrar por data",
+    "dialog.startDate": "Data de in\xEDcio",
+    "dialog.endDate": "Data de t\xE9rmino",
+    "dialog.clear": "Limpar",
+    "dialog.resetTo": "Redefinir branch para {hash}",
+    "dialog.selectResetMode": "Selecionar modo de redefini\xE7\xE3o:",
+    "dialog.resetSoft": "Soft - mover apenas o HEAD",
+    "dialog.resetMixed": "Mixed - mover HEAD + redefinir \xEDndice (padr\xE3o)",
+    "dialog.resetHard": "Hard - mover HEAD + redefinir \xEDndice e \xE1rvore de trabalho",
+    "dialog.reset": "Redefinir",
+    "dialog.branchFromCommit": "Criar branch a partir do commit",
+    "dialog.basedOn": "Baseado em: {info}",
+    "commit.searchPlaceholder": "Texto ou hash",
+    "branch.groupHead": "HEAD (branch atual)",
+    "branch.groupLocal": "Local",
+    "branch.groupRemote": "Remoto",
+    "file.noDiff": "Sem diferen\xE7as",
+    "file.changedFiles": "Arquivos modificados",
+    "detail.title": "Detalhes do commit",
+    "detail.hash": "Hash",
+    "detail.author": "Autor",
+    "detail.date": "Data",
+    "main.loadingTitle": "Inicializando\u2026",
+    "main.loadingBody": "Carregando informa\xE7\xF5es do projeto.",
+    "main.notGitTitle": "N\xE3o \xE9 um reposit\xF3rio Git",
+    "main.notGitBody": "O diret\xF3rio atual n\xE3o \xE9 um reposit\xF3rio Git.",
+    "time.justNow": "agora mesmo",
+    "time.minutesAgo": "{n} min atr\xE1s",
+    "time.hoursAgo": "{n} h atr\xE1s",
+    "time.daysAgo": "{n} d atr\xE1s",
+    "commit.empty": "Sem commits",
+    "commit.noSelection": "Selecione um commit para ver as altera\xE7\xF5es",
+    "file.selectDiff": "Selecione um arquivo para ver as diferen\xE7as",
+    "file.noChanges": "Sem arquivos modificados",
+    "main.tabConsole": "Console",
+    "reset.title": "Redefinir o branch atual para aqui",
+    "reset.softDesc": "manter \xE1rvore de trabalho e \xEDndice",
+    "reset.mixedDesc": "manter \xE1rvore de trabalho, redefinir \xEDndice",
+    "reset.hardDesc": "descartar todas as altera\xE7\xF5es",
+    "dialog.createBranchTitle": "Novo branch",
+    "dialog.pathPlaceholder": "src/ ou packages/core",
+    "dialog.cancel": "Cancelar",
+    "dialog.ok": "OK",
+    "filter.selectAllToggle": "Selecionar tudo / desmarcar na lista atual"
   };
   var ko = {
     "branch.checkout": "\uBE0C\uB79C\uCE58 \uCCB4\uD06C\uC544\uC6C3",
@@ -2230,6 +2638,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\uBE0C\uB79C\uCE58 \uC0AD\uC81C",
     "branch.selectBranch": "\uBA3C\uC800 \uBE0C\uB79C\uCE58\uB97C \uC120\uD0DD\uD558\uC138\uC694",
     "branch.deleteCurrent": "\uD604\uC7AC \uBE0C\uB79C\uCE58\uB294 \uC0AD\uC81C\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
+    "branch.searchPlaceholder": "\uBE0C\uB79C\uCE58 \uB610\uB294 \uD0DC\uADF8",
     "branch.notifyDeleted": "\uC0AD\uC81C\uB41C \uBE0C\uB79C\uCE58: {name}",
     "branch.restore": "\uBCF5\uC6D0",
     "branch.deleteTracking": "\uCD94\uC801 \uBE0C\uB79C\uCE58 \uC0AD\uC81C",
@@ -2315,7 +2724,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "\uACBD\uB85C \uD3B8\uC9D1\u2026",
     "filter.maxPaths": "\uCD5C\uB300 100\uAC1C\uAE4C\uC9C0 \uC120\uD0DD \uAC00\uB2A5",
     "filter.noPaths": "\uC120\uD0DD \uAC00\uB2A5\uD55C \uACBD\uB85C \uC5C6\uC74C",
-    "filter.loadPathsFailed": "\uACBD\uB85C \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328"
+    "filter.loadPathsFailed": "\uACBD\uB85C \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328",
+    "dialog.renameBranch": "\uBE0C\uB79C\uCE58 \uC774\uB984 \uBCC0\uACBD",
+    "dialog.branchName": "\uBE0C\uB79C\uCE58 \uC774\uB984",
+    "dialog.startPoint": "\uC2DC\uC791 \uC9C0\uC810",
+    "dialog.currentHead": "\uD604\uC7AC HEAD",
+    "dialog.inputBranchName": "\uBE0C\uB79C\uCE58 \uC774\uB984 \uC785\uB825\u2026",
+    "dialog.create": "\uB9CC\uB4E4\uAE30",
+    "dialog.dateFilter": "\uB0A0\uC9DC\uB85C \uD544\uD130",
+    "dialog.startDate": "\uC2DC\uC791 \uB0A0\uC9DC",
+    "dialog.endDate": "\uC885\uB8CC \uB0A0\uC9DC",
+    "dialog.clear": "\uC9C0\uC6B0\uAE30",
+    "dialog.resetTo": "\uBE0C\uB79C\uCE58\uB97C {hash}(\uC73C)\uB85C \uC7AC\uC124\uC815",
+    "dialog.selectResetMode": "\uC7AC\uC124\uC815 \uBAA8\uB4DC \uC120\uD0DD:",
+    "dialog.resetSoft": "Soft - HEAD\uB9CC \uC774\uB3D9",
+    "dialog.resetMixed": "Mixed - HEAD \uC774\uB3D9 + \uC778\uB371\uC2A4 \uC7AC\uC124\uC815 (\uAE30\uBCF8\uAC12)",
+    "dialog.resetHard": "Hard - HEAD \uC774\uB3D9 + \uC778\uB371\uC2A4 \uBC0F \uC791\uC5C5 \uD2B8\uB9AC \uC7AC\uC124\uC815",
+    "dialog.reset": "\uC7AC\uC124\uC815",
+    "dialog.branchFromCommit": "\uCEE4\uBC0B\uC5D0\uC11C \uBE0C\uB79C\uCE58 \uB9CC\uB4E4\uAE30",
+    "dialog.basedOn": "\uAE30\uC900: {info}",
+    "commit.searchPlaceholder": "\uD14D\uC2A4\uD2B8 \uB610\uB294 \uD574\uC2DC",
+    "branch.groupHead": "HEAD (\uD604\uC7AC \uBE0C\uB79C\uCE58)",
+    "branch.groupLocal": "\uB85C\uCEEC",
+    "branch.groupRemote": "\uC6D0\uACA9",
+    "file.noDiff": "\uCC28\uC774 \uC5C6\uC74C",
+    "file.changedFiles": "\uBCC0\uACBD\uB41C \uD30C\uC77C",
+    "detail.title": "\uCEE4\uBC0B \uC0C1\uC138",
+    "detail.hash": "\uD574\uC2DC",
+    "detail.author": "\uC791\uC131\uC790",
+    "detail.date": "\uB0A0\uC9DC",
+    "main.loadingTitle": "\uCD08\uAE30\uD654 \uC911\u2026",
+    "main.loadingBody": "\uD504\uB85C\uC81D\uD2B8 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uB294 \uC911\uC785\uB2C8\uB2E4.",
+    "main.notGitTitle": "Git \uC800\uC7A5\uC18C \uC544\uB2D8",
+    "main.notGitBody": "\uD604\uC7AC \uB514\uB809\uD130\uB9AC\uB294 Git \uC800\uC7A5\uC18C\uAC00 \uC544\uB2D9\uB2C8\uB2E4.",
+    "time.justNow": "\uBC29\uAE08",
+    "time.minutesAgo": "{n}\uBD84 \uC804",
+    "time.hoursAgo": "{n}\uC2DC\uAC04 \uC804",
+    "time.daysAgo": "{n}\uC77C \uC804",
+    "commit.empty": "\uCEE4\uBC0B \uC5C6\uC74C",
+    "commit.noSelection": "\uBCC0\uACBD \uC0AC\uD56D\uC744 \uBCFC \uCEE4\uBC0B\uC744 \uC120\uD0DD\uD558\uC138\uC694",
+    "file.selectDiff": "\uCC28\uC774\uB97C \uBCFC \uD30C\uC77C\uC744 \uC120\uD0DD\uD558\uC138\uC694",
+    "file.noChanges": "\uBCC0\uACBD\uB41C \uD30C\uC77C \uC5C6\uC74C",
+    "main.tabConsole": "\uCF58\uC194",
+    "reset.title": "\uD604\uC7AC \uBE0C\uB79C\uCE58\uB97C \uC5EC\uAE30\uB85C \uC7AC\uC124\uC815",
+    "reset.softDesc": "\uC791\uC5C5 \uD2B8\uB9AC\uC640 \uC778\uB371\uC2A4 \uC720\uC9C0",
+    "reset.mixedDesc": "\uC791\uC5C5 \uD2B8\uB9AC \uC720\uC9C0, \uC778\uB371\uC2A4 \uC7AC\uC124\uC815",
+    "reset.hardDesc": "\uBAA8\uB4E0 \uBCC0\uACBD \uC0AC\uD56D \uD3D0\uAE30",
+    "dialog.createBranchTitle": "\uC0C8 \uBE0C\uB79C\uCE58",
+    "dialog.pathPlaceholder": "src/ \uB610\uB294 packages/core",
+    "dialog.cancel": "\uCDE8\uC18C",
+    "dialog.ok": "\uD655\uC778",
+    "filter.selectAllToggle": "\uD604\uC7AC \uBAA9\uB85D \uC804\uCCB4 \uC120\uD0DD/\uC120\uD0DD \uD574\uC81C"
   };
   var pl = {
     "branch.checkout": "Przejd\u017A na ga\u0142\u0105\u017A",
@@ -2335,6 +2794,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Usu\u0144 ga\u0142\u0105\u017A",
     "branch.selectBranch": "Najpierw wybierz ga\u0142\u0105\u017A",
     "branch.deleteCurrent": "Nie mo\u017Cna usun\u0105\u0107 bie\u017C\u0105cej ga\u0142\u0119zi",
+    "branch.searchPlaceholder": "Ga\u0142\u0105\u017A lub tag",
     "branch.notifyDeleted": "Usuni\u0119ta ga\u0142\u0105\u017A: {name}",
     "branch.restore": "Przywr\xF3\u0107",
     "branch.deleteTracking": "Usu\u0144 ga\u0142\u0105\u017A \u015Bledzenia",
@@ -2420,7 +2880,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "Edytuj \u015Bcie\u017Cki\u2026",
     "filter.maxPaths": "Maksymalnie 100 \u015Bcie\u017Cek",
     "filter.noPaths": "Brak \u015Bcie\u017Cek do wyboru",
-    "filter.loadPathsFailed": "Nie uda\u0142o si\u0119 wczyta\u0107 \u015Bcie\u017Cek"
+    "filter.loadPathsFailed": "Nie uda\u0142o si\u0119 wczyta\u0107 \u015Bcie\u017Cek",
+    "dialog.renameBranch": "Zmie\u0144 nazw\u0119 ga\u0142\u0119zi",
+    "dialog.branchName": "Nazwa ga\u0142\u0119zi",
+    "dialog.startPoint": "Punkt startowy",
+    "dialog.currentHead": "Aktualny HEAD",
+    "dialog.inputBranchName": "Wprowad\u017A nazw\u0119 ga\u0142\u0119zi\u2026",
+    "dialog.create": "Utw\xF3rz",
+    "dialog.dateFilter": "Filtruj wed\u0142ug daty",
+    "dialog.startDate": "Data rozpocz\u0119cia",
+    "dialog.endDate": "Data zako\u0144czenia",
+    "dialog.clear": "Wyczy\u015B\u0107",
+    "dialog.resetTo": "Zresetuj ga\u0142\u0105\u017A do {hash}",
+    "dialog.selectResetMode": "Wybierz tryb resetowania:",
+    "dialog.resetSoft": "Soft - tylko przesu\u0144 HEAD",
+    "dialog.resetMixed": "Mixed - przesu\u0144 HEAD + zresetuj indeks (domy\u015Blnie)",
+    "dialog.resetHard": "Hard - przesu\u0144 HEAD + zresetuj indeks i drzewo robocze",
+    "dialog.reset": "Zresetuj",
+    "dialog.branchFromCommit": "Utw\xF3rz ga\u0142\u0105\u017A z commitu",
+    "dialog.basedOn": "Na podstawie: {info}",
+    "commit.searchPlaceholder": "Tekst lub hash",
+    "branch.groupHead": "HEAD (aktualna ga\u0142\u0105\u017A)",
+    "branch.groupLocal": "Lokalne",
+    "branch.groupRemote": "Zdalne",
+    "file.noDiff": "Brak r\xF3\u017Cnic",
+    "file.changedFiles": "Zmienione pliki",
+    "detail.title": "Szczeg\xF3\u0142y commita",
+    "detail.hash": "Hash",
+    "detail.author": "Autor",
+    "detail.date": "Data",
+    "main.loadingTitle": "Inicjalizacja\u2026",
+    "main.loadingBody": "\u0141adowanie informacji o projekcie.",
+    "main.notGitTitle": "To nie jest repozytorium Git",
+    "main.notGitBody": "Bie\u017C\u0105cy katalog nie jest repozytorium Git.",
+    "time.justNow": "przed chwil\u0105",
+    "time.minutesAgo": "{n} min temu",
+    "time.hoursAgo": "{n} godz. temu",
+    "time.daysAgo": "{n} dni temu",
+    "commit.empty": "Brak commit\xF3w",
+    "commit.noSelection": "Wybierz commit, aby zobaczy\u0107 zmiany",
+    "file.selectDiff": "Wybierz plik, aby zobaczy\u0107 r\xF3\u017Cnice",
+    "file.noChanges": "Brak zmienionych plik\xF3w",
+    "main.tabConsole": "Konsola",
+    "reset.title": "Zresetuj bie\u017C\u0105c\u0105 ga\u0142\u0105\u017A do tego commitu",
+    "reset.softDesc": "zachowaj drzewo robocze i indeks",
+    "reset.mixedDesc": "zachowaj drzewo robocze, zresetuj indeks",
+    "reset.hardDesc": "odrzu\u0107 wszystkie zmiany",
+    "dialog.createBranchTitle": "Nowa ga\u0142\u0105\u017A",
+    "dialog.pathPlaceholder": "src/ lub packages/core",
+    "dialog.cancel": "Anuluj",
+    "dialog.ok": "OK",
+    "filter.selectAllToggle": "Zaznacz wszystko / odznacz na bie\u017C\u0105cej li\u015Bcie"
   };
   var ja = {
     "branch.checkout": "\u30D6\u30E9\u30F3\u30C1\u3092\u30C1\u30A7\u30C3\u30AF\u30A2\u30A6\u30C8",
@@ -2440,6 +2950,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "\u30D6\u30E9\u30F3\u30C1\u3092\u524A\u9664",
     "branch.selectBranch": "\u307E\u305A\u30D6\u30E9\u30F3\u30C1\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044",
     "branch.deleteCurrent": "\u73FE\u5728\u306E\u30D6\u30E9\u30F3\u30C1\u306F\u524A\u9664\u3067\u304D\u307E\u305B\u3093",
+    "branch.searchPlaceholder": "\u30D6\u30E9\u30F3\u30C1\u307E\u305F\u306F\u30BF\u30B0",
     "branch.notifyDeleted": "\u524A\u9664\u3057\u305F\u30D6\u30E9\u30F3\u30C1: {name}",
     "branch.restore": "\u5143\u306B\u623B\u3059",
     "branch.deleteTracking": "\u8FFD\u8DE1\u30D6\u30E9\u30F3\u30C1\u3092\u524A\u9664",
@@ -2525,7 +3036,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "\u30D1\u30B9\u3092\u7DE8\u96C6\u2026",
     "filter.maxPaths": "\u6700\u5927 100 \u4EF6\u307E\u3067\u9078\u629E\u53EF\u80FD",
     "filter.noPaths": "\u9078\u629E\u53EF\u80FD\u306A\u30D1\u30B9\u304C\u3042\u308A\u307E\u305B\u3093",
-    "filter.loadPathsFailed": "\u30D1\u30B9\u306E\u8AAD\u307F\u8FBC\u307F\u306B\u5931\u6557\u3057\u307E\u3057\u305F"
+    "filter.loadPathsFailed": "\u30D1\u30B9\u306E\u8AAD\u307F\u8FBC\u307F\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    "dialog.renameBranch": "\u30D6\u30E9\u30F3\u30C1\u540D\u306E\u5909\u66F4",
+    "dialog.branchName": "\u30D6\u30E9\u30F3\u30C1\u540D",
+    "dialog.startPoint": "\u958B\u59CB\u30DD\u30A4\u30F3\u30C8",
+    "dialog.currentHead": "\u73FE\u5728\u306E HEAD",
+    "dialog.inputBranchName": "\u30D6\u30E9\u30F3\u30C1\u540D\u3092\u5165\u529B\u2026",
+    "dialog.create": "\u4F5C\u6210",
+    "dialog.dateFilter": "\u65E5\u4ED8\u3067\u30D5\u30A3\u30EB\u30BF",
+    "dialog.startDate": "\u958B\u59CB\u65E5",
+    "dialog.endDate": "\u7D42\u4E86\u65E5",
+    "dialog.clear": "\u30AF\u30EA\u30A2",
+    "dialog.resetTo": "\u30D6\u30E9\u30F3\u30C1\u3092 {hash} \u306B\u30EA\u30BB\u30C3\u30C8",
+    "dialog.selectResetMode": "\u30EA\u30BB\u30C3\u30C8\u30E2\u30FC\u30C9\u3092\u9078\u629E:",
+    "dialog.resetSoft": "Soft - HEAD \u306E\u307F\u79FB\u52D5",
+    "dialog.resetMixed": "Mixed - HEAD \u3092\u79FB\u52D5 + \u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u3092\u30EA\u30BB\u30C3\u30C8\uFF08\u30C7\u30D5\u30A9\u30EB\u30C8\uFF09",
+    "dialog.resetHard": "Hard - HEAD \u3092\u79FB\u52D5 + \u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u3068\u4F5C\u696D\u30C4\u30EA\u30FC\u3092\u30EA\u30BB\u30C3\u30C8",
+    "dialog.reset": "\u30EA\u30BB\u30C3\u30C8",
+    "dialog.branchFromCommit": "\u30B3\u30DF\u30C3\u30C8\u304B\u3089\u30D6\u30E9\u30F3\u30C1\u3092\u4F5C\u6210",
+    "dialog.basedOn": "\u57FA\u6E96: {info}",
+    "commit.searchPlaceholder": "\u30C6\u30AD\u30B9\u30C8\u307E\u305F\u306F\u30CF\u30C3\u30B7\u30E5",
+    "branch.groupHead": "HEAD\uFF08\u73FE\u5728\u306E\u30D6\u30E9\u30F3\u30C1\uFF09",
+    "branch.groupLocal": "\u30ED\u30FC\u30AB\u30EB",
+    "branch.groupRemote": "\u30EA\u30E2\u30FC\u30C8",
+    "file.noDiff": "\u5DEE\u5206\u306A\u3057",
+    "file.changedFiles": "\u5909\u66F4\u3055\u308C\u305F\u30D5\u30A1\u30A4\u30EB",
+    "detail.title": "\u30B3\u30DF\u30C3\u30C8\u8A73\u7D30",
+    "detail.hash": "\u30CF\u30C3\u30B7\u30E5",
+    "detail.author": "\u4F5C\u6210\u8005",
+    "detail.date": "\u65E5\u4ED8",
+    "main.loadingTitle": "\u521D\u671F\u5316\u4E2D\u2026",
+    "main.loadingBody": "\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u60C5\u5831\u3092\u8AAD\u307F\u8FBC\u3093\u3067\u3044\u307E\u3059\u3002",
+    "main.notGitTitle": "Git \u30EA\u30DD\u30B8\u30C8\u30EA\u3067\u306F\u3042\u308A\u307E\u305B\u3093",
+    "main.notGitBody": "\u73FE\u5728\u306E\u30C7\u30A3\u30EC\u30AF\u30C8\u30EA\u306F Git \u30EA\u30DD\u30B8\u30C8\u30EA\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    "time.justNow": "\u305F\u3063\u305F\u4ECA",
+    "time.minutesAgo": "{n}\u5206\u524D",
+    "time.hoursAgo": "{n}\u6642\u9593\u524D",
+    "time.daysAgo": "{n}\u65E5\u524D",
+    "commit.empty": "\u30B3\u30DF\u30C3\u30C8\u306F\u3042\u308A\u307E\u305B\u3093",
+    "commit.noSelection": "\u5909\u66F4\u3092\u8868\u793A\u3059\u308B\u30B3\u30DF\u30C3\u30C8\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044",
+    "file.selectDiff": "\u5DEE\u5206\u3092\u8868\u793A\u3059\u308B\u30D5\u30A1\u30A4\u30EB\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044",
+    "file.noChanges": "\u5909\u66F4\u3055\u308C\u305F\u30D5\u30A1\u30A4\u30EB\u306F\u3042\u308A\u307E\u305B\u3093",
+    "main.tabConsole": "\u30B3\u30F3\u30BD\u30FC\u30EB",
+    "reset.title": "\u73FE\u5728\u306E\u30D6\u30E9\u30F3\u30C1\u3092\u3053\u3053\u306B\u30EA\u30BB\u30C3\u30C8",
+    "reset.softDesc": "\u4F5C\u696D\u30C4\u30EA\u30FC\u3068\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u3092\u4FDD\u6301",
+    "reset.mixedDesc": "\u4F5C\u696D\u30C4\u30EA\u30FC\u3092\u4FDD\u6301\u3057\u3001\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u3092\u30EA\u30BB\u30C3\u30C8",
+    "reset.hardDesc": "\u3059\u3079\u3066\u306E\u5909\u66F4\u3092\u7834\u68C4",
+    "dialog.createBranchTitle": "\u65B0\u3057\u3044\u30D6\u30E9\u30F3\u30C1",
+    "dialog.pathPlaceholder": "src/ \u307E\u305F\u306F packages/core",
+    "dialog.cancel": "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    "dialog.ok": "OK",
+    "filter.selectAllToggle": "\u73FE\u5728\u306E\u30EA\u30B9\u30C8\u3092\u3059\u3079\u3066\u9078\u629E/\u89E3\u9664"
   };
   var tr = {
     "branch.checkout": "Dal\u0131 checkout et",
@@ -2545,6 +3106,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "sidebar.deleteBranch": "Dal\u0131 sil",
     "branch.selectBranch": "\xD6nce bir dal se\xE7in",
     "branch.deleteCurrent": "Ge\xE7erli dal silinemez",
+    "branch.searchPlaceholder": "Dal veya etiket",
     "branch.notifyDeleted": "Silinen dal: {name}",
     "branch.restore": "Geri y\xFCkle",
     "branch.deleteTracking": "\u0130zleme dal\u0131n\u0131 sil",
@@ -2630,7 +3192,57 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     "filter.editPaths": "Yollar\u0131 d\xFCzenle\u2026",
     "filter.maxPaths": "En fazla 100 yol se\xE7ilebilir",
     "filter.noPaths": "Se\xE7ilebilir yol yok",
-    "filter.loadPathsFailed": "Yollar y\xFCklenemedi"
+    "filter.loadPathsFailed": "Yollar y\xFCklenemedi",
+    "dialog.renameBranch": "Dal\u0131 yeniden adland\u0131r",
+    "dialog.branchName": "Dal ad\u0131",
+    "dialog.startPoint": "Ba\u015Flang\u0131\xE7 noktas\u0131",
+    "dialog.currentHead": "Ge\xE7erli HEAD",
+    "dialog.inputBranchName": "Dal ad\u0131 girin\u2026",
+    "dialog.create": "Olu\u015Ftur",
+    "dialog.dateFilter": "Tarihe g\xF6re filtrele",
+    "dialog.startDate": "Ba\u015Flang\u0131\xE7 tarihi",
+    "dialog.endDate": "Biti\u015F tarihi",
+    "dialog.clear": "Temizle",
+    "dialog.resetTo": "Dal\u0131 \u015Fu ana s\u0131f\u0131rla: {hash}",
+    "dialog.selectResetMode": "S\u0131f\u0131rlama modu se\xE7in:",
+    "dialog.resetSoft": "Soft - yaln\u0131zca HEAD ta\u015F\u0131",
+    "dialog.resetMixed": "Mixed - HEAD ta\u015F\u0131 + dizini s\u0131f\u0131rla (varsay\u0131lan)",
+    "dialog.resetHard": "Hard - HEAD ta\u015F\u0131 + dizin ve \xE7al\u0131\u015Fma a\u011Fac\u0131n\u0131 s\u0131f\u0131rla",
+    "dialog.reset": "S\u0131f\u0131rla",
+    "dialog.branchFromCommit": "Commit'ten dal olu\u015Ftur",
+    "dialog.basedOn": "Dayanak: {info}",
+    "commit.searchPlaceholder": "Metin veya hash",
+    "branch.groupHead": "HEAD (ge\xE7erli dal)",
+    "branch.groupLocal": "Yerel",
+    "branch.groupRemote": "Uzak",
+    "file.noDiff": "Fark yok",
+    "file.changedFiles": "De\u011Fi\u015Fen dosyalar",
+    "detail.title": "Commit ayr\u0131nt\u0131lar\u0131",
+    "detail.hash": "Hash",
+    "detail.author": "Yazar",
+    "detail.date": "Tarih",
+    "main.loadingTitle": "Ba\u015Flat\u0131l\u0131yor\u2026",
+    "main.loadingBody": "Proje bilgileri y\xFCkleniyor.",
+    "main.notGitTitle": "Git deposu de\u011Fil",
+    "main.notGitBody": "Ge\xE7erli dizin bir Git deposu de\u011Fil.",
+    "time.justNow": "az \xF6nce",
+    "time.minutesAgo": "{n} dk \xF6nce",
+    "time.hoursAgo": "{n} sa \xF6nce",
+    "time.daysAgo": "{n} g\xFCn \xF6nce",
+    "commit.empty": "Commit yok",
+    "commit.noSelection": "De\u011Fi\u015Fiklikleri g\xF6rmek i\xE7in bir commit se\xE7in",
+    "file.selectDiff": "Fark\u0131 g\xF6rmek i\xE7in bir dosya se\xE7in",
+    "file.noChanges": "De\u011Fi\u015Fen dosya yok",
+    "main.tabConsole": "Konsol",
+    "reset.title": "Ge\xE7erli dal\u0131 buraya s\u0131f\u0131rla",
+    "reset.softDesc": "\xE7al\u0131\u015Fma a\u011Fac\u0131n\u0131 ve dizini koru",
+    "reset.mixedDesc": "\xE7al\u0131\u015Fma a\u011Fac\u0131n\u0131 koru, dizini s\u0131f\u0131rla",
+    "reset.hardDesc": "t\xFCm de\u011Fi\u015Fiklikleri iptal et",
+    "dialog.createBranchTitle": "Yeni dal",
+    "dialog.pathPlaceholder": "src/ veya packages/core",
+    "dialog.cancel": "\u0130ptal",
+    "dialog.ok": "Tamam",
+    "filter.selectAllToggle": "Ge\xE7erli listede t\xFCm\xFCn\xFC se\xE7 / se\xE7imi kald\u0131r"
   };
   var dicts = {
     en,
@@ -2666,6 +3278,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
   }
   function setLocale(locale) {
     current = resolveLocale(locale);
+  }
+  function getLang() {
+    return current;
   }
   function t(key, params) {
     let text = dicts[current][key] ?? zhCN[key] ?? key;
@@ -3001,11 +3616,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">重命名分支: ${branch.name}</div>
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t("dialog.renameBranch")}: ${branch.name}</div>
         <input id="rename-input" type="text" value="${branch.name}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="rename-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
-          <button id="rename-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">确定</button>
+          <button id="rename-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t("dialog.cancel")}</button>
+          <button id="rename-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t("dialog.ok")}</button>
         </div>
       </div>
     </div>
@@ -3041,12 +3656,12 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">新建分支</div>
-        <div style="font-size: 11px; color: #888; margin-bottom: 8px;">起点：${startPoint ? startPoint.slice(0, 8) : "\u5F53\u524D HEAD"}</div>
-        <input id="new-branch-input" type="text" placeholder="输入分支名称..." style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t("dialog.createBranchTitle")}</div>
+        <div style="font-size: 11px; color: #888; margin-bottom: 8px;">${t("dialog.startPoint")}：${startPoint ? startPoint.slice(0, 8) : t("dialog.currentHead")}</div>
+        <input id="new-branch-input" type="text" placeholder="${t("dialog.inputBranchName")}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="create-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
-          <button id="create-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">创建</button>
+          <button id="create-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t("dialog.cancel")}</button>
+          <button id="create-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t("dialog.create")}</button>
         </div>
       </div>
     </div>
@@ -3087,7 +3702,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
         <input id="goto-input" type="text" placeholder="${t("goto.placeholder")}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px;" />
         <div id="goto-error" style="display: none; font-size: 11px; color: #f44336; margin-bottom: 8px;"></div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="goto-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
+          <button id="goto-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t("dialog.cancel")}</button>
           <button id="goto-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t("goto.ok")}</button>
         </div>
       </div>
@@ -3195,7 +3810,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
         <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t("filter.path")}</div>
         <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t("filter.editPaths")}</div>
-        <textarea id="pathfilter-input" placeholder="src/ 或 packages/core" style="width: 100%; height: 120px; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px; resize: vertical; font-family: inherit;">${selected.join("\n")}</textarea>
+        <textarea id="pathfilter-input" placeholder="${t("dialog.pathPlaceholder")}" style="width: 100%; height: 120px; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px; resize: vertical; font-family: inherit;">${selected.join("\n")}</textarea>
         <div id="pathfilter-hint" style="display: none; font-size: 11px; color: #ffb300; margin-bottom: 8px;"></div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button id="pathfilter-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t("filter.ok")}</button>
@@ -4153,26 +4768,26 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">Reset Current Branch to Here</div>
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t("reset.title")}</div>
         <div style="font-size: 12px; color: #888; margin-bottom: 12px; word-break: break-all;">
           ${commit.shortHash} - ${commit.message}
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
           <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; cursor: pointer;">
             <input type="radio" name="reset-mode" value="soft" checked />
-            <span><b>--soft</b> 保留工作区和暂存区</span>
+            <span><b>--soft</b> ${t("reset.softDesc")}</span>
           </label>
           <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; cursor: pointer;">
             <input type="radio" name="reset-mode" value="mixed" />
-            <span><b>--mixed</b> 保留工作区，重置暂存区</span>
+            <span><b>--mixed</b> ${t("reset.mixedDesc")}</span>
           </label>
           <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; cursor: pointer;">
             <input type="radio" name="reset-mode" value="hard" />
-            <span><b>--hard</b> 丢弃所有更改</span>
+            <span><b>--hard</b> ${t("reset.hardDesc")}</span>
           </label>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="reset-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
+          <button id="reset-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t("dialog.cancel")}</button>
           <button id="reset-ok" style="padding: 4px 12px; background: #d32f2f; border: 1px solid #f44336; border-radius: 3px; color: #fff; cursor: pointer;">Reset</button>
         </div>
       </div>
@@ -4199,14 +4814,14 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">从提交创建分支</div>
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t("dialog.branchFromCommit")}</div>
         <div style="font-size: 11px; color: #888; margin-bottom: 8px; word-break: break-all;">
-          基于: ${commit.shortHash} - ${commit.message}
+          ${t("dialog.basedOn", { info: `${commit.shortHash} - ${commit.message}` })}
         </div>
-        <input id="new-branch-from-commit" type="text" placeholder="输入分支名称..." style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
+        <input id="new-branch-from-commit" type="text" placeholder="${t("dialog.inputBranchName")}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="branch-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">取消</button>
-          <button id="branch-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">创建</button>
+          <button id="branch-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t("dialog.cancel")}</button>
+          <button id="branch-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t("dialog.create")}</button>
         </div>
       </div>
     </div>
@@ -4244,7 +4859,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
   function createBranchPanel(container, service2, directory2, onBranchSelect, onSelectionCleared) {
     let disposed = false;
     let listContainer = null;
-    const expandedGroups = /* @__PURE__ */ new Set(["HEAD(\u5F53\u524D\u5206\u652F)", "\u672C\u5730"]);
+    const expandedGroups = /* @__PURE__ */ new Set([t("branch.groupHead"), t("branch.groupLocal")]);
     let unsubscribe = null;
     const findBranchFromEvent = (e) => {
       const target = e.target;
@@ -4280,7 +4895,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
           <span style="color: #888; font-size: 12px; margin-right: 4px;">${getIcon("search")}</span>
           <input 
             type="text" 
-            placeholder="Branch or tag" 
+            placeholder="${t("branch.searchPlaceholder")}" 
             style="flex: 1; padding: 4px 0; background: transparent; border: none; color: #ccc; font-size: 12px; outline: none;"
           />
         </div>
@@ -4371,25 +4986,25 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       const remote = filteredBranches.filter((b) => b.isRemote);
       if (current3.length > 0) {
         listContainer.appendChild(
-          createGroup("HEAD(\u5F53\u524D\u5206\u652F)", current3, expandedGroups.has("HEAD(\u5F53\u524D\u5206\u652F)"))
+          createGroup(t("branch.groupHead"), current3, expandedGroups.has(t("branch.groupHead")))
         );
       }
       if (local.length > 0) {
         const groups = groupBranches(local);
-        const localGroup = createCollapsibleGroup("\u672C\u5730", groups);
+        const localGroup = createCollapsibleGroup(t("branch.groupLocal"), groups);
         listContainer.appendChild(localGroup);
       }
       if (remote.length > 0) {
         listContainer.appendChild(
-          createGroup("\u8FDC\u7A0B", remote, expandedGroups.has("\u8FDC\u7A0B"))
+          createGroup(t("branch.groupRemote"), remote, expandedGroups.has(t("branch.groupRemote")))
         );
       }
     };
     const expandAll = () => {
       if (disposed) return;
-      expandedGroups.add("HEAD(\u5F53\u524D\u5206\u652F)");
-      expandedGroups.add("\u672C\u5730");
-      expandedGroups.add("\u8FDC\u7A0B");
+      expandedGroups.add(t("branch.groupHead"));
+      expandedGroups.add(t("branch.groupLocal"));
+      expandedGroups.add(t("branch.groupRemote"));
       for (const branch of getState().branches) {
         const parts = branch.name.split("/");
         if (parts.length > 1) {
@@ -4901,7 +5516,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
           <span style="color: #888; font-size: 12px; margin-right: 4px;">${getIcon("search")}</span>
           <input 
             type="text" 
-            placeholder="文本或哈希" 
+            placeholder="${t("commit.searchPlaceholder")}" 
             data-search-input
             style="flex: 1; padding: 3px 0; background: transparent; border: none; color: #ccc; font-size: 12px; outline: none; min-width: 80px;"
           />
@@ -4916,7 +5531,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
         <button data-action="btn-filter-user" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t("filter.user")} ▾</button>
         <button data-action="btn-filter-date" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t("filter.date")} ▾</button>
         <button data-action="btn-filter-path" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t("filter.path")} ▾</button>
-        <button data-action="btn-select-all" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;" title="全选/取消全选当前列表">${t("filter.selectAll")}</button>
+        <button data-action="btn-select-all" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;" title="${t("filter.selectAllToggle")}">${t("filter.selectAll")}</button>
         <!-- 分隔线 -->
         <div style="width: 1px; height: 16px; background: #444; margin: 0 3px;"></div>
         <!-- 操作按钮 -->
@@ -5323,7 +5938,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       listContainer.innerHTML = "";
       const commits = state.filteredCommits;
       if (commits.length === 0) {
-        listContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">\u6682\u65E0\u63D0\u4EA4\u8BB0\u5F55</div>';
+        listContainer.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">${t("commit.empty")}</div>`;
         return;
       }
       const branchMap = /* @__PURE__ */ new Map();
@@ -5540,11 +6155,11 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     const diffMin = Math.floor(diffMs / 6e4);
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
-    if (diffMin < 1) return "\u521A\u521A";
-    if (diffMin < 60) return `${diffMin}\u5206\u949F\u524D`;
-    if (diffHour < 24) return `${diffHour}\u5C0F\u65F6\u524D`;
-    if (diffDay < 7) return `${diffDay}\u5929\u524D`;
-    return date.toLocaleDateString("zh-CN");
+    if (diffMin < 1) return t("time.justNow");
+    if (diffMin < 60) return t("time.minutesAgo", { n: diffMin });
+    if (diffHour < 24) return t("time.hoursAgo", { n: diffHour });
+    if (diffDay < 7) return t("time.daysAgo", { n: diffDay });
+    return date.toLocaleDateString(getLang());
   }
 
   // panel/components/file-context-menu.ts
@@ -5709,7 +6324,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       if (!previewContainer) return;
       previewContainer.innerHTML = "";
       if (!diff) {
-        previewContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">\u9009\u62E9\u6587\u4EF6\u67E5\u770B\u5DEE\u5F02</div>';
+        previewContainer.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">${t("file.selectDiff")}</div>`;
         return;
       }
       const title = html`
@@ -5726,7 +6341,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
           diffContent.appendChild(createDiffLine(line));
         }
       } else {
-        diffContent.innerHTML = '<div style="padding: 8px; color: #888;">\u65E0\u5DEE\u5F02\u5185\u5BB9</div>';
+        diffContent.innerHTML = `<div style="padding: 8px; color: #888;">${t("file.noDiff")}</div>`;
       }
       previewContainer.appendChild(diffContent);
     };
@@ -5736,7 +6351,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       const state = getState();
       titleEl = html`
       <div style="padding: 4px 8px; background: #252526; border-bottom: 1px solid #333; font-size: 12px; color: #ccc; flex-shrink: 0;">
-        变更文件 <span style="color: #888;">${state.diffs.length}</span>
+        ${t("file.changedFiles")} <span style="color: #888;">${state.diffs.length}</span>
       </div>
     `;
       container.appendChild(titleEl);
@@ -5803,7 +6418,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       const state = getState();
       listContainer.innerHTML = "";
       if (state.diffs.length === 0) {
-        listContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">\u6682\u65E0\u53D8\u66F4\u6587\u4EF6</div>';
+        listContainer.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">${t("file.noChanges")}</div>`;
         return;
       }
       for (const diff of state.diffs) {
@@ -5891,14 +6506,14 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       const state = getState();
       container.appendChild(html`
       <div style="padding: 4px 8px; background: #252526; border-bottom: 1px solid #333; font-size: 12px; color: #ccc; flex-shrink: 0;">
-        提交详情
+        ${t("detail.title")}
       </div>
     `);
       const content = html`
       <div style="flex: 1; overflow-y: auto; padding: 8px; font-size: 12px;"></div>
     `;
       if (!state.commitDetail) {
-        content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">\u9009\u62E9\u8981\u67E5\u770B\u66F4\u6539\u7684\u63D0\u4EA4</div>';
+        content.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">${t("commit.noSelection")}</div>`;
       } else {
         renderCommitDetail(content, state.commitDetail);
       }
@@ -5912,9 +6527,9 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     const renderCommitDetail = (container2, commit) => {
       container2.innerHTML = "";
       const fields = [
-        { label: "\u63D0\u4EA4", value: commit.hash, mono: true },
-        { label: "\u4F5C\u8005", value: `${commit.authorName} <${commit.authorEmail}>` },
-        { label: "\u65E5\u671F", value: new Date(commit.date).toLocaleString("zh-CN") }
+        { label: t("detail.hash"), value: commit.hash, mono: true },
+        { label: t("detail.author"), value: `${commit.authorName} <${commit.authorEmail}>` },
+        { label: t("detail.date"), value: new Date(commit.date).toLocaleString(getLang()) }
       ];
       for (const field of fields) {
         container2.appendChild(html`
@@ -6041,8 +6656,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       clearAll();
       if (!directory) {
         const empty = mountEmpty(root, {
-          title: "\u7B49\u5F85\u521D\u59CB\u5316...",
-          body: "\u6B63\u5728\u52A0\u8F7D\u9879\u76EE\u4FE1\u606F\u3002"
+          title: t("main.loadingTitle"),
+          body: t("main.loadingBody")
         });
         disposables.push(empty);
         return;
@@ -6051,8 +6666,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
       if (!isGit) {
         root.innerHTML = "";
         const empty = mountEmpty(root, {
-          title: "\u975E Git \u4ED3\u5E93",
-          body: "\u5F53\u524D\u76EE\u5F55\u4E0D\u662F Git \u4ED3\u5E93\u3002"
+          title: t("main.notGitTitle"),
+          body: t("main.notGitBody")
         });
         disposables.push(empty);
         return;
@@ -6186,7 +6801,7 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
     <div style="flex-shrink: 0; border-top: 1px solid #333;">
       <div style="display: flex; background: #2d2d2d; padding: 0; align-items: center;">
         <div style="padding: 4px 12px; font-size: 11px; color: #fff; background: #1e1e1e; border-right: 1px solid #333; cursor: pointer;">Git</div>
-        <div style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; border-right: 1px solid #333;">控制台</div>
+        <div style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; border-right: 1px solid #333;">${t("main.tabConsole")}</div>
         <div style="display: flex; align-items: center; padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; gap: 4px;">
           <span>Worktrees</span>
           <span style="color: #666; font-size: 10px; cursor: pointer;">×</span>
@@ -6383,8 +6998,8 @@ textarea.oc-sdk-input { height: auto; padding: 8px 12px; resize: vertical; }
         if (!isGit) {
           root.innerHTML = "";
           const empty = mountEmpty(root, {
-            title: "\u975E Git \u4ED3\u5E93",
-            body: "\u5F53\u524D\u76EE\u5F55\u4E0D\u662F Git \u4ED3\u5E93\u3002"
+            title: t("main.notGitTitle"),
+            body: t("main.notGitBody")
           });
           disposables.push(empty);
           return;
