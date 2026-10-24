@@ -127,13 +127,14 @@ describe('branch-panel', () => {
     // 搜索框存在
     expect(container.querySelector(`input[placeholder="${t('branch.searchPlaceholder')}"]`)).toBeTruthy();
 
-    // HEAD(当前分支) 默认展开
+    // HEAD(当前分支) 分组存在且默认展开
     expect(groupHeader('HEAD(当前分支)')).toBeTruthy();
     expect(branchItem('main')).toBeTruthy();
 
-    // 本地分组默认展开：根分支直接可见，文件夹分组默认折叠
+    // 本地分组默认展开：同样包含当前分支（HEAD 组与本地组各一份）
     expect(groupHeader('本地')).toBeTruthy();
     expect(branchItem('develop')).toBeTruthy();
+    expect(container.querySelectorAll('[data-branch="main"]').length).toBe(2);
     expect(groupHeader('feature')).toBeTruthy();
     expect(branchItem('feature/login')).toBeFalsy();
 
@@ -191,23 +192,24 @@ describe('branch-panel', () => {
     expect(groupHeader('远程').querySelector('span')?.textContent).toBe('▶');
   });
 
-  it('点击 HEAD 分组标题应该折叠再恢复展开', () => {
+  it('点击本地分组标题应该折叠再恢复展开（当前分支随本地分组显隐）', () => {
     setState(s => { s.branches = makeBranches(); });
     createPanel();
 
-    // HEAD 分组默认展开：箭头朝下，当前分支可见
-    expect(groupHeader('HEAD(当前分支)').querySelector('span')?.textContent).toBe('▼');
+    // 本地分组默认展开：箭头朝下，当前分支与本地分支可见
+    expect(groupHeader('本地').querySelector('span')?.textContent).toBe('▼');
     expect(branchItem('main')).toBeTruthy();
 
-    // 点击折叠：子项消失，箭头朝右
-    groupHeader('HEAD(当前分支)').click();
-    expect(branchItem('main')).toBeFalsy();
-    expect(groupHeader('HEAD(当前分支)').querySelector('span')?.textContent).toBe('▶');
+    // 点击折叠：本地组内子项消失，箭头朝右
+    // 当前分支 main 在 HEAD 组仍有一份，故用仅存在于本地组的 develop 断言
+    groupHeader('本地').click();
+    expect(branchItem('develop')).toBeFalsy();
+    expect(groupHeader('本地').querySelector('span')?.textContent).toBe('▶');
 
     // 再次点击恢复展开
-    groupHeader('HEAD(当前分支)').click();
-    expect(branchItem('main')).toBeTruthy();
-    expect(groupHeader('HEAD(当前分支)').querySelector('span')?.textContent).toBe('▼');
+    groupHeader('本地').click();
+    expect(branchItem('develop')).toBeTruthy();
+    expect(groupHeader('本地').querySelector('span')?.textContent).toBe('▼');
   });
 
   it('点击文件夹分组标题应该展开其中的分支', () => {
@@ -331,8 +333,8 @@ describe('branch-panel', () => {
     const searchInput = container.querySelector('input');
     setState(s => { s.branches = makeBranches(); });
 
-    // 可见分支：main（HEAD 展开）+ develop（本地根分支展开）
-    expect(container.querySelectorAll('[data-branch]').length).toBe(2);
+    // 可见分支：main（HEAD 组一份 + 本地组一份）+ develop（本地组） = 3
+    expect(container.querySelectorAll('[data-branch]').length).toBe(3);
     // 搜索框节点未被重建（仅列表局部渲染）
     expect(container.querySelector('input')).toBe(searchInput);
   });
@@ -688,24 +690,24 @@ describe('branch-panel', () => {
     expect(groupHeader('feature').querySelector('span')?.textContent).toBe('▶');
   });
 
-  it('HEAD 与远程分组的箭头应该按各自展开状态显示', () => {
+  it('本地与远程分组的箭头应该按各自展开状态显示', () => {
     setState(s => { s.branches = makeBranches(); });
     createPanel();
 
-    // 初始集合 ['HEAD(当前分支)', '本地']：HEAD 展开 → ▼；远程未入集合 → ▶
-    expect(groupHeader('HEAD(当前分支)').querySelector('span')?.textContent).toBe('▼');
+    // 初始集合 ['本地']：本地展开 → ▼；远程未入集合 → ▶
+    expect(groupHeader('本地').querySelector('span')?.textContent).toBe('▼');
     expect(groupHeader('远程').querySelector('span')?.textContent).toBe('▶');
 
     // 点击切换后箭头跟随 expandedGroups 集合变化
-    groupHeader('HEAD(当前分支)').click();
+    groupHeader('本地').click();
     groupHeader('远程').click();
-    expect(groupHeader('HEAD(当前分支)').querySelector('span')?.textContent).toBe('▶');
+    expect(groupHeader('本地').querySelector('span')?.textContent).toBe('▶');
     expect(groupHeader('远程').querySelector('span')?.textContent).toBe('▼');
 
     // 再次点击恢复初始箭头方向
-    groupHeader('HEAD(当前分支)').click();
+    groupHeader('本地').click();
     groupHeader('远程').click();
-    expect(groupHeader('HEAD(当前分支)').querySelector('span')?.textContent).toBe('▼');
+    expect(groupHeader('本地').querySelector('span')?.textContent).toBe('▼');
     expect(groupHeader('远程').querySelector('span')?.textContent).toBe('▶');
   });
 
@@ -957,7 +959,7 @@ describe('branch-panel', () => {
     expect(branchItem('develop')).toBeTruthy();
     expect(branchItem('main')).toBeTruthy();
     expect(branchItem('origin/main')).toBeTruthy();
-    expect(groupHeader('HEAD(当前分支)').querySelector('span')?.textContent).toBe('▼');
+    expect(groupHeader('本地').querySelector('span')?.textContent).toBe('▼');
     expect(groupHeader('远程').querySelector('span')?.textContent).toBe('▼');
 
     // 再点恢复展开
