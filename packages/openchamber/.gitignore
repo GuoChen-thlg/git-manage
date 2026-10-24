@@ -1,2 +1,5 @@
 node_modules/
 dist/
+
+# 打包输出（仅发布时在 CI 或主分支生成）
+release/

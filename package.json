@@ -5,7 +5,7 @@
   "description": "Git management tool for OpenChamber and VSCode",
   "license": "Apache-2.0",
   "scripts": {
-    "dev": "pnpm --filter @git-manage/openchamber dev",
+    "dev": "pnpm --filter git-manager dev",
     "build": "pnpm -r build",
     "prepare": "husky",
     "test": "vitest",
