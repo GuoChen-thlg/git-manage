@@ -459,4 +459,14 @@ describe('sidebar', () => {
     setState(s => { s.favorites = new Set(['develop', 'main']); });
     expect(svgSignature(btn.innerHTML)).toEqual(svgSignature(getIcon('favorite')));
   });
+
+  it('选中分支后定位按钮应解除禁用（回归）', () => {
+    setState(s => { s.selectedBranch = null; s.selectedBranches = new Set(); });
+    createBar();
+    const btn = container.querySelector('[data-sidebar="locate"]') as HTMLElement;
+    expect(btn.dataset.disabled).toBe('true');
+
+    setState(s => { s.selectedBranch = { name: 'develop', isCurrent: false, isRemote: false }; });
+    expect(btn.dataset.disabled).toBe('false');
+  });
 });

@@ -387,7 +387,10 @@ async function runSidebarLocateBranch(): Promise<void> {
   }
 
   // 只在当前列表中定位并选中该提交，不改变过滤条件（对齐 IDEA jumpToBranch）
-  const found = getState().allCommits.find(c => c.hash === headHash);
+  // 分支数据里的 commit 是短哈希，列表中为完整哈希：用前缀匹配兼容两种形式
+  const found = getState().allCommits.find(
+    c => c.hash === headHash || c.shortHash === headHash || c.hash.startsWith(headHash),
+  );
   console.debug(JSON.stringify({
     prefix: '[sidebar]',
     event: 'locate_branch',
