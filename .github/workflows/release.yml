@@ -21,7 +21,7 @@ jobs:
       # 发布门禁：tag 或触发分支必须指向主分支 dev，否则直接失败
       - name: 校验发布来源为主分支
         run: |
-          MAIN_BRANCH="dev"
+          MAIN_BRANCH="main"
           # 判断当前 ref 是否可从主分支到达：tag 必须落在 dev 上，手动触发必须选 dev
           git fetch origin "$MAIN_BRANCH" --depth=1
           if ! git merge-base --is-ancestor HEAD "origin/$MAIN_BRANCH"; then
@@ -64,7 +64,7 @@ jobs:
       # 把构建产物推到 release 分支，供「从 Git URL 安装」使用
       # 只保留运行时文件：package.json + dist/，其余清空
       - name: 同步产物到 release 分支
-        if: github.ref == 'refs/heads/dev'
+        if: github.ref == 'refs/heads/main'
         run: |
           set -euo pipefail
           STAGE=$(mktemp -d)

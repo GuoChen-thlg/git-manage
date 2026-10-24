@@ -157,7 +157,7 @@ async function main() {
   const zipPath = path.join(outDir, `git-manager-${version}.zip`);
 
   // 发布门禁：仅允许在主分支打包。CI 用 CI=true 且已单独校验来源，这里只拦本地误操作
-  const MAIN_BRANCH = 'dev';
+  const MAIN_BRANCH = 'main';
   if (!process.env.CI) {
     let branch = '';
     try {
