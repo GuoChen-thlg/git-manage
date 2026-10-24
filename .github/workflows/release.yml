@@ -63,8 +63,10 @@ jobs:
 
       # 把构建产物推到 release 分支，供「从 Git URL 安装」使用
       # 只保留运行时文件：package.json + dist/，其余清空
+      # tag 与 main 推送都要同步：发布实际走 tag，只判 main 会导致 tag 发布时产物不更新
+      # 安全性由前置的「发布来源校验」保证：tag 必须可从 main 到达，功能分支无法通过
       - name: 同步产物到 release 分支
-        if: github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         run: |
           set -euo pipefail
           STAGE=$(mktemp -d)
