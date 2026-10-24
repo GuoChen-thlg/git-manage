@@ -7,6 +7,7 @@ import { html } from '../html';
 import { getState, setState, Branch } from '../state';
 import { ServiceClient } from '../service';
 import { t } from '../i18n';
+import { showOperationError } from './errors';
 
 /** 显示重命名对话框 */
 export function showRenameDialog(branch: Branch, service: ServiceClient, directory: string): void {
@@ -47,7 +48,9 @@ export function showRenameDialog(branch: Branch, service: ServiceClient, directo
       const branches = await service.getBranches(directory);
       setState(s => { s.branches = branches; });
     } catch (e) {
-      console.error('[git-manager] 重命名分支失败:', e);
+      // 失败时保持对话框打开并提示，便于用户改名重试
+      showOperationError(e, 'dialog.renameFailed', '[dialog]', 'rename_branch_error');
+      return;
     }
     close();
   });
@@ -90,7 +93,9 @@ export function showCreateBranchDialog(service: ServiceClient, directory: string
       const branches = await service.getBranches(directory);
       setState(s => { s.branches = branches; });
     } catch (e) {
-      console.error('[git-manager] 创建分支失败:', e);
+      // 失败时保持对话框打开并提示，便于用户改名重试
+      showOperationError(e, 'dialog.createBranchFailed', '[dialog]', 'create_branch_error');
+      return;
     }
     close();
   };
@@ -209,7 +214,9 @@ export function showResetDialog(hash: string, service: ServiceClient, directory:
       const branches = await service.getBranches(directory);
       setState(s => { s.branches = branches; });
     } catch (e) {
-      console.error('[git-manager] 重置分支失败:', e);
+      // 失败时保持对话框打开并提示，用户可换模式重试
+      showOperationError(e, 'op.resetFailed', '[dialog]', 'reset_branch_error');
+      return;
     }
     close();
   });
@@ -1059,5 +1066,115 @@ export function showRewordCommitDialog(
         pending = false;
         if (!closed) okBtn.disabled = false;
       });
+  });
+}
+
+/**
+ * 通用确认对话框
+ * 沙箱 iframe 中 window.confirm 会被浏览器拦截并直接返回 false，
+ * 导致依赖它的操作静默失效，故统一改用本对话框。
+ * @param message 确认文案
+ * @param onConfirm 用户点击确认后的回调
+ * @param danger 是否为危险操作（确认按钮显示为红色）
+ */
+export function showConfirmDialog(
+  message: string,
+  onConfirm: () => void | Promise<void>,
+  danger = false,
+): void {
+  const overlay = html`
+    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1002;">
+      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
+        <div id="confirm-message" style="font-size: 12px; color: #ccc; margin-bottom: 16px; word-break: break-word; white-space: pre-wrap;"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button id="confirm-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
+          <button id="confirm-ok" style="padding: 4px 12px; background: ${danger ? '#b71c1c' : '#0d47a1'}; border: 1px solid ${danger ? '#c62828' : '#1565c0'}; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  // 文案用 textContent 赋值：可能含用户数据（路径、分支名）
+  // 用专用 id 定位，避免选择器误命中按钮容器而覆盖整个对话框内容
+  (overlay.querySelector('#confirm-message') as HTMLElement).textContent = message;
+  document.body.appendChild(overlay);
+
+  const close = (): void => { overlay.remove(); };
+  overlay.querySelector('#confirm-cancel')?.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  overlay.querySelector('#confirm-ok')?.addEventListener('click', () => {
+    close();
+    void onConfirm();
+  });
+}
+
+/** 输入对话框的字段定义 */
+export interface PromptField {
+  /** 字段标签 */
+  label: string;
+  /** 预填值 */
+  value?: string;
+  /** 占位文案 */
+  placeholder?: string;
+}
+
+/**
+ * 通用多字段输入对话框
+ * 替代沙箱中不可用的 window.prompt。
+ * @param title 标题
+ * @param fields 字段定义列表
+ * @param onConfirm 确认回调，入参为按 fields 顺序去除首尾空白后的值
+ */
+export function showPromptDialog(
+  title: string,
+  fields: PromptField[],
+  onConfirm: (values: string[]) => void | Promise<void>,
+): void {
+  const overlay = html`
+    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1002;">
+      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 380px;">
+        <div id="prompt-title" style="font-size: 14px; color: #ccc; margin-bottom: 12px;"></div>
+        <div id="prompt-fields"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+          <button id="prompt-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
+          <button id="prompt-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  (overlay.querySelector('#prompt-title') as HTMLElement).textContent = title;
+
+  const fieldsEl = overlay.querySelector('#prompt-fields') as HTMLElement;
+  const inputs: HTMLInputElement[] = [];
+  for (const [index, field] of fields.entries()) {
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size: 11px; color: #888; margin: 8px 0 4px;';
+    label.textContent = field.label;
+    fieldsEl.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.dataset.promptIndex = String(index);
+    input.value = field.value ?? '';
+    input.placeholder = field.placeholder ?? '';
+    input.style.cssText = 'width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;';
+    fieldsEl.appendChild(input);
+    inputs.push(input);
+  }
+
+  document.body.appendChild(overlay);
+  inputs[0]?.focus();
+
+  const close = (): void => { overlay.remove(); };
+  const submit = (): void => {
+    const values = inputs.map(i => i.value.trim());
+    close();
+    void onConfirm(values);
+  };
+
+  overlay.querySelector('#prompt-cancel')?.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  overlay.querySelector('#prompt-ok')?.addEventListener('click', submit);
+  overlay.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') submit();
   });
 }

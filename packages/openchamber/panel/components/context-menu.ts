@@ -8,8 +8,9 @@ import { getState, setState, Branch, CommitInfo } from '../state';
 import { t } from '../i18n';
 import { host } from '../host';
 import { ServiceClient, DeleteBranchResult } from '../service';
-import { showRenameDialog, showDeleteBranchDialog, parseDeleteBranchError, showRewordCommitDialog } from './dialogs';
+import { showRenameDialog, showDeleteBranchDialog, parseDeleteBranchError, showRewordCommitDialog, showConfirmDialog } from './dialogs';
 import { showBranchDeletedNotify } from './notify';
+import { classifyCreateBranchError, classifyGitError, showOperationError } from './errors';
 
 /** 隐藏右键菜单 */
 export function hideContextMenu(): void {
@@ -111,17 +112,19 @@ async function onBranchDeleted(
  * @param service 服务客户端
  * @param directory 仓库目录
  * @param branch 目标分支
+ * @returns 是否删除成功；未合并时返回 false（强制删除交由对话框异步完成），批量场景据此汇总
  */
 export async function performBranchDelete(
   service: ServiceClient,
   directory: string,
   branch: Branch,
-): Promise<void> {
+): Promise<boolean> {
   console.debug(JSON.stringify({ prefix: '[context-menu]', event: 'branch_delete_start', branch: branch.name }));
   try {
     // 对齐 IDEA：无确认直接删除，仅服务端返回 NOT_MERGED 时才弹强制删除对话框
     const res = await service.deleteBranch(directory, branch.name);
     await onBranchDeleted(res, branch, service, directory);
+    return true;
   } catch (e) {
     const { code, message } = parseDeleteBranchError(e);
     console.debug(JSON.stringify({
@@ -148,6 +151,7 @@ export async function performBranchDelete(
           console.error(JSON.stringify({ prefix: '[context-menu]', event: 'branch_delete_toast_error', error: String(toastErr) }));
         });
     }
+    return false;
   }
 }
 
@@ -166,28 +170,6 @@ interface MenuSeparator {
 }
 
 /** 显示右键菜单 */
-/**
- * 按错误内容归类操作失败原因
- * @param message 原始错误信息
- * @returns 用于提示的文案键
- */
-function classifyGitError(message: string): string | null {
-  const text = message.toLowerCase();
-  if (text.includes('conflict') || text.includes('merge conflict')) return 'op.conflict';
-  if (
-    text.includes('authentication failed')
-    || text.includes('could not read username')
-    || text.includes('permission denied')
-  ) return 'op.authFailed';
-  if (
-    text.includes('could not resolve host')
-    || text.includes('connection refused')
-    || text.includes('connection timed out')
-  ) return 'op.unreachable';
-  if (text.includes('rejected') || text.includes('non-fast-forward')) return 'op.rejected';
-  return null;
-}
-
 /**
  * 统一执行分支/提交类操作：成功刷新并提示，失败分类提示
  * 供右键菜单复用，避免每个动作各自实现（历史上多处只写 console 导致「点击无反应」）
@@ -312,7 +294,8 @@ export function showContextMenu(
     {
       label: state.favorites.has(branch.name) ? t('branch.unfavorite') : t('branch.favorite'),
       action: async () => {
-        const next = new Set(getState().favorites);
+        const previous = getState().favorites;
+        const next = new Set(previous);
         if (next.has(branch.name)) {
           next.delete(branch.name);
         } else {
@@ -322,7 +305,9 @@ export function showContextMenu(
         try {
           await service.saveFavorites(directory, [...next]);
         } catch (e) {
-          console.error("[git-manager] 保存收藏失败:", e);
+          // 保存失败需回滚本地状态，否则界面显示已收藏但实际未落盘
+          setState(s => { s.favorites = previous; });
+          showOperationError(e, 'branch.favoriteSaveFailed', '[context-menu]', 'save_favorites_error');
         }
       },
     },
@@ -332,7 +317,8 @@ export function showContextMenu(
       danger: true,
       // IDEA DeleteBranchAction：当前分支禁用删除
       disabled: branch.isCurrent,
-      action: () => performBranchDelete(service, directory, branch),
+      // 菜单项返回 void：丢弃布尔结果，批量场景由 main.ts 单独调用
+      action: async () => { await performBranchDelete(service, directory, branch); },
     },
   ];
 
@@ -647,12 +633,8 @@ function buildSingleCommitItems(
           setState(s => { s.diffs = diffs; });
           hideContextMenu();
         } catch (err) {
-          console.error(JSON.stringify({
-            prefix: '[context-menu]',
-            event: 'compare_local_error',
-            hash: commit.hash,
-            error: String(err),
-          }));
+          // 回归：此前只写 console，用户点「与本地比较」后界面毫无变化
+          showOperationError(err, 'compare.loadFailed', '[context-menu]', 'compare_local_error');
         }
       },
     },
@@ -730,8 +712,9 @@ function buildSingleCommitItems(
       label: t('commit.dropCommit'),
       danger: true,
       disabled: dirtyWorkingTree,
-      action: async () => {
-        if (!confirm(t('commit.dropConfirm', { hash: commit.shortHash }))) return;
+      action: () => {
+        // 沙箱中 window.confirm 不可用，改用扩展自身对话框
+        showConfirmDialog(t('commit.dropConfirm', { hash: commit.shortHash }), async () => {
         try {
           await service.dropCommit(directory, commit.hash);
           await reloadCommits(service, directory);
@@ -741,6 +724,7 @@ function buildSingleCommitItems(
           console.error(JSON.stringify({ prefix: '[context-menu]', event: 'drop_commit_error', hash: commit.hash, error: message }));
           void host.toast({ kind: 'error', message: `${t('commit.dropFailed')}: ${message}`, copy: true, dismiss: true }).catch(() => {});
         }
+        }, true);
       },
     },
     { type: "separator" },
@@ -808,8 +792,8 @@ function buildBatchCommitItems(
     },
     {
       label: t('batch.cherryPickAll', { n: hashes.length }),
-      action: async () => {
-        if (!confirm(t('batch.confirmCherryPick', { n: hashes.length }))) return;
+      action: () => {
+        showConfirmDialog(t('batch.confirmCherryPick', { n: hashes.length }), async () => {
         console.debug(JSON.stringify({ prefix: '[context-menu]', event: 'batch_cherry_pick_start', count: hashes.length }));
         let done = 0;
         for (const hash of hashes) {
@@ -841,20 +825,43 @@ function buildBatchCommitItems(
         await reloadCommits(service, directory);
         console.debug(JSON.stringify({ prefix: '[context-menu]', event: 'batch_cherry_pick_done', count: done }));
         void host.toast({ kind: 'success', message: t('batch.cherryPickDone', { n: done }) }).catch(() => {});
+        });
       },
     },
     {
       label: t('batch.revertAll', { n: hashes.length }),
-      action: async () => {
-        if (!confirm(t('batch.confirmRevert', { n: hashes.length }))) return;
-        for (const hash of hashes) {
-          try {
-            await service.revert(directory, hash);
-          } catch (err) {
-            console.error(`[git-manager] 批量 Revert 中断于 ${hash}:`, err);
-            return;
+      action: () => {
+        showConfirmDialog(t('batch.confirmRevert', { n: hashes.length }), async () => {
+          let done = 0;
+          for (const hash of hashes) {
+            try {
+              await service.revert(directory, hash);
+              done += 1;
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
+              console.error(JSON.stringify({
+                prefix: '[context-menu]',
+                event: 'batch_revert_error',
+                hash,
+                done,
+                total: hashes.length,
+                error: message,
+              }));
+              // 中断：刷新已生效部分并提示原因
+              await reloadCommits(service, directory);
+              const conflict = message.toLowerCase().includes('conflict');
+              void host.toast({
+                kind: 'error',
+                message: conflict ? t('commit.revertConflict') : `${t('commit.revertFailed')}: ${message}`,
+                copy: true,
+                dismiss: true,
+              }).catch(() => {});
+              return;
+            }
           }
-        }
+          await reloadCommits(service, directory);
+          void host.toast({ kind: 'success', message: t('batch.revertDone', { n: done }) }).catch(() => {});
+        });
       },
     },
   ];
@@ -905,8 +912,12 @@ function showResetDialog(commit: CommitInfo, service: ServiceClient, directory: 
     const mode = (modeInput?.value || 'mixed') as 'soft' | 'mixed' | 'hard';
     try {
       await service.reset(directory, commit.hash, mode);
+      // 重置会移动分支指针，必须刷新，否则界面仍显示旧提交
+      await reloadCommits(service, directory);
     } catch (err) {
-      console.error("[git-manager] Reset 失败:", err);
+      // 回归：此前只写 console，用户点确定后对话框直接关闭，看不出失败
+      showOperationError(err, 'op.resetFailed', '[context-menu]', 'reset_error');
+      return;
     }
     close();
   });
@@ -950,8 +961,24 @@ function showCreateBranchFromCommitDialog(commit: CommitInfo, service: ServiceCl
       await service.checkoutNewBranch(directory, name, commit.hash);
       const branches = await service.getBranches(directory);
       setState(s => { s.branches = branches; });
+      await reloadCommits(service, directory);
+      void host.toast({ kind: 'success', message: t('op.newBranchDone', { name }) }).catch(() => {});
     } catch (err) {
-      console.error("[git-manager] 创建分支失败:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(JSON.stringify({ prefix: '[context-menu]', event: 'create_branch_error', name, error: message }));
+      // 失败必须让用户可见。git 的原始错误常含多行文件清单，
+      // 直接塞进 toast 会过长而难以阅读，故按原因给出简短说明，原文放在 detail 中可复制
+      const reason = classifyCreateBranchError(message);
+      void host.toast({
+        kind: 'error',
+        message: `${t('op.newBranchFailed')}: ${t(reason)}`,
+        copy: true,
+        dismiss: true,
+      }).catch((toastErr: unknown) => {
+        // toast 本身失败时退化为 alert，确保用户不会完全看不到
+        console.error(JSON.stringify({ prefix: '[context-menu]', event: 'create_branch_toast_error', error: String(toastErr) }));
+        window.alert(`${t('op.newBranchFailed')}: ${t(reason)}`);
+      });
     }
     close();
   };

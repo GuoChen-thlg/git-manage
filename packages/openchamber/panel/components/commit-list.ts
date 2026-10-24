@@ -27,6 +27,8 @@ import { showSettingsMenu } from './settings-menu';
 import { showGotoDialog, showDateRangeDialog, showPathFilterDialog, showPathTreeDialog } from './dialogs';
 import { showDropdownMenu } from './dropdown-menu';
 import type { DropdownMenuItem } from './dropdown-menu';
+import { host } from '../host';
+import { showOperationError } from './errors';
 
 export function createCommitListPanel(
   container: HTMLElement,
@@ -219,7 +221,7 @@ export function createCommitListPanel(
 
     /**
      * Cherry-pick 选中提交到当前分支
-     * 多选时按列表由旧到新依次挑选；未选中时输出结构化日志并返回
+     * 多选时按列表由旧到新依次挑选；未选中时提示用户先选择提交
      */
     const handleCherryPick = async (): Promise<void> => {
       const state = getState();
@@ -228,6 +230,10 @@ export function createCommitListPanel(
         : (state.selectedCommit ? [state.selectedCommit.hash] : []);
       if (hashes.length === 0) {
         console.error(JSON.stringify({ prefix: '[commit-list]', event: 'cherry_pick_no_selection' }));
+        // 必须给出可见提示，否则用户点图标后表现为「没反应」
+        void host.toast({ kind: 'error', message: t('commit.cherryPickNoSelection') }).catch((toastErr) => {
+          console.error(JSON.stringify({ prefix: '[commit-list]', event: 'cherry_pick_toast_error', error: String(toastErr) }));
+        });
         return;
       }
       console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'cherry_pick_start', count: hashes.length, hashes }));
@@ -237,13 +243,29 @@ export function createCommitListPanel(
         }
         await refreshCommits(service, directory);
         console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'cherry_pick_done', count: hashes.length }));
+        void host.toast({
+          kind: 'success',
+          message: hashes.length > 1
+            ? t('commit.cherryPickDoneMulti', { n: hashes.length })
+            : t('commit.cherryPickDone', { hash: hashes[0]!.slice(0, 7) }),
+        }).catch(() => {});
       } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
         console.error(JSON.stringify({
           prefix: '[commit-list]',
           event: 'cherry_pick_error',
           hashes,
-          error: String(e),
+          error: message,
         }));
+        // 冲突等原因导致的失败同样要让用户看到，并保留原文可复制
+        void host.toast({
+          kind: 'error',
+          message: `${t('commit.cherryPickFailed')}: ${message}`,
+          copy: true,
+          dismiss: true,
+        }).catch((toastErr) => {
+          console.error(JSON.stringify({ prefix: '[commit-list]', event: 'cherry_pick_toast_error', error: String(toastErr) }));
+        });
       }
     };
 
@@ -1088,7 +1110,7 @@ async function refreshCommits(service: ServiceClient, directory: string): Promis
     });
     filterCommits();
   } catch (e) {
-    console.error('[git-manager] 刷新提交列表失败:', e);
+    showOperationError(e, 'commit.loadListFailed', '[commit-list]', 'refresh_commits_error');
   }
 }
 

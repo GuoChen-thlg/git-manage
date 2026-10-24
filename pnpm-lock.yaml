@@ -62,8 +62,8 @@ importers:
   packages/openchamber:
     dependencies:
       '@openchamber/sdk':
-        specifier: ^1.24.0
-        version: 1.24.1
+        specifier: ^2.5.1
+        version: 2.5.1
     devDependencies:
       esbuild:
         specifier: ^0.28.2
@@ -1070,8 +1070,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@openchamber/sdk@1.24.1':
-    resolution: {integrity: sha512-Ksw9pPy4ooRDJhd5mQeuiFcEkZCYiGyM21LsGl8hdqaGadewWvFTGsRQQoaciCllFc4l65IE4KcZRSnbSM4GEA==}
+  '@openchamber/sdk@2.5.1':
+    resolution: {integrity: sha512-U2u+JMfqAOnr8JM8apAOdgt21leze3nCxxPqtda9wrflBKOOxGJ4nkvzzIrwRpVy38OcZapEIjgmLrvnuzHZeg==}
     hasBin: true
 
   '@rollup/rollup-android-arm-eabi@4.63.3':
@@ -3344,7 +3344,7 @@ snapshots:
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
-  '@openchamber/sdk@1.24.1':
+  '@openchamber/sdk@2.5.1':
     dependencies:
       zod: 4.6.5
 

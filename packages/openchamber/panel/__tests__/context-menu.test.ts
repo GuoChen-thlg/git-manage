@@ -192,6 +192,15 @@ describe('context-menu', () => {
   });
 
   /**
+   * 点击扩展自身确认对话框的「确定」按钮
+   * 原生 confirm 在沙箱中不可用，组件改用 showConfirmDialog
+   */
+  function clickConfirmOk(): void {
+    const ok = [...document.querySelectorAll('button')].find(b => b.id === 'confirm-ok') as HTMLElement | undefined;
+    if (ok) ok.click();
+  }
+
+  /**
    * 打开批量提交右键菜单
    * @param hashes 选中的提交哈希
    * @param service 服务桩
@@ -885,8 +894,11 @@ describe('context-menu', () => {
 
       findMenuItem(getMenu(), 'Cherry-pick 全部 (3)')!.click();
       await flush();
+      // 确认对话框应已渲染
+      expect(document.getElementById('confirm-ok')).toBeTruthy();
+      clickConfirmOk();
+      await flush();
 
-      expect(confirmMock).toHaveBeenCalledWith('确定对 3 个提交执行 Cherry-pick 吗？');
       expect(service.cherryPick).toHaveBeenCalledTimes(3);
       expect(service.cherryPick).toHaveBeenNthCalledWith(1, DIRECTORY, 'h1');
       expect(service.cherryPick).toHaveBeenNthCalledWith(2, DIRECTORY, 'h2');
@@ -895,11 +907,15 @@ describe('context-menu', () => {
     });
 
     it('取消确认时不应执行批量 Cherry-pick', async () => {
-      confirmMock.mockReturnValue(false);
       const service = createMockService();
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, batchHashes);
 
       findMenuItem(getMenu(), 'Cherry-pick 全部 (3)')!.click();
+      await flush();
+      // 点击取消
+      const cancel = [...document.querySelectorAll('button')].find(b => b.id === 'confirm-cancel') as HTMLElement | undefined;
+      expect(cancel).toBeTruthy();
+      cancel?.click();
       await flush();
 
       expect(service.cherryPick).not.toHaveBeenCalled();
@@ -911,8 +927,10 @@ describe('context-menu', () => {
 
       findMenuItem(getMenu(), 'Revert 全部 (3)')!.click();
       await flush();
+      expect(document.getElementById('confirm-message')?.textContent).toContain('确定对 3 个提交执行 Revert 吗？');
+      clickConfirmOk();
+      await flush();
 
-      expect(confirmMock).toHaveBeenCalledWith('确定对 3 个提交执行 Revert 吗？');
       expect(service.revert).toHaveBeenCalledTimes(3);
       expect(service.revert).toHaveBeenNthCalledWith(1, DIRECTORY, 'h1');
       expect(service.revert).toHaveBeenNthCalledWith(3, DIRECTORY, 'h3');
@@ -1098,27 +1116,27 @@ describe('context-menu', () => {
       expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' }));
     });
 
-    it('与本地比较失败时应打印 compare_local_error JSON 日志且不覆盖 diffs', async () => {
+    it('与本地比较失败时应提示用户且不覆盖 diffs', async () => {
       const err = new Error('diff 服务不可用');
       const service = createMockService();
       vi.mocked(service.diffVsLocal).mockRejectedValue(err);
+      toastMock.mockClear();
 
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
       findMenuItem(getMenu(), '与本地比较')!.click();
       await flush();
 
-      // 找到 compare_local_error 的 JSON 日志并解析断言
+      // 回归：此前只写 console，用户点菜单后界面毫无变化
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+        kind: 'error',
+        message: expect.stringContaining('diff 服务不可用'),
+      }));
+      // 仍写结构化日志便于排查
       const errorSpy = vi.mocked(console.error);
       const jsonCall = errorSpy.mock.calls.find(
         c => typeof c[0] === 'string' && c[0].includes('compare_local_error')
       );
       expect(jsonCall).toBeTruthy();
-
-      const payload = JSON.parse(String(jsonCall![0]));
-      expect(payload.prefix).toBe('[context-menu]');
-      expect(payload.event).toBe('compare_local_error');
-      expect(payload.hash).toBe('abc123');
-      expect(String(payload.error)).toContain('diff 服务不可用');
       // 失败时 diffs 保持初始值
       expect(getState().diffs).toEqual([]);
     });
@@ -1170,6 +1188,8 @@ describe('context-menu', () => {
       showContextMenuWithBatch(['h1', 'h2', 'h3'], service);
       findMenuItem(getMenu(), 'Cherry-pick 全部 (3)')!.click();
       await flush();
+      clickConfirmOk();
+      await flush();
 
       // 中断后不应继续处理 h3
       expect(service.cherryPick).toHaveBeenCalledTimes(2);
@@ -1189,6 +1209,8 @@ describe('context-menu', () => {
       showContextMenuWithBatch(['h1', 'h2'], service);
       findMenuItem(getMenu(), 'Cherry-pick 全部 (2)')!.click();
       await flush();
+      clickConfirmOk();
+      await flush();
 
       expect(service.cherryPick).toHaveBeenCalledTimes(2);
       const toastArg = toastMock.mock.calls.at(-1)?.[0] as { message: string } | undefined;
@@ -1205,9 +1227,18 @@ describe('context-menu', () => {
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, ['h1', 'h2', 'h3']);
       findMenuItem(getMenu(), 'Revert 全部 (3)')!.click();
       await flush();
+      clickConfirmOk();
+      await flush();
 
-      expect(console.error).toHaveBeenCalledWith('[git-manager] 批量 Revert 中断于 h2:', err);
+      // 中断后不应继续处理 h3
       expect(service.revert).toHaveBeenCalledTimes(2);
+      // 失败需对用户可见：结构化日志 + error toast
+      const log = vi.mocked(console.error).mock.calls
+        .map(c => String(c[0]))
+        .find(m => m.includes('batch_revert_error'));
+      expect(log).toBeTruthy();
+      expect(log).toContain('"done":1');
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error' }));
     });
   });
 
@@ -1339,10 +1370,11 @@ describe('context-menu', () => {
       expect(document.getElementById('reset-ok')).toBeNull();
     });
 
-    it('执行重置失败时应打印错误日志', async () => {
+    it('执行重置失败时应提示用户并保持对话框打开', async () => {
       const err = new Error('reset 失败');
       const service = createMockService();
       vi.mocked(service.reset).mockRejectedValue(err);
+      toastMock.mockClear();
 
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
       findMenuItem(getMenu(), '将当前分支重置到此处')!.click();
@@ -1351,8 +1383,12 @@ describe('context-menu', () => {
       document.getElementById('reset-ok')!.click();
       await flush();
 
-      expect(console.error).toHaveBeenCalledWith('[git-manager] Reset 失败:', err);
-      expect(document.getElementById('reset-ok')).toBeNull();
+      // 回归：此前只写 console 并关闭对话框，用户点确定后看不到任何失败提示
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
+        kind: 'error',
+        message: expect.stringContaining('重置失败'),
+      }));
+      expect(document.getElementById('reset-ok')).not.toBeNull();
     });
 
     it('打开创建分支对话框应自动聚焦名称输入框', async () => {
@@ -1418,7 +1454,12 @@ describe('context-menu', () => {
       document.getElementById('branch-ok')!.click();
       await flush();
 
-      expect(console.error).toHaveBeenCalledWith('[git-manager] 创建分支失败:', err);
+      // 失败必须让用户可见：结构化日志 + error toast
+      const log = vi.mocked(console.error).mock.calls
+        .map(c => String(c[0]))
+        .find(m => m.includes('create_branch_error'));
+      expect(log).toBeTruthy();
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error' }));
       expect(document.getElementById('new-branch-from-commit')).toBeNull();
     });
 
@@ -1441,5 +1482,44 @@ describe('context-menu', () => {
       expect(service.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature/enter', 'abc123');
       expect(document.getElementById('new-branch-from-commit')).toBeNull();
     });
+  });
+
+  it('工作区有改动导致建分支被拒时应提示先提交或暂存', async () => {
+    const service = createMockService();
+    vi.mocked(service.checkoutNewBranch).mockRejectedValue(
+      new Error('error: Your local changes to the following files would be overwritten by checkout:\n\ta.ts\nPlease commit your changes or stash them before you switch branches.'),
+    );
+
+    showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
+    findMenuItem(getMenu(), '新建分支')!.click();
+    await flush();
+
+    const input = document.getElementById('new-branch-from-commit') as HTMLInputElement;
+    input.value = 'dr';
+    (document.getElementById('branch-ok') as HTMLElement).click();
+    await flush();
+
+    // 错误信息含多行文件清单，toast 应给出可读原因而非原文堆叠
+    const toastArg = toastMock.mock.calls.at(-1)?.[0] as { message: string } | undefined;
+    expect(toastArg?.message).toContain('请先提交或暂存改动');
+  });
+
+  it('分支已存在时应提示分支已存在', async () => {
+    const service = createMockService();
+    vi.mocked(service.checkoutNewBranch).mockRejectedValue(
+      new Error("fatal: a branch named 'dr' already exists"),
+    );
+
+    showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
+    findMenuItem(getMenu(), '新建分支')!.click();
+    await flush();
+
+    const input = document.getElementById('new-branch-from-commit') as HTMLInputElement;
+    input.value = 'dr';
+    (document.getElementById('branch-ok') as HTMLElement).click();
+    await flush();
+
+    const toastArg = toastMock.mock.calls.at(-1)?.[0] as { message: string } | undefined;
+    expect(toastArg?.message).toContain('分支已存在');
   });
 });

@@ -20,6 +20,28 @@ export interface BranchUpstream {
   branch: string;
 }
 
+/** git 命令日志条目（与 core 的 GitCommandLog 对齐） */
+export interface GitCommandLogEntry {
+  /** 自增序号 */
+  id: number;
+  /** 执行时刻（毫秒时间戳） */
+  startedAt: number;
+  /** 耗时（毫秒） */
+  durationMs: number;
+  /** 完整命令文本（含 git 前缀） */
+  command: string;
+  /** 工作目录 */
+  cwd: string;
+  /** 退出码 */
+  exitCode: number;
+  /** 是否成功 */
+  ok: boolean;
+  /** 标准输出 */
+  stdout: string;
+  /** 标准错误 */
+  stderr: string;
+}
+
 /**
  * 删除分支响应（携带还原所需数据）
  * kind 按删除路由判定：local=本地分支删除，remote=push --delete 远程删除
@@ -310,6 +332,72 @@ export function createServiceClient(host: HostClient) {
     return serviceCall<{ success: boolean; ref: string }>('git-push-up-to', { directory, hash, branch });
   }
 
+  /**
+   * 列出 worktree
+   * @param directory 仓库目录
+   */
+  async function listWorktrees(directory: string) {
+    return serviceCall<Array<{
+      path: string;
+      head: string;
+      branch: string | null;
+      bare: boolean;
+      detached: boolean;
+      locked: string | null;
+      isMain: boolean;
+    }>>('git-worktree-list', { directory });
+  }
+
+  /**
+   * 创建 worktree
+   * @param directory 仓库目录
+   * @param path 目标路径
+   * @param branch 分支名
+   * @param createBranch 是否新建分支
+   * @param startPoint 新建分支的起点
+   */
+  async function addWorktree(
+    directory: string,
+    path: string,
+    branch: string,
+    createBranch: boolean,
+    startPoint?: string,
+  ) {
+    return serviceCall('git-worktree-add', { directory, path, branch, createBranch, startPoint });
+  }
+
+  /**
+   * 移除 worktree
+   * @param directory 仓库目录
+   * @param path worktree 路径
+   * @param force 是否强制移除
+   */
+  async function removeWorktree(directory: string, path: string, force: boolean) {
+    return serviceCall('git-worktree-remove', { directory, path, force });
+  }
+
+  /**
+   * 清理失效的 worktree 记录
+   * @param directory 仓库目录
+   */
+  async function pruneWorktrees(directory: string) {
+    return serviceCall('git-worktree-prune', { directory });
+  }
+
+  /**
+   * 获取 git 命令日志（增量）
+   * @param directory 仓库目录；传空则返回全部仓库的日志
+   * @param since 只返回 id 大于该值的记录
+   */
+  async function getCommandLogs(directory: string, since: number): Promise<GitCommandLogEntry[]> {
+    return serviceCall<GitCommandLogEntry[]>('git-command-logs', { directory, since });
+  }
+
+  /** 清空 git 命令日志 */
+  async function clearCommandLogs(directory: string) {
+    return serviceCall('git-command-logs-clear', { directory });
+  }
+
   /** 重置分支 */
   async function reset(directory: string, hash: string, mode: 'soft' | 'mixed' | 'hard') {
     return serviceCall('git-reset', { directory, hash, mode });
@@ -389,6 +477,12 @@ export function createServiceClient(host: HostClient) {
     diffVsLocal,
     getBranchDiff,
     reset,
+    listWorktrees,
+    addWorktree,
+    removeWorktree,
+    pruneWorktrees,
+    getCommandLogs,
+    clearCommandLogs,
     revert,
     undoCommit,
     getCommitEditInfo,
