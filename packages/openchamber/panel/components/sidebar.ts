@@ -9,13 +9,11 @@ import { getIcon } from '../icons';
 import { t } from '../i18n';
 import { getState, subscribeFields } from '../state';
 
-/** 侧边栏图标按钮点击处理器集 */
+/** 侧边栏图标按钮点击处理器集（顺序对齐 IDEA 分支面板工具栏） */
 export interface SidebarHandlers {
-  /** 切换分支面板显隐 */
-  onToggleBranchPanel: () => void;
   /** 新建分支 */
   onNewBranch: () => void;
-  /** 刷新数据 */
+  /** 更新所选（fetch + 刷新） */
   onRefresh: () => void;
   /** 删除所选分支 */
   onDeleteBranch: () => void;
@@ -23,16 +21,18 @@ export interface SidebarHandlers {
   onCompareBranch: () => void;
   /** 切换「只显示我的分支」筛选 */
   onToggleMyBranches: () => void;
+  /** 获取远程更新 */
+  onFetch: () => void;
   /** 收藏/取消收藏目标分支 */
   onFavorite: () => void;
+  /** 在提交日志中定位所选分支 */
+  onLocateBranch: () => void;
   /** 打开显示设置菜单（接收触发事件定位菜单） */
   onSettings: (e: MouseEvent) => void;
-  /** 拉取远程更新 */
-  onPull: () => void;
   /** 展开分支面板全部分组 */
   onExpandAll: () => void;
-  /** 循环切换排序模式 */
-  onSort: () => void;
+  /** 折叠分支面板全部分组 */
+  onCollapseAll: () => void;
   /** 关闭面板 */
   onClose: () => void;
 }
@@ -64,40 +64,20 @@ const BUTTON_STYLE =
 
 /** 12 个图标项（顺序固定） */
 const ITEMS: readonly SidebarItem[] = [
-  { key: 'hideBranches', icon: 'hideBranches', titleKey: 'sidebar.hideBranches', handler: 'onToggleBranchPanel' },
+  // 顺序对齐 IDEA 分支面板工具栏（createActionGroup）
   { key: 'newBranch', icon: 'newBranch', titleKey: 'sidebar.newBranch', handler: 'onNewBranch' },
   { key: 'refresh', icon: 'updateSelected', titleKey: 'sidebar.update', handler: 'onRefresh' },
   { key: 'delete', icon: 'deleteBranch', titleKey: 'sidebar.deleteBranch', handler: 'onDeleteBranch' },
   { key: 'compare', icon: 'compareBranch', titleKey: 'sidebar.compareBranch', handler: 'onCompareBranch' },
   { key: 'search', icon: 'search', titleKey: 'sidebar.showMyBranches', handler: 'onToggleMyBranches' },
+  { key: 'fetch', icon: 'fetch', titleKey: 'sidebar.fetch', handler: 'onFetch' },
   { key: 'favorite', icon: 'favorite', titleKey: 'sidebar.favorite', handler: 'onFavorite' },
+  { key: 'locate', icon: 'locate', titleKey: 'sidebar.locate', handler: 'onLocateBranch' },
   { key: 'settings', icon: 'settings', titleKey: 'sidebar.settings', handler: 'onSettings' },
-  { key: 'pull', icon: 'pull', titleKey: 'sidebar.pull', handler: 'onPull' },
   { key: 'expandAll', icon: 'expandAll', titleKey: 'sidebar.expandAll', handler: 'onExpandAll' },
-  { key: 'sort', icon: 'sort', titleKey: 'sidebar.sort', handler: 'onSort' },
+  { key: 'collapseAll', icon: 'collapseAll', titleKey: 'sidebar.collapseAll', handler: 'onCollapseAll' },
   { key: 'close', icon: 'close', titleKey: 'sidebar.close', handler: 'onClose' },
 ];
-
-/**
- * 首个按钮（隐藏/显示分支）的动态 tooltip
- * @returns branchPanelHidden 为真时返回"显示"文案，否则返回"隐藏"文案
- */
-function buildToggleTitle(): string {
-  return getState().branchPanelHidden
-    ? t('sidebar.showBranches')
-    : t('sidebar.hideBranches');
-}
-
-/**
- * 首个按钮（隐藏/显示分支）的动态 icon
- * 展开时箭头向左（表示可收起），隐藏时箭头向右（表示可展开）
- * @returns 当前状态对应的 svg 图标
- */
-function buildToggleIcon(): string {
-  return getState().branchPanelHidden
-    ? getIcon('showBranches')
-    : getIcon('hideBranches');
-}
 
 /**
  * 创建左侧图标工具栏
@@ -110,8 +90,6 @@ export function createSidebar(
   handlers: SidebarHandlers
 ): { dispose: () => void } {
   let disposed = false;
-  /** 首个按钮引用（动态 title 更新目标） */
-  let toggleBtn: HTMLElement | null = null;
   /** 「我的分支」按钮引用（激活态/禁用态同步目标） */
   let myBranchesBtn: HTMLElement | null = null;
 
@@ -119,12 +97,11 @@ export function createSidebar(
   container.innerHTML = '';
 
   for (const item of ITEMS) {
-    const isToggle = item.handler === 'onToggleBranchPanel';
-    const title = isToggle ? buildToggleTitle() : t(item.titleKey);
+    const title = t(item.titleKey);
 
     const btn = html`
       <div data-sidebar="${item.key}" style="${BUTTON_STYLE}" title="${title}">
-        ${isToggle ? buildToggleIcon() : (item.customSvg ?? getIcon(item.icon))}
+        ${item.customSvg ?? getIcon(item.icon)}
       </div>
     `;
 
@@ -155,7 +132,6 @@ export function createSidebar(
       }
     });
 
-    if (isToggle) toggleBtn = btn;
     if (item.key === 'search') myBranchesBtn = btn;
     container.appendChild(btn);
   }
@@ -222,6 +198,15 @@ export function createSidebar(
         return localBranches.length === 0 ? t('sidebar.newBranchUnavailable') : null;
       case 'refresh':
         return hasRemote ? null : t('sidebar.updateUnavailable');
+      case 'fetch':
+        // Fetch 与更新所选一致：需要配置远程仓库
+        return hasRemote ? null : t('sidebar.updateUnavailable');
+      case 'locate':
+        // 定位：需要选中分支
+        return selected ? null : t('branch.selectBranch');
+      case 'collapseAll':
+        // 折叠全部：没有任何分支时无需折叠
+        return state.branches.length === 0 ? t('sidebar.expandAllUnavailable') : null;
       case 'delete':
         if (!selected) return t('branch.selectBranch');
         if (selected.isCurrent) return t('branch.deleteCurrent');
@@ -265,7 +250,7 @@ export function createSidebar(
       // 首个按钮的 title 随显隐动态变化，恢复可用时由 buildToggleTitle 生成，不能套用静态文案
       const item = ITEMS.find(i => i.key === key);
       if (enabled) {
-        btn.title = key === 'hideBranches' ? buildToggleTitle() : t(item!.titleKey);
+        btn.title = t(item!.titleKey);
       } else {
         btn.title = reason;
       }
@@ -273,15 +258,6 @@ export function createSidebar(
   };
 
   syncButtonAvailability();
-
-  // 首个按钮 title 与 icon 跟随 branchPanelHidden 变化
-  const unsubscribe = subscribeFields(['branchPanelHidden'], () => {
-    if (disposed || !toggleBtn) return;
-    toggleBtn.title = buildToggleTitle();
-    toggleBtn.innerHTML = buildToggleIcon();
-    // 切换后刷新基础 SVG，避免禁用态还原成旧图标
-    toggleBtn.dataset.baseSvg = toggleBtn.innerHTML;
-  });
 
   // 「我的分支」激活态与全部按钮可用性跟随状态变化
   const unsubscribeMine = subscribeFields(
@@ -296,10 +272,8 @@ export function createSidebar(
   const dispose = (): void => {
     if (disposed) return;
     disposed = true;
-    unsubscribe();
     unsubscribeMine();
     container.innerHTML = '';
-    toggleBtn = null;
     myBranchesBtn = null;
   };
 

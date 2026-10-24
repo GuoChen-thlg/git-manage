@@ -141,10 +141,6 @@ async function render(): Promise<void> {
 
     // 左侧图标工具栏：12 个图标全部接线（依赖分支面板、提交列表、分支面板组件）
     const sidebarComp = createSidebar(sidebarHost, {
-      onToggleBranchPanel: () => {
-        setState(s => { s.branchPanelHidden = !s.branchPanelHidden; });
-        branchPanel.style.display = getState().branchPanelHidden ? 'none' : '';
-      },
       onNewBranch: () => {
         try {
           // 选中提交时基于该提交建分支（IDEA 语义），否则基于当前 HEAD
@@ -249,21 +245,12 @@ async function render(): Promise<void> {
         })();
       },
       onToggleMyBranches: () => { void toggleMyBranches(); },
+      onFetch: () => { void runSidebarFetch(); },
       onFavorite: () => { void runSidebarFavorite(); },
+      onLocateBranch: () => { void runSidebarLocateBranch(); },
       onSettings: (e) => { showSettingsMenu(e); },
-      onPull: () => { void runSidebarPull(); },
       onExpandAll: () => { branchPanelComp.expandAll(); },
-      onSort: () => {
-        setState(s => {
-          s.sortMode = s.sortMode === 'default'
-            ? 'date-asc'
-            : s.sortMode === 'date-asc'
-              ? 'author-asc'
-              : s.sortMode === 'author-asc'
-                ? 'message-asc'
-                : 'default';
-        });
-      },
+      onCollapseAll: () => { branchPanelComp.collapseAll(); },
       onClose: () => { void runSidebarClose(); },
     });
     disposables.push(sidebarComp);
@@ -349,7 +336,7 @@ async function runSidebarFavorite(): Promise<void> {
   }
 }
 
-/** 侧边栏更新：先从远程获取最新引用（fetch origin --prune，IDEA 语义），成功后刷新数据 */
+/** 侧边栏更新所选：获取远程引用并刷新分支与提交 */
 async function runSidebarUpdate(): Promise<void> {
   try {
     await service.fetch(getDir());
@@ -359,13 +346,38 @@ async function runSidebarUpdate(): Promise<void> {
   }
 }
 
-/** 侧边栏拉取远程更新，成功后刷新数据 */
-async function runSidebarPull(): Promise<void> {
+/** 侧边栏 Fetch：只获取远程引用并刷新分支列表，不重载提交历史 */
+async function runSidebarFetch(): Promise<void> {
   try {
-    await service.pull(getDir());
-    await loadData();
+    await service.fetch(getDir());
+    await loadBranches();
+    console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_done' }));
   } catch (e) {
-    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'pull_error', error: String(e) }));
+    console.error(JSON.stringify({ prefix: '[sidebar]', event: 'fetch_error', error: String(e) }));
+  }
+}
+
+/**
+ * 在提交日志中定位所选分支：把提交列表切到该分支并选中其最新提交
+ * 对齐 IDEA Navigate Log To Selected Branch
+ */
+async function runSidebarLocateBranch(): Promise<void> {
+  const state = getState();
+  const selected = state.selectedBranch
+    ?? (state.selectedBranches.size === 1
+      ? state.branches.find(b => b.name === [...state.selectedBranches][0]) ?? null
+      : null);
+  if (!selected) {
+    console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'locate_no_branch' }));
+    return;
+  }
+  console.debug(JSON.stringify({ prefix: '[sidebar]', event: 'locate_branch', branchName: selected.name }));
+  await loadCommitsForBranch(selected.name);
+  // 选中该分支最新一条提交（列表已按分支过滤，首条即最新）
+  const first = getState().allCommits[0];
+  if (first) {
+    setState(s => { s.selectedCommit = first; });
+    await loadCommitDetail(first.hash);
   }
 }
 

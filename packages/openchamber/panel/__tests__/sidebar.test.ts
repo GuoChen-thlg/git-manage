@@ -12,37 +12,37 @@ import { createInitialState, setState, stateManager } from '../state';
 import { setLocale } from '../i18n';
 import { getIcon } from '../icons';
 
-/** 12 个图标的 key 顺序（与 main.ts 原版一致） */
+/** 12 个图标的 key 顺序（对齐 IDEA 分支面板工具栏） */
 const KEYS = [
-  'hideBranches', 'newBranch', 'refresh', 'delete', 'compare', 'search',
-  'favorite', 'settings', 'pull', 'expandAll', 'sort', 'close',
+  'newBranch', 'refresh', 'delete', 'compare', 'search', 'fetch',
+  'favorite', 'locate', 'settings', 'expandAll', 'collapseAll', 'close',
 ];
 
-/** 简体中文 tooltip（branchPanelHidden=false 初始态） */
+/** 简体中文 tooltip */
 const TITLES_ZH = [
-  '隐藏 Git 分支', '新建分支', '更新所选', '删除分支', '与当前分支比较', '只显示我的分支',
-  '收藏', '设置', '拉取', '展开全部', '排序', '关闭',
+  '新建分支', '更新所选', '删除分支', '与当前分支比较', '只显示我的分支', '获取远程更新',
+  '收藏', '在 Git 日志中定位', '设置', '展开全部', '折叠全部', '关闭',
 ];
 
-/** 英文 tooltip（branchPanelHidden=false 初始态） */
+/** 英文 tooltip */
 const TITLES_EN = [
-  'Hide Git Branches', 'New Branch', 'Update Selected', 'Delete Branch', 'Compare with Current', 'Show My Branches',
-  'Favorite', 'Settings', 'Pull', 'Expand All', 'Sort', 'Close',
+  'New Branch', 'Update Selected', 'Delete Branch', 'Compare with Current', 'Show My Branches', 'Fetch',
+  'Favorite', 'Select in Git Log', 'Settings', 'Expand All', 'Collapse All', 'Close',
 ];
 
 /** 每个 key 对应的 handler 键 */
 const HANDLER_OF: Record<string, keyof SidebarHandlers> = {
-  hideBranches: 'onToggleBranchPanel',
   newBranch: 'onNewBranch',
   refresh: 'onRefresh',
   delete: 'onDeleteBranch',
   compare: 'onCompareBranch',
   search: 'onToggleMyBranches',
+  fetch: 'onFetch',
   favorite: 'onFavorite',
+  locate: 'onLocateBranch',
   settings: 'onSettings',
-  pull: 'onPull',
   expandAll: 'onExpandAll',
-  sort: 'onSort',
+  collapseAll: 'onCollapseAll',
   close: 'onClose',
 };
 
@@ -70,17 +70,17 @@ describe('sidebar', () => {
 
     // 12 个 handler 全部打桩，逐个断言点击分发
     handlers = {
-      onToggleBranchPanel: vi.fn(),
       onNewBranch: vi.fn(),
       onRefresh: vi.fn(),
       onDeleteBranch: vi.fn(),
       onCompareBranch: vi.fn(),
       onToggleMyBranches: vi.fn(),
+      onFetch: vi.fn(),
       onFavorite: vi.fn(),
+      onLocateBranch: vi.fn(),
       onSettings: vi.fn(),
-      onPull: vi.fn(),
       onExpandAll: vi.fn(),
-      onSort: vi.fn(),
+      onCollapseAll: vi.fn(),
       onClose: vi.fn(),
     };
   });
@@ -178,32 +178,6 @@ describe('sidebar', () => {
     expect(received.type).toBe('click');
   });
 
-  it('branchPanelHidden 变化应该把首个按钮 title 切换为显示/隐藏文案', () => {
-    createBar();
-    expect(btn('hideBranches').title).toBe('隐藏 Git 分支');
-
-    setState(s => { s.branchPanelHidden = true; });
-    expect(btn('hideBranches').title).toBe('显示 Git 分支');
-
-    setState(s => { s.branchPanelHidden = false; });
-    expect(btn('hideBranches').title).toBe('隐藏 Git 分支');
-  });
-
-  it('branchPanelHidden 变化应该把首个按钮图标在左右箭头间切换', () => {
-    createBar();
-
-    // 展开态：箭头向左（表示可收起）
-    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M10 13L5 8L10 3']);
-
-    // 隐藏态：箭头向右（表示可展开）
-    setState(s => { s.branchPanelHidden = true; });
-    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M6 13L11 8L6 3']);
-
-    // 翻回展开态：箭头回到向左
-    setState(s => { s.branchPanelHidden = false; });
-    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M10 13L5 8L10 3']);
-  });
-
   it('hover 应该切换按钮背景色', () => {
     createBar();
     const refresh = btn('refresh');
@@ -229,20 +203,6 @@ describe('sidebar', () => {
     settings.click();
     expect(handlers.onRefresh).not.toHaveBeenCalled();
     expect(handlers.onSettings).not.toHaveBeenCalled();
-  });
-
-  it('dispose 后 state 变化不应再更新 title', () => {
-    createBar();
-    const toggle = btn('hideBranches');
-    expect(toggle.title).toBe('隐藏 Git 分支');
-    const iconBefore = toggle.innerHTML;
-
-    dispose?.();
-    setState(s => { s.branchPanelHidden = true; });
-
-    // 订阅已取消：旧按钮 title 与图标保持不变
-    expect(toggle.title).toBe('隐藏 Git 分支');
-    expect(toggle.innerHTML).toBe(iconBefore);
   });
 
   it('重复 dispose 应该安全无副作用', () => {
@@ -310,49 +270,6 @@ describe('sidebar', () => {
     expect([...nodes].map(n => n.getAttribute('title'))).toEqual(TITLES_EN);
   });
 
-  it('branchPanelHidden 初始为 true 时首个按钮应该直接显示“显示 Git 分支”', () => {
-    // createInitialState 会清空分支，补回可用场景，避免按钮进入禁用态影响 title
-    setState(s => {
-      s.branchPanelHidden = true;
-      s.branches = [
-        { name: 'main', isCurrent: true, isRemote: false },
-        { name: 'develop', isCurrent: false, isRemote: false },
-        { name: 'origin/main', isCurrent: false, isRemote: true, remote: 'origin' },
-      ];
-      s.selectedBranch = { name: 'develop', isCurrent: false, isRemote: false };
-    });
-
-    createBar();
-
-    expect(btn('hideBranches').title).toBe('显示 Git 分支');
-    // 隐藏态初始渲染即为向右箭头
-    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M6 13L11 8L6 3']);
-
-    // 翻回 false，订阅应继续同步标题与图标
-    setState(s => { s.branchPanelHidden = false; });
-    expect(btn('hideBranches').title).toBe('隐藏 Git 分支');
-    expect(svgSignature(btn('hideBranches').innerHTML)).toEqual(['M10 13L5 8L10 3']);
-  });
-
-  it('反复创建并翻转两次应该保持订阅独立且标题同步', () => {
-    for (let round = 0; round < 3; round++) {
-      setState(s => { s.branchPanelHidden = false; });
-
-      const bar = createSidebar(container, handlers);
-      expect(btn('hideBranches').title, `第 ${round} 轮初始标题`).toBe('隐藏 Git 分支');
-
-      // 连续翻转两次再定格为 true
-      setState(s => { s.branchPanelHidden = true; });
-      setState(s => { s.branchPanelHidden = false; });
-      setState(s => { s.branchPanelHidden = true; });
-      expect(btn('hideBranches').title, `第 ${round} 轮翻转后标题`).toBe('显示 Git 分支');
-
-      bar.dispose();
-      // 本轮销毁后再变更状态，不应影响已卸载的按钮
-      setState(s => { s.branchPanelHidden = false; });
-    }
-  });
-
   it('逐个 hover 应该在 12 个按钮上精确切换背景色', () => {
     createBar();
 
@@ -388,8 +305,8 @@ describe('sidebar', () => {
     const base = listeners.size;
 
     createBar();
-    // 现有两个订阅：branchPanelHidden（首个按钮）+ showOnlyMyBranches/branches（我的分支按钮）
-    expect(listeners.size, '创建后应新增两个监听器').toBe(base + 2);
+    // 现有订阅：showOnlyMyBranches/branches/selectedBranch/selectedBranches（按钮状态同步）
+    expect(listeners.size, '创建后应新增一个监听器').toBe(base + 1);
 
     dispose?.();
     expect(listeners.size, 'dispose 后监听器应回到基线').toBe(base);
@@ -471,14 +388,14 @@ describe('sidebar', () => {
     }
   });
 
-  it('没有远程分支时更新与拉取按钮应该禁用', () => {
+  it('没有远程分支时更新与获取按钮应该禁用', () => {
     setState(s => {
       s.branches = [{ name: 'main', isCurrent: true, isRemote: false }];
       s.selectedBranch = null;
     });
     createBar();
 
-    for (const key of ['refresh', 'pull']) {
+    for (const key of ['refresh', 'fetch']) {
       const btn = container.querySelector(`[data-sidebar="${key}"]`) as HTMLElement;
       expect(btn.dataset.disabled, `${key} 应禁用`).toBe('true');
       expect(btn.title).toBe('未配置远程仓库');
