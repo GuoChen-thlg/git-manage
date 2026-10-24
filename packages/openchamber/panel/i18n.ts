@@ -188,6 +188,9 @@ const en: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': 'Remote branches cannot be deleted here',
   'sidebar.expandAllUnavailable': 'No branches to expand',
   'sidebar.pullUnavailable': 'No remote configured',
+  'sidebar.fetch': 'Fetch',
+  'sidebar.locate': 'Select in Git Log',
+  'sidebar.collapseAll': 'Collapse All',
 };
 
 /** 简体中文 */
@@ -369,6 +372,9 @@ const zhCN: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': '不能在此删除远程分支',
   'sidebar.expandAllUnavailable': '没有可展开的分支',
   'sidebar.pullUnavailable': '未配置远程仓库',
+  'sidebar.fetch': '获取远程更新',
+  'sidebar.locate': '在 Git 日志中定位',
+  'sidebar.collapseAll': '折叠全部',
 };
 
 /** 繁体中文 */
@@ -550,6 +556,9 @@ const zhTW: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': '不能在此刪除遠端分支',
   'sidebar.expandAllUnavailable': '沒有可展開的分支',
   'sidebar.pullUnavailable': '未設定遠端儲存庫',
+  'sidebar.fetch': '取得遠端更新',
+  'sidebar.locate': '在 Git 日誌中定位',
+  'sidebar.collapseAll': '全部收合',
 };
 
 /** 德语 */
@@ -731,6 +740,9 @@ const de: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': 'Remote-Branches können hier nicht gelöscht werden',
   'sidebar.expandAllUnavailable': 'Keine Branches zum Aufklappen',
   'sidebar.pullUnavailable': 'Kein Remote konfiguriert',
+  'sidebar.fetch': 'Abrufen',
+  'sidebar.locate': 'Im Git-Log anzeigen',
+  'sidebar.collapseAll': 'Alle zuklappen',
 };
 
 /** 法语 */
@@ -912,6 +924,9 @@ const fr: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': 'Impossible de supprimer une branche distante ici',
   'sidebar.expandAllUnavailable': 'Aucune branche à déplier',
   'sidebar.pullUnavailable': 'Aucun dépôt distant configuré',
+  'sidebar.fetch': 'Récupérer',
+  'sidebar.locate': 'Afficher dans le journal Git',
+  'sidebar.collapseAll': 'Tout réduire',
 };
 
 /** 乌克兰语 */
@@ -1093,6 +1108,9 @@ const uk: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': 'Тут не можна видаляти віддалені гілки',
   'sidebar.expandAllUnavailable': 'Немає гілок для розгортання',
   'sidebar.pullUnavailable': 'Віддалений репозиторій не налаштовано',
+  'sidebar.fetch': 'Отримати зміни',
+  'sidebar.locate': 'Показати в журналі Git',
+  'sidebar.collapseAll': 'Згорнути все',
 };
 
 /** 西班牙语 */
@@ -1274,6 +1292,9 @@ const es: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': 'Las ramas remotas no se pueden eliminar aquí',
   'sidebar.expandAllUnavailable': 'No hay ramas que expandir',
   'sidebar.pullUnavailable': 'No hay remoto configurado',
+  'sidebar.fetch': 'Obtener cambios',
+  'sidebar.locate': 'Mostrar en el registro Git',
+  'sidebar.collapseAll': 'Contraer todo',
 };
 
 /** 巴西葡萄牙语 */
@@ -1455,6 +1476,9 @@ const ptBR: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': 'Branches remotos não podem ser excluídos aqui',
   'sidebar.expandAllUnavailable': 'Nenhum branch para expandir',
   'sidebar.pullUnavailable': 'Nenhum remoto configurado',
+  'sidebar.fetch': 'Buscar alterações',
+  'sidebar.locate': 'Mostrar no log do Git',
+  'sidebar.collapseAll': 'Recolher tudo',
 };
 
 /** 韩语 */
@@ -1636,6 +1660,9 @@ const ko: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': '여기서 원격 브랜치는 삭제할 수 없습니다',
   'sidebar.expandAllUnavailable': '펼칠 브랜치가 없습니다',
   'sidebar.pullUnavailable': '원격 저장소가 설정되지 않았습니다',
+  'sidebar.fetch': '원격 변경 가져오기',
+  'sidebar.locate': 'Git 로그에서 찾기',
+  'sidebar.collapseAll': '모두 접기',
 };
 
 /** 波兰语 */
@@ -1817,6 +1844,9 @@ const pl: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': 'Nie można tu usuwać gałęzi zdalnych',
   'sidebar.expandAllUnavailable': 'Brak gałęzi do rozwinięcia',
   'sidebar.pullUnavailable': 'Nie skonfigurowano zdalnego repozytorium',
+  'sidebar.fetch': 'Pobierz zmiany',
+  'sidebar.locate': 'Pokaż w dzienniku Git',
+  'sidebar.collapseAll': 'Zwiń wszystko',
 };
 
 /** 日语 */
@@ -1998,6 +2028,9 @@ const ja: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': 'ここではリモートブランチを削除できません',
   'sidebar.expandAllUnavailable': '展開できるブランチがありません',
   'sidebar.pullUnavailable': 'リモートが設定されていません',
+  'sidebar.fetch': 'フェッチ',
+  'sidebar.locate': 'Git ログで表示',
+  'sidebar.collapseAll': 'すべて折りたたむ',
 };
 
 /** 土耳其语 */
@@ -2179,6 +2212,9 @@ const tr: Record<string, string> = {
   'sidebar.deleteRemoteUnavailable': 'Uzak dallar burada silinemez',
   'sidebar.expandAllUnavailable': 'Genişletilecek dal yok',
   'sidebar.pullUnavailable': 'Uzak depo yapılandırılmamış',
+  'sidebar.fetch': 'Değişiklikleri getir',
+  'sidebar.locate': 'Git günlüğünde göster',
+  'sidebar.collapseAll': 'Tümünü daralt',
 };
 
 /** 全部语言字典（导出用于测试完整性校验） */

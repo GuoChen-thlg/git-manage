@@ -20,7 +20,7 @@ import { showContextMenu } from './context-menu';
  * @param onSelectionCleared 点击列表空白区域的取消选中回调（对齐 IntelliJ IDEA：
  *   分支面板存在选中分支 selectedBranch 或分支过滤 logBranch 时点击空白触发，
  *   由 main 清空选中态并恢复全部提交；两者都不存在时空操作不触发）
- * @returns 面板句柄（dispose 取消订阅、expandAll 展开全部分组）
+ * @returns 面板句柄（dispose 取消订阅、expandAll 展开全部分组、collapseAll 折叠全部分组）
  */
 export function createBranchPanel(
   container: HTMLElement,
@@ -28,7 +28,7 @@ export function createBranchPanel(
   directory: string,
   onBranchSelect: (branch: Branch) => void,
   onSelectionCleared: () => void
-): { dispose: () => void; expandAll: () => void } {
+): { dispose: () => void; expandAll: () => void; collapseAll: () => void } {
   let disposed = false;
   let listContainer: HTMLElement | null = null;
   const expandedGroups = new Set<string>([t('branch.groupHead'), t('branch.groupLocal')]);
@@ -266,7 +266,20 @@ export function createBranchPanel(
     }
   };
   render();
-  return { dispose, expandAll };
+  /**
+   * 折叠全部分组（HEAD / 本地 / 远程 / 文件夹），对齐 IDEA Collapse All
+   */
+  const collapseAll = () => {
+    if (disposed) return;
+    expandedGroups.clear();
+    console.debug(JSON.stringify({
+      prefix: '[branch-panel]',
+      event: 'collapse_all',
+    }));
+    renderList();
+  };
+
+  return { dispose, expandAll, collapseAll };
 
   /** 按文件夹名分组分支 */
   function groupBranches(branches: Branch[]): Map<string, Branch[]> {
