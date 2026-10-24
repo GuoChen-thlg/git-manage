@@ -192,6 +192,13 @@ const en: Record<string, string> = {
   'sidebar.locate': 'Select in Git Log',
   'sidebar.collapseAll': 'Collapse All',
   'sidebar.locateNotInView': '{branch} head is not in the current log view',
+  'sidebar.fetchAuthFailed': 'Authentication failed',
+  'sidebar.fetchUnreachable': 'Remote unreachable',
+  'sidebar.fetchNoRemote': 'Remote repository not found',
+  'sidebar.fetchFailed': 'Fetch failed',
+  'sidebar.fetchInProgress': 'Fetching…',
+  'sidebar.fetchSuccessUpdates': 'Fetched: {count} branch(es) have new commits',
+  'sidebar.fetchSuccessNoUpdates': 'Fetched: already up to date',
 };
 
 /** 简体中文 */
@@ -377,6 +384,13 @@ const zhCN: Record<string, string> = {
   'sidebar.locate': '在 Git 日志中定位',
   'sidebar.collapseAll': '折叠全部',
   'sidebar.locateNotInView': '{branch} 的最新提交不在当前列表中',
+  'sidebar.fetchAuthFailed': '认证失败',
+  'sidebar.fetchUnreachable': '无法连接远程仓库',
+  'sidebar.fetchNoRemote': '远程仓库不存在',
+  'sidebar.fetchFailed': '获取远程更新失败',
+  'sidebar.fetchInProgress': '正在获取远程更新…',
+  'sidebar.fetchSuccessUpdates': '获取完成：{count} 个分支有新提交',
+  'sidebar.fetchSuccessNoUpdates': '获取完成：已是最新',
 };
 
 /** 繁体中文 */
@@ -562,6 +576,13 @@ const zhTW: Record<string, string> = {
   'sidebar.locate': '在 Git 日誌中定位',
   'sidebar.collapseAll': '全部收合',
   'sidebar.locateNotInView': '{branch} 的最新提交不在目前清單中',
+  'sidebar.fetchAuthFailed': '驗證失敗',
+  'sidebar.fetchUnreachable': '無法連線遠端儲存庫',
+  'sidebar.fetchNoRemote': '遠端儲存庫不存在',
+  'sidebar.fetchFailed': '取得遠端更新失敗',
+  'sidebar.fetchInProgress': '正在取得遠端更新…',
+  'sidebar.fetchSuccessUpdates': '取得完成：{count} 個分支有新提交',
+  'sidebar.fetchSuccessNoUpdates': '取得完成：已是最新',
 };
 
 /** 德语 */
@@ -747,6 +768,13 @@ const de: Record<string, string> = {
   'sidebar.locate': 'Im Git-Log anzeigen',
   'sidebar.collapseAll': 'Alle zuklappen',
   'sidebar.locateNotInView': '{branch}-Head ist nicht in der aktuellen Ansicht',
+  'sidebar.fetchAuthFailed': 'Authentifizierung fehlgeschlagen',
+  'sidebar.fetchUnreachable': 'Remote nicht erreichbar',
+  'sidebar.fetchNoRemote': 'Remote-Repository nicht gefunden',
+  'sidebar.fetchFailed': 'Abrufen fehlgeschlagen',
+  'sidebar.fetchInProgress': 'Wird abgerufen…',
+  'sidebar.fetchSuccessUpdates': 'Abgerufen: {count} Branch(es) mit neuen Commits',
+  'sidebar.fetchSuccessNoUpdates': 'Abgerufen: bereits aktuell',
 };
 
 /** 法语 */
@@ -932,6 +960,13 @@ const fr: Record<string, string> = {
   'sidebar.locate': 'Afficher dans le journal Git',
   'sidebar.collapseAll': 'Tout réduire',
   'sidebar.locateNotInView': "La tête de {branch} n'est pas dans la vue actuelle",
+  'sidebar.fetchAuthFailed': "Échec de l'authentification",
+  'sidebar.fetchUnreachable': 'Dépôt distant inaccessible',
+  'sidebar.fetchNoRemote': 'Dépôt distant introuvable',
+  'sidebar.fetchFailed': 'Échec de la récupération',
+  'sidebar.fetchInProgress': 'Récupération…',
+  'sidebar.fetchSuccessUpdates': 'Récupéré : {count} branche(s) avec de nouveaux commits',
+  'sidebar.fetchSuccessNoUpdates': 'Récupéré : déjà à jour',
 };
 
 /** 乌克兰语 */
@@ -1117,6 +1152,13 @@ const uk: Record<string, string> = {
   'sidebar.locate': 'Показати в журналі Git',
   'sidebar.collapseAll': 'Згорнути все',
   'sidebar.locateNotInView': 'Останній коміт {branch} відсутній у поточному списку',
+  'sidebar.fetchAuthFailed': 'Помилка автентифікації',
+  'sidebar.fetchUnreachable': 'Віддалений репозиторій недоступний',
+  'sidebar.fetchNoRemote': 'Віддалений репозиторій не знайдено',
+  'sidebar.fetchFailed': 'Не вдалося отримати зміни',
+  'sidebar.fetchInProgress': 'Отримання змін…',
+  'sidebar.fetchSuccessUpdates': 'Отримано: нові коміти в {count} гілках',
+  'sidebar.fetchSuccessNoUpdates': 'Отримано: уже актуально',
 };
 
 /** 西班牙语 */
@@ -1302,6 +1344,13 @@ const es: Record<string, string> = {
   'sidebar.locate': 'Mostrar en el registro Git',
   'sidebar.collapseAll': 'Contraer todo',
   'sidebar.locateNotInView': 'El último commit de {branch} no está en la vista actual',
+  'sidebar.fetchAuthFailed': 'Error de autenticación',
+  'sidebar.fetchUnreachable': 'Remoto inaccesible',
+  'sidebar.fetchNoRemote': 'Repositorio remoto no encontrado',
+  'sidebar.fetchFailed': 'Error al obtener cambios',
+  'sidebar.fetchInProgress': 'Obteniendo cambios…',
+  'sidebar.fetchSuccessUpdates': 'Obtenido: {count} rama(s) con nuevos commits',
+  'sidebar.fetchSuccessNoUpdates': 'Obtenido: ya está actualizado',
 };
 
 /** 巴西葡萄牙语 */
@@ -1487,6 +1536,13 @@ const ptBR: Record<string, string> = {
   'sidebar.locate': 'Mostrar no log do Git',
   'sidebar.collapseAll': 'Recolher tudo',
   'sidebar.locateNotInView': 'O commit mais recente de {branch} não está na visualização atual',
+  'sidebar.fetchAuthFailed': 'Falha na autenticação',
+  'sidebar.fetchUnreachable': 'Remoto inacessível',
+  'sidebar.fetchNoRemote': 'Repositório remoto não encontrado',
+  'sidebar.fetchFailed': 'Falha ao buscar alterações',
+  'sidebar.fetchInProgress': 'Buscando alterações…',
+  'sidebar.fetchSuccessUpdates': 'Buscado: {count} branch(es) com novos commits',
+  'sidebar.fetchSuccessNoUpdates': 'Buscado: já atualizado',
 };
 
 /** 韩语 */
@@ -1672,6 +1728,13 @@ const ko: Record<string, string> = {
   'sidebar.locate': 'Git 로그에서 찾기',
   'sidebar.collapseAll': '모두 접기',
   'sidebar.locateNotInView': '{branch}의 최신 커밋이 현재 목록에 없습니다',
+  'sidebar.fetchAuthFailed': '인증 실패',
+  'sidebar.fetchUnreachable': '원격 저장소에 연결할 수 없음',
+  'sidebar.fetchNoRemote': '원격 저장소를 찾을 수 없음',
+  'sidebar.fetchFailed': '원격 변경을 가져오지 못했습니다',
+  'sidebar.fetchInProgress': '원격 변경 가져오는 중…',
+  'sidebar.fetchSuccessUpdates': '가져오기 완료: {count}개 브랜치에 새 커밋이 있습니다',
+  'sidebar.fetchSuccessNoUpdates': '가져오기 완료: 최신 상태입니다',
 };
 
 /** 波兰语 */
@@ -1857,6 +1920,13 @@ const pl: Record<string, string> = {
   'sidebar.locate': 'Pokaż w dzienniku Git',
   'sidebar.collapseAll': 'Zwiń wszystko',
   'sidebar.locateNotInView': 'Ostatni commit gałęzi {branch} nie jest widoczny',
+  'sidebar.fetchAuthFailed': 'Uwierzytelnianie nie powiodło się',
+  'sidebar.fetchUnreachable': 'Zdalne repozytorium nieosiągalne',
+  'sidebar.fetchNoRemote': 'Nie znaleziono zdalnego repozytorium',
+  'sidebar.fetchFailed': 'Nie udało się pobrać zmian',
+  'sidebar.fetchInProgress': 'Pobieranie zmian…',
+  'sidebar.fetchSuccessUpdates': 'Pobrano: {count} gałęzi z nowymi commitami',
+  'sidebar.fetchSuccessNoUpdates': 'Pobrano: już aktualne',
 };
 
 /** 日语 */
@@ -2042,6 +2112,13 @@ const ja: Record<string, string> = {
   'sidebar.locate': 'Git ログで表示',
   'sidebar.collapseAll': 'すべて折りたたむ',
   'sidebar.locateNotInView': '{branch} の最新コミットが現在の一覧にありません',
+  'sidebar.fetchAuthFailed': '認証に失敗しました',
+  'sidebar.fetchUnreachable': 'リモートに接続できません',
+  'sidebar.fetchNoRemote': 'リモートリポジトリが見つかりません',
+  'sidebar.fetchFailed': 'フェッチに失敗しました',
+  'sidebar.fetchInProgress': 'フェッチ中…',
+  'sidebar.fetchSuccessUpdates': 'フェッチ完了: {count} 個のブランチに新しいコミットがあります',
+  'sidebar.fetchSuccessNoUpdates': 'フェッチ完了: 最新の状態です',
 };
 
 /** 土耳其语 */
@@ -2227,6 +2304,13 @@ const tr: Record<string, string> = {
   'sidebar.locate': 'Git günlüğünde göster',
   'sidebar.collapseAll': 'Tümünü daralt',
   'sidebar.locateNotInView': "{branch} son commit'i mevcut listede değil",
+  'sidebar.fetchAuthFailed': 'Kimlik doğrulama başarısız',
+  'sidebar.fetchUnreachable': 'Uzak depoya ulaşılamıyor',
+  'sidebar.fetchNoRemote': 'Uzak depo bulunamadı',
+  'sidebar.fetchFailed': 'Uzak değişiklikler alınamadı',
+  'sidebar.fetchInProgress': 'Değişiklikler alınıyor…',
+  'sidebar.fetchSuccessUpdates': 'Alındı: {count} dalda yeni commit var',
+  'sidebar.fetchSuccessNoUpdates': 'Alındı: zaten güncel',
 };
 
 /** 全部语言字典（导出用于测试完整性校验） */

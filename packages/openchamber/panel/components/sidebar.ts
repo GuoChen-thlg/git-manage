@@ -196,7 +196,8 @@ export function createSidebar(
       case 'refresh':
         return hasRemote ? null : t('sidebar.updateUnavailable');
       case 'fetch':
-        // Fetch 与更新所选一致：需要配置远程仓库
+        // 进行中禁用（防重入）；未配置远程时禁用
+        if (state.fetching) return t('sidebar.fetchInProgress');
         return hasRemote ? null : t('sidebar.updateUnavailable');
       case 'locate':
         // 定位：需要选中分支
@@ -273,7 +274,7 @@ export function createSidebar(
 
   // 「我的分支」激活态与全部按钮可用性跟随状态变化
   const unsubscribeMine = subscribeFields(
-    ['showOnlyMyBranches', 'branches', 'selectedBranch', 'selectedBranches', 'favorites'],
+    ['showOnlyMyBranches', 'branches', 'selectedBranch', 'selectedBranches', 'favorites', 'fetching'],
     () => {
       if (disposed) return;
       syncMyBranchesButton();
