@@ -54,8 +54,16 @@ describe('sidebar', () => {
   beforeEach(() => {
     // 重置全局状态与语言（测试断言中文 tooltip）
     setState(s => Object.assign(s, createInitialState()));
-    // 预置一个本地分支：「我的分支」按钮需要可筛选对象才可用，否则进入禁用态
-    setState(s => { s.branches = [{ name: 'main', isCurrent: true, isRemote: false }]; });
+    // 预置完整分支场景：本地 + 远程分支，且选中一个非当前本地分支
+    // 这样各按钮的可用性判定都走「可用」分支，tooltip 与点击行为可被断言
+    setState(s => {
+      s.branches = [
+        { name: 'main', isCurrent: true, isRemote: false },
+        { name: 'develop', isCurrent: false, isRemote: false },
+        { name: 'origin/main', isCurrent: false, isRemote: true, remote: 'origin' },
+      ];
+      s.selectedBranch = { name: 'develop', isCurrent: false, isRemote: false };
+    });
     setLocale('zh-CN');
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -303,7 +311,16 @@ describe('sidebar', () => {
   });
 
   it('branchPanelHidden 初始为 true 时首个按钮应该直接显示“显示 Git 分支”', () => {
-    setState(s => { s.branchPanelHidden = true; });
+    // createInitialState 会清空分支，补回可用场景，避免按钮进入禁用态影响 title
+    setState(s => {
+      s.branchPanelHidden = true;
+      s.branches = [
+        { name: 'main', isCurrent: true, isRemote: false },
+        { name: 'develop', isCurrent: false, isRemote: false },
+        { name: 'origin/main', isCurrent: false, isRemote: true, remote: 'origin' },
+      ];
+      s.selectedBranch = { name: 'develop', isCurrent: false, isRemote: false };
+    });
 
     createBar();
 
@@ -420,5 +437,73 @@ describe('sidebar', () => {
 
     btn.click();
     expect(handlers.onToggleMyBranches).toHaveBeenCalledTimes(1);
+  });
+
+  it('选中当前分支时删除与比较按钮应该禁用', () => {
+    setState(s => {
+      s.selectedBranch = { name: 'main', isCurrent: true, isRemote: false };
+    });
+    createBar();
+
+    const del = container.querySelector('[data-sidebar="delete"]') as HTMLElement;
+    const cmp = container.querySelector('[data-sidebar="compare"]') as HTMLElement;
+
+    expect(del.dataset.disabled).toBe('true');
+    expect(del.title).toBe('当前分支不能删除');
+    expect(cmp.dataset.disabled).toBe('true');
+    expect(cmp.title).toBe('当前分支无法与自己比较');
+  });
+
+  it('未选中分支时删除、比较、收藏按钮应该禁用', () => {
+    setState(s => { s.selectedBranch = null; });
+    createBar();
+
+    // 删除与收藏共用「请先选择分支」，比较用自身文案
+    const expected: Record<string, string> = {
+      delete: '请先选择分支',
+      favorite: '请先选择分支',
+      compare: '请先选择要比较的分支',
+    };
+    for (const [key, title] of Object.entries(expected)) {
+      const btn = container.querySelector(`[data-sidebar="${key}"]`) as HTMLElement;
+      expect(btn.dataset.disabled, `${key} 应禁用`).toBe('true');
+      expect(btn.title).toBe(title);
+    }
+  });
+
+  it('没有远程分支时更新与拉取按钮应该禁用', () => {
+    setState(s => {
+      s.branches = [{ name: 'main', isCurrent: true, isRemote: false }];
+      s.selectedBranch = null;
+    });
+    createBar();
+
+    for (const key of ['refresh', 'pull']) {
+      const btn = container.querySelector(`[data-sidebar="${key}"]`) as HTMLElement;
+      expect(btn.dataset.disabled, `${key} 应禁用`).toBe('true');
+      expect(btn.title).toBe('未配置远程仓库');
+    }
+  });
+
+  it('禁用按钮点击不应该触发 handler', () => {
+    setState(s => { s.selectedBranch = null; });
+    createBar();
+
+    const del = container.querySelector('[data-sidebar="delete"]') as HTMLElement;
+    del.click();
+    expect(handlers.onDeleteBranch).not.toHaveBeenCalled();
+  });
+
+  it('选中非当前分支后删除与比较按钮应该恢复可用', () => {
+    setState(s => {
+      s.selectedBranch = { name: 'develop', isCurrent: false, isRemote: false };
+    });
+    createBar();
+
+    const del = container.querySelector('[data-sidebar="delete"]') as HTMLElement;
+    const cmp = container.querySelector('[data-sidebar="compare"]') as HTMLElement;
+    expect(del.dataset.disabled).toBe('false');
+    expect(cmp.dataset.disabled).toBe('false');
+    expect(del.title).toBe('删除分支');
   });
 });

@@ -207,6 +207,73 @@ export function createSidebar(
 
   syncMyBranchesButton();
 
+  /**
+   * 各按钮的可用性判定与禁用原因（对齐 IDEA 对应动作的 update 方法）
+   * @param key 按钮 key
+   * @returns 禁用原因文案，或 null 表示可用
+   */
+  const disabledReasonOf = (key: string): string | null => {
+    const state = getState();
+    const localBranches = state.branches.filter(b => !b.isRemote);
+    const hasRemote = state.branches.some(b => b.isRemote);
+    const selected = state.selectedBranch;
+    switch (key) {
+      case 'newBranch':
+        return localBranches.length === 0 ? t('sidebar.newBranchUnavailable') : null;
+      case 'refresh':
+        return hasRemote ? null : t('sidebar.updateUnavailable');
+      case 'delete':
+        if (!selected) return t('branch.selectBranch');
+        if (selected.isCurrent) return t('branch.deleteCurrent');
+        if (selected.isRemote) return t('sidebar.deleteRemoteUnavailable');
+        return null;
+      case 'compare':
+        if (state.selectedBranches.size === 2) return null;
+        if (!selected) return t('compare.selectBranch');
+        if (selected.isCurrent) return t('compare.currentBranch');
+        return null;
+      case 'favorite':
+        return selected ? null : t('branch.selectBranch');
+      case 'expandAll':
+        return state.branches.length === 0 ? t('sidebar.expandAllUnavailable') : null;
+      case 'pull':
+        return hasRemote ? null : t('sidebar.pullUnavailable');
+      default:
+        return null;
+    }
+  };
+
+  /** 按钮引用（key → 元素），供可用性同步遍历 */
+  const buttonRefs = new Map<string, HTMLElement>();
+  for (const el of Array.from(container.querySelectorAll<HTMLElement>('[data-sidebar]'))) {
+    const key = el.dataset.sidebar;
+    if (key) buttonRefs.set(key, el);
+  }
+
+  /**
+   * 同步全部按钮的可用状态（置灰 + 不可点击 + 禁用原因提示）
+   * 「我的分支」按钮由自身条件控制，此处跳过，避免覆盖其激活背景
+   */
+  const syncButtonAvailability = (): void => {
+    for (const [key, btn] of buttonRefs) {
+      if (key === 'search') continue;
+      const reason = disabledReasonOf(key);
+      const enabled = reason === null;
+      btn.dataset.disabled = enabled ? 'false' : 'true';
+      btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+      btn.style.opacity = enabled ? '1' : '0.45';
+      // 首个按钮的 title 随显隐动态变化，恢复可用时由 buildToggleTitle 生成，不能套用静态文案
+      const item = ITEMS.find(i => i.key === key);
+      if (enabled) {
+        btn.title = key === 'hideBranches' ? buildToggleTitle() : t(item!.titleKey);
+      } else {
+        btn.title = reason;
+      }
+    }
+  };
+
+  syncButtonAvailability();
+
   // 首个按钮 title 与 icon 跟随 branchPanelHidden 变化
   const unsubscribe = subscribeFields(['branchPanelHidden'], () => {
     if (disposed || !toggleBtn) return;
@@ -216,11 +283,15 @@ export function createSidebar(
     toggleBtn.dataset.baseSvg = toggleBtn.innerHTML;
   });
 
-  // 「我的分支」按钮激活态与可用性跟随状态变化
-  const unsubscribeMine = subscribeFields(['showOnlyMyBranches', 'branches'], () => {
-    if (disposed) return;
-    syncMyBranchesButton();
-  });
+  // 「我的分支」激活态与全部按钮可用性跟随状态变化
+  const unsubscribeMine = subscribeFields(
+    ['showOnlyMyBranches', 'branches', 'selectedBranch', 'selectedBranches'],
+    () => {
+      if (disposed) return;
+      syncMyBranchesButton();
+      syncButtonAvailability();
+    },
+  );
 
   const dispose = (): void => {
     if (disposed) return;
