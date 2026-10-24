@@ -19,7 +19,7 @@ import { mountEmpty } from "@openchamber/sdk/ui";
 
 import { html } from './html';
 import { host } from './host';
-import { getState, setState, Branch } from './state';
+import { getState, setState } from './state';
 import { setLocale, t } from './i18n';
 import { createServiceClient } from './service';
 import {
@@ -306,28 +306,34 @@ function createTabBar(): HTMLElement {
 }
 
 /**
- * 解析侧边栏分支操作目标
- * 优先取选中分支，否则回退到当前分支
- * @returns 目标分支，无可用分支时返回 null
+ * 侧边栏收藏切换：作用于所有选中项（对齐 IDEA ToggleFavoriteAction）
+ * 多选时先判断是否已全部收藏：全部已收藏则全部取消，否则全部收藏
  */
-function resolveSidebarTarget(): Branch | null {
-  const state = getState();
-  return state.selectedBranch ?? state.branches.find(b => b.isCurrent) ?? null;
-}
-
-/** 侧边栏收藏切换：目标分支在收藏集间增删并持久化 */
 async function runSidebarFavorite(): Promise<void> {
-  const target = resolveSidebarTarget();
-  if (!target) {
+  const state = getState();
+  // 选中项来源：多选集合优先，其次单选分支
+  const names = state.selectedBranches.size > 0
+    ? [...state.selectedBranches]
+    : (state.selectedBranch ? [state.selectedBranch.name] : []);
+  if (names.length === 0) {
     console.error(JSON.stringify({ prefix: '[sidebar]', event: 'favorite_no_branch' }));
     return;
   }
-  const next = new Set(getState().favorites);
-  if (next.has(target.name)) {
-    next.delete(target.name);
-  } else {
-    next.add(target.name);
+
+  const next = new Set(state.favorites);
+  // 全部已收藏 → 统一取消；否则统一收藏（与 IDEA 的批量切换语义一致）
+  const allFavorited = names.every(n => next.has(n));
+  for (const name of names) {
+    if (allFavorited) next.delete(name);
+    else next.add(name);
   }
+
+  console.debug(JSON.stringify({
+    prefix: '[sidebar]',
+    event: 'favorite_toggle',
+    branches: names,
+    favorited: !allFavorited,
+  }));
   setState(s => { s.favorites = next; });
   try {
     await service.saveFavorites(getDir(), [...next]);

@@ -221,8 +221,6 @@ export function createSidebar(
         return selected ? null : t('branch.selectBranch');
       case 'expandAll':
         return state.branches.length === 0 ? t('sidebar.expandAllUnavailable') : null;
-      case 'pull':
-        return hasRemote ? null : t('sidebar.pullUnavailable');
       default:
         return null;
     }
@@ -247,7 +245,6 @@ export function createSidebar(
       btn.dataset.disabled = enabled ? 'false' : 'true';
       btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
       btn.style.opacity = enabled ? '1' : '0.45';
-      // 首个按钮的 title 随显隐动态变化，恢复可用时由 buildToggleTitle 生成，不能套用静态文案
       const item = ITEMS.find(i => i.key === key);
       if (enabled) {
         btn.title = t(item!.titleKey);
@@ -255,13 +252,31 @@ export function createSidebar(
         btn.title = reason;
       }
     }
+    syncFavoriteIcon();
+  };
+
+  /**
+   * 同步收藏按钮图标：选中项已全部收藏显示实心星，否则显示空心星
+   * 多选时与批量切换语义一致（全部已收藏才算「已收藏」）
+   */
+  const syncFavoriteIcon = (): void => {
+    const btn = buttonRefs.get('favorite');
+    if (!btn) return;
+    const state = getState();
+    const selected = state.selectedBranches.size > 0
+      ? [...state.selectedBranches]
+      : (state.selectedBranch ? [state.selectedBranch.name] : []);
+    const allFavorited = selected.length > 0 && selected.every(name => state.favorites.has(name));
+    btn.innerHTML = allFavorited ? getIcon('favorite') : getIcon('favoriteOutline');
+    // 图标随状态切换，禁用态还原时也要用当前图标
+    btn.dataset.baseSvg = btn.innerHTML;
   };
 
   syncButtonAvailability();
 
   // 「我的分支」激活态与全部按钮可用性跟随状态变化
   const unsubscribeMine = subscribeFields(
-    ['showOnlyMyBranches', 'branches', 'selectedBranch', 'selectedBranches'],
+    ['showOnlyMyBranches', 'branches', 'selectedBranch', 'selectedBranches', 'favorites'],
     () => {
       if (disposed) return;
       syncMyBranchesButton();

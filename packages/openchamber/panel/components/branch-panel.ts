@@ -398,7 +398,7 @@ export function createBranchPanel(
         data-branch="${branch.name}"
       >
         <span style="margin-right: 6px; flex-shrink: 0;">${getIcon('branchIcon')}</span>
-        ${isFavorite ? `<span style="margin-right: 4px; color: #f4af3d; font-size: 10px;">★</span>` : ''}
+        ${isFavorite ? `<span style="margin-right: 4px; display: flex; align-items: center; width: 12px; flex-shrink: 0;" title="${t('branch.unfavorite')}">${getIcon('favorite')}</span>` : ''}
         <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ${branch.isCurrent ? 'font-weight: bold; color: #fff;' : 'color: #ccc;'}">${branch.name}</span>
         ${branch.hasUnpushed && branch.unpushedCount ? `<span style="font-size: 10px; color: #4caf50; margin-left: 4px;">↑${branch.unpushedCount}</span>` : ''}
         ${branch.hasUnpulled && branch.unpulledCount ? `<span style="font-size: 10px; color: #589df6; margin-left: 4px;">↓${branch.unpulledCount}</span>` : ''}

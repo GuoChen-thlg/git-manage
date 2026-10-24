@@ -220,7 +220,12 @@ describe('sidebar', () => {
 
     // 非 refresh 按钮：走 getIcon(item.icon) 分支，逐个比对图形签名
     // delete 键的图标名为 deleteBranch（垃圾桶字形），compare 键为 compareBranch（双向箭头）
-    const ICON_OF: Record<string, string> = { delete: 'deleteBranch', compare: 'compareBranch' };
+    // favorite 的图标随选中分支的收藏状态变化，这里断言未收藏时的空心星
+    const ICON_OF: Record<string, string> = {
+      delete: 'deleteBranch',
+      compare: 'compareBranch',
+      favorite: 'favoriteOutline',
+    };
     for (const key of KEYS) {
       if (key === 'refresh') continue;
       const expected = getIcon(ICON_OF[key] ?? key);
@@ -422,5 +427,36 @@ describe('sidebar', () => {
     expect(del.dataset.disabled).toBe('false');
     expect(cmp.dataset.disabled).toBe('false');
     expect(del.title).toBe('删除分支');
+  });
+
+  it('收藏按钮图标应该随选中分支的收藏状态切换实心与空心', () => {
+    // beforeEach 选中的 develop 未收藏 → 空心星
+    createBar();
+    const btn = container.querySelector('[data-sidebar="favorite"]') as HTMLElement;
+    expect(svgSignature(btn.innerHTML)).toEqual(svgSignature(getIcon('favoriteOutline')));
+
+    // 收藏后 → 实心星
+    setState(s => { s.favorites = new Set(['develop']); });
+    expect(svgSignature(btn.innerHTML)).toEqual(svgSignature(getIcon('favorite')));
+
+    // 取消收藏 → 回到空心
+    setState(s => { s.favorites = new Set(); });
+    expect(svgSignature(btn.innerHTML)).toEqual(svgSignature(getIcon('favoriteOutline')));
+  });
+
+  it('多选分支全部已收藏时收藏按钮才显示实心星', () => {
+    setState(s => {
+      s.selectedBranches = new Set(['develop', 'main']);
+      s.favorites = new Set(['develop']);
+    });
+    createBar();
+    const btn = container.querySelector('[data-sidebar="favorite"]') as HTMLElement;
+
+    // 只有部分已收藏 → 空心
+    expect(svgSignature(btn.innerHTML)).toEqual(svgSignature(getIcon('favoriteOutline')));
+
+    // 全部已收藏 → 实心
+    setState(s => { s.favorites = new Set(['develop', 'main']); });
+    expect(svgSignature(btn.innerHTML)).toEqual(svgSignature(getIcon('favorite')));
   });
 });
