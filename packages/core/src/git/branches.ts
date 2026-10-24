@@ -440,8 +440,12 @@ export async function findMyBranches(options: GitCommandOptions): Promise<string
   const author = await getCurrentAuthor(options);
   if (!author.email && !author.name) return [];
 
-  // 本地分支列表（--format 输出每行一个分支名）
-  const branchResult = await gitExec('branch --format=%(refname:short)', options);
+  // 严格只取本地分支：for-each-ref refs/heads 不会混入 remotes/* 与 origin/HEAD，
+  // 否则 origin 这类远程引用会被误判为本地分支，并干扰「独有提交」的排除集合
+  const branchResult = await gitExec(
+    ['for-each-ref', '--format=%(refname:short)', 'refs/heads'],
+    options
+  );
   const branches = (branchResult.stdout ?? '').split('\n').map(b => b.trim()).filter(Boolean);
   if (branches.length === 0) return [];
 

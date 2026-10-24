@@ -655,6 +655,21 @@ describe('差异比较', () => {
     expect(mine).toContain('feature/login');
   });
 
+  it('findMyBranches 不应混入 origin 等远程引用', async () => {
+    // 配置远程并抓取，生成 origin/HEAD 与 origin/main 这类引用
+    await git(['init', '--bare', '-b', 'main', bareDir], repoDir);
+    await git(['remote', 'add', 'origin', bareDir], repoDir);
+    await git(['push', '-u', 'origin', 'main'], repoDir);
+    await git(['fetch', 'origin'], repoDir);
+
+    const mine = await findMyBranches({ cwd: repoDir });
+    // 远程引用绝不能出现在结果里（曾因 git branch 同时列出 remotes 导致 origin 混入）
+    expect(mine).not.toContain('origin');
+    expect(mine.every(name => !name.startsWith('origin/'))).toBe(true);
+    // 本地分支仍应正常判定
+    expect(mine).toContain('feature/login');
+  });
+
   it('findMyBranches 在没有独有提交的分支上不应包含该分支', async () => {
     // 新建分支但不提交：无独有提交，按 IDEA 语义不算「我的分支」
     await git(['branch', 'no-commit-branch'], repoDir);
