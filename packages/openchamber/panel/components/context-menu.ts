@@ -8,9 +8,10 @@ import { getState, setState, Branch, CommitInfo } from '../state';
 import { t } from '../i18n';
 import { host } from '../host';
 import { ServiceClient, DeleteBranchResult } from '../service';
-import { showRenameDialog, showDeleteBranchDialog, parseDeleteBranchError, showRewordCommitDialog, showConfirmDialog } from './dialogs';
+import { showRenameDialog, showDeleteBranchDialog, parseDeleteBranchError, showRewordCommitDialog, showConfirmDialog, showCreateBranchDialog } from './dialogs';
 import { showBranchDeletedNotify } from './notify';
-import { classifyCreateBranchError, classifyGitError, showOperationError } from './errors';
+import { classifyGitError, showOperationError } from './errors';
+import { deleteBranches, resolveDeleteTargets } from './batch-delete';
 
 /** 隐藏右键菜单 */
 export function hideContextMenu(): void {
@@ -244,6 +245,14 @@ export function showContextMenu(
   menu.style.minWidth = "160px";
   menu.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.5)";
 
+  // 删除目标：多选时作用于全部选中分支；未多选时就是右键的这个分支。
+  // 参数语义与侧栏删除按钮一致：selectedBranches 非空时以多选为准
+  const deleteTargets = resolveDeleteTargets(
+    getState().branches,
+    branch,
+    getState().selectedBranches,
+  );
+
   const items: (MenuItem | MenuSeparator)[] = [
     {
       label: t('branch.checkout'),
@@ -315,10 +324,14 @@ export function showContextMenu(
     {
       label: t('branch.delete'),
       danger: true,
-      // IDEA DeleteBranchAction：当前分支禁用删除
-      disabled: branch.isCurrent,
-      // 菜单项返回 void：丢弃布尔结果，批量场景由 main.ts 单独调用
-      action: async () => { await performBranchDelete(service, directory, branch); },
+      // IDEA DeleteBranchAction：多选时批量删除全部选中分支，含当前分支时整体禁用
+      disabled: deleteTargets.kind === 'current',
+      action: async () => {
+        if (deleteTargets.kind !== 'ok') return;
+        await deleteBranches(service, host, directory, deleteTargets.targets);
+        // 删除后清空多选集合，避免下次操作仍指向已删除分支
+        setState(s => { s.selectedBranches = new Set<string>(); });
+      },
     },
   ];
 
@@ -759,7 +772,16 @@ function buildSingleCommitItems(
     {
       label: t('commit.newBranch'),
       action: () => {
-        showCreateBranchFromCommitDialog(commit, service, directory);
+        // 与侧栏新建分支共用同一对话框，差异仅标题、起点说明与创建后的提交列表刷新
+        showCreateBranchDialog({
+          service,
+          directory,
+          startPoint: commit.hash,
+          startPointLabel: t('dialog.basedOn', { info: `${commit.shortHash} - ${commit.message}` }),
+          titleKey: 'dialog.branchFromCommit',
+          entry: 'context-menu',
+          onCreated: () => reloadCommits(service, directory),
+        });
       },
     },
     {
@@ -923,68 +945,4 @@ function showResetDialog(commit: CommitInfo, service: ServiceClient, directory: 
   });
 }
 
-/** 显示从提交创建分支对话框 */
-function showCreateBranchFromCommitDialog(commit: CommitInfo, service: ServiceClient, directory: string): void {
-  const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.branchFromCommit')}</div>
-        <div style="font-size: 11px; color: #888; margin-bottom: 8px; word-break: break-all;">
-          ${t('dialog.basedOn', { info: `${commit.shortHash} - ${commit.message}` })}
-        </div>
-        <input id="new-branch-from-commit" type="text" placeholder="${t('dialog.inputBranchName')}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="branch-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="branch-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.create')}</button>
-        </div>
-      </div>
-    </div>
-  `;
 
-  document.body.appendChild(overlay);
-
-  const input = overlay.querySelector('#new-branch-from-commit') as HTMLInputElement;
-  input.focus();
-
-  const close = () => overlay.remove();
-
-  overlay.querySelector('#branch-cancel')?.addEventListener('click', close);
-  overlay.addEventListener('click', (ev) => {
-    if (ev.target === overlay) close();
-  });
-
-  const doCreate = async () => {
-    const name = input.value.trim();
-    if (!name) return;
-    void service.debugLog?.('create-branch-submit', { name, startPoint: commit.hash, entry: 'context-menu' });
-    try {
-      await service.checkoutNewBranch(directory, name, commit.hash);
-      const branches = await service.getBranches(directory);
-      setState(s => { s.branches = branches; });
-      await reloadCommits(service, directory);
-      void host.toast({ kind: 'success', message: t('op.newBranchDone', { name }) }).catch(() => {});
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(JSON.stringify({ prefix: '[context-menu]', event: 'create_branch_error', name, error: message }));
-      // 失败必须让用户可见。git 的原始错误常含多行文件清单，
-      // 直接塞进 toast 会过长而难以阅读，故按原因给出简短说明，原文放在 detail 中可复制
-      const reason = classifyCreateBranchError(message);
-      void host.toast({
-        kind: 'error',
-        message: `${t('op.newBranchFailed')}: ${t(reason)}`,
-        copy: true,
-        dismiss: true,
-      }).catch((toastErr: unknown) => {
-        // toast 本身失败时退化为 alert，确保用户不会完全看不到
-        console.error(JSON.stringify({ prefix: '[context-menu]', event: 'create_branch_toast_error', error: String(toastErr) }));
-        window.alert(`${t('op.newBranchFailed')}: ${t(reason)}`);
-      });
-    }
-    close();
-  };
-
-  overlay.querySelector('#branch-ok')?.addEventListener('click', doCreate);
-  input.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter') doCreate();
-  });
-}

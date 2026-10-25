@@ -7,7 +7,7 @@ import { html } from '../html';
 import { getState, setState, Branch } from '../state';
 import { ServiceClient } from '../service';
 import { t } from '../i18n';
-import { showOperationError } from './errors';
+import { classifyCreateBranchError, errorText, showOperationError } from './errors';
 
 /** 显示重命名对话框 */
 export function showRenameDialog(branch: Branch, service: ServiceClient, directory: string): void {
@@ -56,14 +56,47 @@ export function showRenameDialog(branch: Branch, service: ServiceClient, directo
   });
 }
 
-/** 显示新建分支对话框 @param startPoint 起点提交（可选）：选中提交时基于该提交建分支，省略则基于当前 HEAD */
-export function showCreateBranchDialog(service: ServiceClient, directory: string, startPoint?: string): void {
+/**
+ * 新建分支对话框参数
+ * 两个入口（侧栏按钮、提交右键）结构完全一致，差异仅在标题、起点说明与创建成功后的回调
+ */
+export interface CreateBranchDialogOptions {
+  /** 服务客户端 */
+  service: ServiceClient;
+  /** 仓库目录 */
+  directory: string;
+  /** 起点提交哈希；省略表示基于当前 HEAD */
+  startPoint?: string;
+  /** 起点说明文案，覆盖默认的「起点：短哈希」展示 */
+  startPointLabel?: string;
+  /** 标题文案键，默认 dialog.createBranchTitle */
+  titleKey?: string;
+  /** 创建成功后的额外处理（如从提交创建时需重载提交列表） */
+  onCreated?: () => Promise<void>;
+  /** 调试日志中标识入口来源 */
+  entry: string;
+}
+
+/**
+ * 显示新建分支对话框
+ * 侧栏与提交右键共用，避免两处实现漂移（历史上补复选框时只改了一处）
+ * @param options 对话框参数
+ */
+export function showCreateBranchDialog(options: CreateBranchDialogOptions): void {
+  const { service, directory, startPoint, startPointLabel, titleKey, onCreated, entry } = options;
+  const startText = startPointLabel
+    ?? `${t('dialog.startPoint')}：${startPoint ? startPoint.slice(0, 8) : t('dialog.currentHead')}`;
+
   const overlay = html`
     <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
       <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.createBranchTitle')}</div>
-        <div style="font-size: 11px; color: #888; margin-bottom: 8px;">${t('dialog.startPoint')}：${startPoint ? startPoint.slice(0, 8) : t('dialog.currentHead')}</div>
+        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t(titleKey ?? 'dialog.createBranchTitle')}</div>
+        <div style="font-size: 11px; color: #888; margin-bottom: 8px; word-break: break-all;">${startText}</div>
         <input id="new-branch-input" type="text" placeholder="${t('dialog.inputBranchName')}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
+        <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px; font-size: 12px; color: #ccc; cursor: pointer;">
+          <input id="new-branch-checkout" type="checkbox" checked style="margin: 0; cursor: pointer;" />
+          ${t('dialog.checkoutAfterCreate')}
+        </label>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button id="create-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
           <button id="create-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.create')}</button>
@@ -87,14 +120,25 @@ export function showCreateBranchDialog(service: ServiceClient, directory: string
   const doCreate = async () => {
     const name = input.value.trim();
     if (!name) return;
-    void service.debugLog?.('create-branch-submit', { name, startPoint: startPoint ?? null });
+    // 对齐 IDEA 新建分支对话框的「检出分支」复选框，默认勾选
+    const checkout = (overlay.querySelector('#new-branch-checkout') as HTMLInputElement)?.checked ?? true;
+    void service.debugLog?.('create-branch-submit', { name, startPoint: startPoint ?? null, checkout, entry });
     try {
-      await service.createNewBranch(directory, name, startPoint);
+      // 勾选：创建并检出（git checkout -b）；不勾选：仅创建（git branch）
+      if (checkout) {
+        await service.checkoutNewBranch(directory, name, startPoint);
+      } else {
+        await service.createNewBranch(directory, name, startPoint);
+      }
       const branches = await service.getBranches(directory);
       setState(s => { s.branches = branches; });
+      await onCreated?.();
     } catch (e) {
-      // 失败时保持对话框打开并提示，便于用户改名重试
-      showOperationError(e, 'dialog.createBranchFailed', '[dialog]', 'create_branch_error');
+      // 失败时保持对话框打开并提示，便于用户改名重试。
+      // 建分支失败最常见原因是工作区有改动或分支重名，按原因给出可读文案，
+      // 原始错误由 showOperationError 保留在可复制的详情里
+      const reason = classifyCreateBranchError(errorText(e));
+      showOperationError(e, reason, '[dialog]', 'create_branch_error');
       return;
     }
     close();

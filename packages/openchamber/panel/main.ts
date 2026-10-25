@@ -171,7 +171,7 @@ async function render(): Promise<void> {
           // 选中提交时基于该提交建分支（IDEA 语义），否则基于当前 HEAD
           const selected = getState().selectedCommit?.hash ?? null;
           void service.debugLog('new-branch-dialog-open', { selectedCommit: selected });
-          showCreateBranchDialog(service, getDir(), selected ?? undefined);
+          showCreateBranchDialog({ service, directory: getDir(), startPoint: selected ?? undefined, entry: 'sidebar' });
         } catch (e) {
           console.error(JSON.stringify({ prefix: '[sidebar]', event: 'new_branch_error', error: String(e) }));
         }

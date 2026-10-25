@@ -69,6 +69,7 @@ function createMockService(): ServiceClient {
     revert: vi.fn().mockResolvedValue(undefined),
     reset: vi.fn().mockResolvedValue(undefined),
     checkoutNewBranch: vi.fn().mockResolvedValue(undefined),
+    createNewBranch: vi.fn().mockResolvedValue(undefined),
     renameBranch: vi.fn().mockResolvedValue(undefined),
     diffVsLocal: vi.fn().mockResolvedValue([]),
     // reloadCommits 依赖 getLog 刷新提交列表
@@ -374,6 +375,53 @@ describe('context-menu', () => {
       expect(document.getElementById('delete-branch-ok')).toBeNull();
       expect(document.getElementById('delete-branch-message')).toBeNull();
       expect(document.getElementById('git-context-menu')).toBeNull();
+    });
+
+    it('多选分支后右键删除应删除全部选中分支（回归：此前只删右键的那一个）', async () => {
+      const service = createMockService();
+      // 模拟 Cmd 多选：selectedBranches 里有两个分支，右键落在其中一个上
+      setState(s => {
+        s.branches = [
+          { name: 'dev', isCurrent: false, isRemote: false },
+          { name: 'feat-a', isCurrent: false, isRemote: false },
+          { name: 'feat-b', isCurrent: false, isRemote: false },
+        ];
+        s.selectedBranches = new Set(['feat-a', 'feat-b']);
+        s.selectedBranch = null;
+      });
+
+      showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
+      findMenuItem(getMenu(), '删除分支')!.click();
+      await flush();
+
+      // 关键断言：两个分支都要被删，而不只是右键的 dev
+      const deleted = vi.mocked(service.deleteBranch).mock.calls.map(c => c[1]);
+      expect(deleted).toContain('feat-a');
+      expect(deleted).toContain('feat-b');
+      expect(deleted).not.toContain('dev');
+      // 删除后清空多选集合
+      expect(getState().selectedBranches.size).toBe(0);
+    });
+
+    it('多选包含当前分支时删除项应禁用', async () => {
+      const service = createMockService();
+      setState(s => {
+        s.branches = [
+          { name: 'dev', isCurrent: true, isRemote: false },
+          { name: 'feat-a', isCurrent: false, isRemote: false },
+        ];
+        s.selectedBranches = new Set(['dev', 'feat-a']);
+        s.selectedBranch = null;
+      });
+
+      showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
+      const item = findMenuItem(getMenu(), '删除分支');
+      expect(item).toBeTruthy();
+      // 对齐 IDEA：含当前分支时动作置灰，点击不执行
+      expect(item!.style.color).toBe('rgb(102, 102, 102)');
+      item!.click();
+      await flush();
+      expect(service.deleteBranch).not.toHaveBeenCalled();
     });
 
     it('删除成功应出现 IDEA 式通知卡片（正文 + 还原/删除跟踪两条动作链接）并刷新分支列表', async () => {
@@ -814,18 +862,18 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), '新建分支')!.click();
       await flush();
 
-      const input = document.getElementById('new-branch-from-commit') as HTMLInputElement;
+      const input = document.getElementById('new-branch-input') as HTMLInputElement;
       expect(input).toBeTruthy();
 
       input.value = 'feature/x';
-      document.getElementById('branch-ok')!.click();
+      document.getElementById('create-ok')!.click();
       await flush();
 
       expect(service.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature/x', 'abc123');
       expect(getState().branches).toEqual([
         { name: 'feature', isCurrent: false, isRemote: false },
       ]);
-      expect(document.getElementById('new-branch-from-commit')).toBeNull();
+      expect(document.getElementById('new-branch-input')).toBeNull();
     });
 
     it('点击分隔线不应关闭单提交菜单', () => {
@@ -1393,16 +1441,40 @@ describe('context-menu', () => {
 
     it('打开创建分支对话框应自动聚焦名称输入框', async () => {
       await openCreateDialog(createMockService());
-      const input = document.getElementById('new-branch-from-commit') as HTMLInputElement;
+      const input = document.getElementById('new-branch-input') as HTMLInputElement;
       expect(input).toBeTruthy();
       expect(document.activeElement).toBe(input);
     });
 
+    it('创建分支对话框应提供默认勾选的「创建后检出」复选框', async () => {
+      await openCreateDialog(createMockService());
+      const checkbox = document.getElementById('new-branch-checkout') as HTMLInputElement;
+      // 回归：右键入口是独立对话框，此前漏加该复选框
+      expect(checkbox).toBeTruthy();
+      expect(checkbox.type).toBe('checkbox');
+      expect(checkbox.checked).toBe(true);
+    });
+
+    it('右键创建分支取消勾选检出时只创建分支不切换', async () => {
+      const service = createMockService();
+      await openCreateDialog(service);
+
+      const input = document.getElementById('new-branch-input') as HTMLInputElement;
+      input.value = 'from-commit-nocheckout';
+      (document.getElementById('new-branch-checkout') as HTMLInputElement).checked = false;
+      (document.getElementById('create-ok') as HTMLElement).click();
+      await flush();
+
+      // 不勾选走 git branch，不切走当前工作区
+      expect(service.createNewBranch).toHaveBeenCalledWith(DIRECTORY, 'from-commit-nocheckout', expect.anything());
+      expect(service.checkoutNewBranch).not.toHaveBeenCalled();
+    });
+
     it('点击取消按钮应关闭创建分支对话框', async () => {
       const overlay = await openCreateDialog(createMockService());
-      expect(document.getElementById('branch-cancel')).toBeTruthy();
+      expect(document.getElementById('create-cancel')).toBeTruthy();
 
-      document.getElementById('branch-cancel')!.click();
+      document.getElementById('create-cancel')!.click();
 
       expect(overlay.isConnected).toBe(false);
     });
@@ -1414,30 +1486,30 @@ describe('context-menu', () => {
         .find(el => el.textContent === '从提交创建分支');
       expect(title).toBeTruthy();
       title!.click();
-      expect(document.getElementById('new-branch-from-commit')).toBeTruthy();
+      expect(document.getElementById('new-branch-input')).toBeTruthy();
 
       overlay.click();
-      expect(document.getElementById('new-branch-from-commit')).toBeNull();
+      expect(document.getElementById('new-branch-input')).toBeNull();
     });
 
     it('分支名为空或纯空白时点创建不应调用服务', async () => {
       const service = createMockService();
       await openCreateDialog(service);
 
-      const input = document.getElementById('new-branch-from-commit') as HTMLInputElement;
-      const okButton = document.getElementById('branch-ok')!;
+      const input = document.getElementById('new-branch-input') as HTMLInputElement;
+      const okButton = document.getElementById('create-ok')!;
 
       input.value = '   ';
       okButton.click();
       await flush();
       expect(service.checkoutNewBranch).not.toHaveBeenCalled();
-      expect(document.getElementById('new-branch-from-commit')).toBeTruthy();
+      expect(document.getElementById('new-branch-input')).toBeTruthy();
 
       input.value = '';
       okButton.click();
       await flush();
       expect(service.checkoutNewBranch).not.toHaveBeenCalled();
-      expect(document.getElementById('new-branch-from-commit')).toBeTruthy();
+      expect(document.getElementById('new-branch-input')).toBeTruthy();
     });
 
     it('创建分支失败时应打印错误日志', async () => {
@@ -1449,9 +1521,9 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), '新建分支')!.click();
       await flush();
 
-      const input = document.getElementById('new-branch-from-commit') as HTMLInputElement;
+      const input = document.getElementById('new-branch-input') as HTMLInputElement;
       input.value = 'feature/fail';
-      document.getElementById('branch-ok')!.click();
+      document.getElementById('create-ok')!.click();
       await flush();
 
       // 失败必须让用户可见：结构化日志 + error toast
@@ -1460,27 +1532,28 @@ describe('context-menu', () => {
         .find(m => m.includes('create_branch_error'));
       expect(log).toBeTruthy();
       expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error' }));
-      expect(document.getElementById('new-branch-from-commit')).toBeNull();
+      // 失败时保持对话框打开，便于改名重试（与侧栏入口共用同一实现）
+      expect(document.getElementById('new-branch-input')).not.toBeNull();
     });
 
     it('回车键可创建分支，其它按键不触发', async () => {
       const service = createMockService();
       await openCreateDialog(service);
 
-      const input = document.getElementById('new-branch-from-commit') as HTMLInputElement;
+      const input = document.getElementById('new-branch-input') as HTMLInputElement;
       input.value = 'feature/enter';
 
       // 非 Enter 按键：不创建、对话框保持打开
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       await flush();
       expect(service.checkoutNewBranch).not.toHaveBeenCalled();
-      expect(document.getElementById('new-branch-from-commit')).toBeTruthy();
+      expect(document.getElementById('new-branch-input')).toBeTruthy();
 
       // Enter 按键：创建分支并关闭对话框
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       await flush();
       expect(service.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature/enter', 'abc123');
-      expect(document.getElementById('new-branch-from-commit')).toBeNull();
+      expect(document.getElementById('new-branch-input')).toBeNull();
     });
   });
 
@@ -1494,9 +1567,9 @@ describe('context-menu', () => {
     findMenuItem(getMenu(), '新建分支')!.click();
     await flush();
 
-    const input = document.getElementById('new-branch-from-commit') as HTMLInputElement;
+    const input = document.getElementById('new-branch-input') as HTMLInputElement;
     input.value = 'dr';
-    (document.getElementById('branch-ok') as HTMLElement).click();
+    (document.getElementById('create-ok') as HTMLElement).click();
     await flush();
 
     // 错误信息含多行文件清单，toast 应给出可读原因而非原文堆叠
@@ -1514,9 +1587,9 @@ describe('context-menu', () => {
     findMenuItem(getMenu(), '新建分支')!.click();
     await flush();
 
-    const input = document.getElementById('new-branch-from-commit') as HTMLInputElement;
+    const input = document.getElementById('new-branch-input') as HTMLInputElement;
     input.value = 'dr';
-    (document.getElementById('branch-ok') as HTMLElement).click();
+    (document.getElementById('create-ok') as HTMLElement).click();
     await flush();
 
     const toastArg = toastMock.mock.calls.at(-1)?.[0] as { message: string } | undefined;
