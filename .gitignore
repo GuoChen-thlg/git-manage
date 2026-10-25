@@ -40,3 +40,14 @@ CLAUDE.md
 .opencode/
 .claude/
 .cursor/
+
+# 集成测试临时产物（可能出现在任意包目录下）
+tmp-integration/
+.tmp-integration/
+.tmp-boundary/
+gm-origin-*.git
+gm-wt-*/
+out-integration/
+.vscode-test/
+.tmp-ud/
+test-fixture/

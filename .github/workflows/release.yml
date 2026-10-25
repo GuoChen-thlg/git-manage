@@ -49,7 +49,7 @@ jobs:
         run: pnpm typecheck
 
       - name: 单元测试
-        run: pnpm exec vitest run --dir packages
+        run: pnpm exec vitest run
 
       - name: 打包扩展 zip
         run: pnpm --filter git-manager run pack
