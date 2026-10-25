@@ -57,6 +57,7 @@ function createServiceMock() {
   return {
     renameBranch: vi.fn(async () => undefined),
     createNewBranch: vi.fn(async () => undefined),
+    checkoutNewBranch: vi.fn(async () => undefined),
     reset: vi.fn(async () => undefined),
     getBranches: vi.fn(async () => freshBranches),
     listFiles: vi.fn(async () => sampleFiles),
@@ -218,7 +219,7 @@ describe('dialogs', () => {
 
   describe('showCreateBranchDialog', () => {
     it('打开后应该渲染输入框与按钮', () => {
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
       const overlay = getOverlay();
       expect(overlay.textContent).toContain('新建分支');
@@ -228,7 +229,7 @@ describe('dialogs', () => {
     });
 
     it('输入名称点创建应该调用 createNewBranch/getBranches 并更新分支列表后关闭', async () => {
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
       const input = document.getElementById('new-branch-input') as HTMLInputElement;
       input.value = 'feature-x';
@@ -238,13 +239,32 @@ describe('dialogs', () => {
         expect(document.getElementById('new-branch-input')).toBeNull();
       });
 
-      expect(mock.createNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature-x', undefined);
+      // 默认勾选「创建后检出」
+      expect(mock.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature-x', undefined);
+      expect(mock.createNewBranch).not.toHaveBeenCalled();
       expect(mock.getBranches).toHaveBeenCalledWith(DIRECTORY);
       expect(getState().branches).toEqual(freshBranches);
     });
 
+    it('取消勾选检出时点创建应只创建分支不切换', async () => {
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
+
+      const input = document.getElementById('new-branch-input') as HTMLInputElement;
+      input.value = 'feature-nocheckout';
+      (document.getElementById('new-branch-checkout') as HTMLInputElement).checked = false;
+      (document.getElementById('create-ok') as HTMLElement).click();
+
+      await vi.waitFor(() => {
+        expect(document.getElementById('new-branch-input')).toBeNull();
+      });
+
+      // 不勾选走 git branch，不改变当前工作区
+      expect(mock.createNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature-nocheckout', undefined);
+      expect(mock.checkoutNewBranch).not.toHaveBeenCalled();
+    });
+
     it('在输入框按回车应该触发创建', async () => {
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
       const input = document.getElementById('new-branch-input') as HTMLInputElement;
       input.value = 'feature-enter';
@@ -254,17 +274,17 @@ describe('dialogs', () => {
         expect(document.getElementById('new-branch-input')).toBeNull();
       });
 
-      expect(mock.createNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature-enter', undefined);
+      expect(mock.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature-enter', undefined);
     });
 
     it('未选中提交时应该显示起点为当前 HEAD', () => {
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
       expect(getOverlay().textContent).toContain('起点：当前 HEAD');
     });
 
     it('带起点提交时应该显示起点并创建时透传 startPoint', async () => {
-      showCreateBranchDialog(service, DIRECTORY, 'a004346789abcdef');
+      showCreateBranchDialog({ service, directory: DIRECTORY, startPoint: 'a004346789abcdef', entry: 'test' });
 
       expect(getOverlay().textContent).toContain('起点：a0043467');
 
@@ -276,11 +296,11 @@ describe('dialogs', () => {
         expect(document.getElementById('new-branch-input')).toBeNull();
       });
 
-      expect(mock.createNewBranch).toHaveBeenCalledWith(DIRECTORY, 'from-commit', 'a004346789abcdef');
+      expect(mock.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'from-commit', 'a004346789abcdef');
     });
 
     it('名称为空时点创建不调用 service（源码行为：对话框保持打开）', () => {
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
       const input = document.getElementById('new-branch-input') as HTMLInputElement;
       input.value = '   ';
@@ -293,7 +313,7 @@ describe('dialogs', () => {
     });
 
     it('点取消应该关闭对话框且不调用 service', () => {
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
       (document.getElementById('create-cancel') as HTMLElement).click();
 
@@ -302,14 +322,14 @@ describe('dialogs', () => {
     });
 
     it('打开后输入框应该获得焦点', () => {
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
       const input = document.getElementById('new-branch-input') as HTMLInputElement;
       expect(document.activeElement).toBe(input);
     });
 
     it('点对话框内部不关闭，点遮罩层才关闭', () => {
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
       const overlay = getOverlay();
 
       // 点击内层面板：不关闭
@@ -323,7 +343,7 @@ describe('dialogs', () => {
     });
 
     it('非回车键的按键输入不应该触发创建', () => {
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
       const input = document.getElementById('new-branch-input') as HTMLInputElement;
       input.value = 'feature-x';
@@ -334,20 +354,22 @@ describe('dialogs', () => {
     });
 
     it('创建失败时应提示用户并保持对话框打开', async () => {
-      mock.createNewBranch.mockRejectedValueOnce(new Error('创建失败'));
+      // 默认勾选检出，失败路径走 checkoutNewBranch
+      mock.checkoutNewBranch.mockRejectedValueOnce(new Error('创建失败'));
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       toastMock.mockClear();
 
-      showCreateBranchDialog(service, DIRECTORY);
+      showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
       const input = document.getElementById('new-branch-input') as HTMLInputElement;
       input.value = 'feature-x';
       (document.getElementById('create-ok') as HTMLElement).click();
 
       // 回归：此前只写 console 并关闭对话框，用户看不到任何失败提示
       await vi.waitFor(() => {
+        // 建分支失败按原因归类给出可读文案（无法归类时回退到通用文案）
         expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
           kind: 'error',
-          message: expect.stringContaining('创建分支失败'),
+          message: expect.stringContaining('创建失败'),
         }));
       });
       expect(document.getElementById('new-branch-input')).not.toBeNull();
