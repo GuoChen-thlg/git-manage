@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { join } from 'node:path';
 
 /** 扩展 ID */
-const EXTENSION_ID = 'guochen.git-manager-vscode';
+const EXTENSION_ID = 'thlg.git-manager-vscode';
 
 const execFileAsync = promisify(execFile);
 

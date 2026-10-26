@@ -17,7 +17,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync } from 'node:
 import { join } from 'node:path';
 
 /** 扩展 ID */
-const EXTENSION_ID = 'guochen.git-manager-vscode';
+const EXTENSION_ID = 'thlg.git-manager-vscode';
 
 /** 临时仓库路径 */
 let repo = '';

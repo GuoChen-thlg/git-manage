@@ -18,7 +18,7 @@ import type { ExtensionResponse, WebviewRequest } from './protocol';
 import { debug, error as logError, info } from '../logger';
 
 /** 面板标题 */
-const PANEL_TITLE = 'Git Manager';
+const PANEL_TITLE = 'Git Manager for VS Code';
 
 /** 当前绑定的仓库根目录，供 provider 读取 */
 let currentRoot: string | null = null;
@@ -136,7 +136,7 @@ export class GitPanelView implements vscode.WebviewViewProvider {
 }
 
 /**
- * 聚焦底部面板中的 Git Manager 视图
+ * 聚焦底部面板中的 Git Manager for VS Code 视图
  * @param commitHash 可选：定位的提交
  */
 export async function focusPanel(commitHash?: string): Promise<void> {
@@ -149,7 +149,7 @@ export async function focusPanel(commitHash?: string): Promise<void> {
     }
   } catch (err) {
     void vscode.window.showErrorMessage(
-      `无法打开 Git Manager 面板：${err instanceof Error ? err.message : String(err)}`,
+      `无法打开 Git Manager for VS Code 面板：${err instanceof Error ? err.message : String(err)}`,
     );
   }
 }

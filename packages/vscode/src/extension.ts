@@ -143,7 +143,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
   // 启动时若当前不在仓库中，给一次明确提示，避免用户面对空视图无从判断
   if (!currentRoot) {
     warn('extension', 'no_repository');
-    void vscode.window.showInformationMessage('当前工作区不是 Git 仓库，Git Manager 暂时没有可用内容');
+    void vscode.window.showInformationMessage('当前工作区不是 Git 仓库，Git Manager for VS Code 暂时没有可用内容');
   }
 
   // 暴露请求处理器供集成测试直接驱动全部功能点；

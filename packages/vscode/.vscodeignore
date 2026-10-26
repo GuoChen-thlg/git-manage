@@ -1,0 +1,27 @@
+# 源码与开发配置不进入包
+src/**
+integration/**
+scripts/**
+**/*.ts
+**/tsconfig*.json
+.vscode-test.mjs
+vitest.config.ts
+
+# 测试产物
+dist/**/*.map
+
+# 测试夹具与生成物
+test-fixture/**
+tmp-integration/**
+.tmp-integration/**
+.tmp-boundary/**
+.tmp-ud/**
+.vscode-test/**
+out-integration/**
+
+# 依赖声明文件（运行时已打包进 dist）
+pnpm-lock.yaml
+
+# 开发配置文件
+.gitignore
+media/icon.svg

@@ -1,9 +1,9 @@
 {
   "name": "git-manager-vscode",
-  "displayName": "Git Manager",
+  "displayName": "Git Manager for VS Code",
   "description": "IntelliJ 风格的 Git 管理面板：分支树、提交图、差异对比与常用 git 操作",
   "version": "0.0.1",
-  "publisher": "guochen",
+  "publisher": "thlg",
   "license": "Apache-2.0",
   "private": true,
   "engines": {
@@ -16,7 +16,11 @@
     "git",
     "scm",
     "branch",
-    "history"
+    "commit",
+    "history",
+    "diff",
+    "gitlab",
+    "github"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
@@ -142,7 +146,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build:integration": "node scripts/build-integration.mjs",
-    "test:integration": "node scripts/build-integration.mjs && vscode-test"
+    "test:integration": "node scripts/build-integration.mjs && vscode-test",
+    "vscode:prepublish": "node scripts/build.mjs",
+    "package": "node scripts/build.mjs && vsce package --no-dependencies"
   },
   "dependencies": {
     "@git-manage/core": "workspace:*"
@@ -154,8 +160,19 @@
     "@types/vscode": "^1.85.0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "typescript": "^5.6.0",
     "vitest": "^2.0.0"
-  }
+  },
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GuoChen-thlg/git-manage"
+  },
+  "homepage": "https://github.com/GuoChen-thlg/git-manage",
+  "bugs": {
+    "url": "https://github.com/GuoChen-thlg/git-manage/issues"
+  },
+  "pricing": "Free"
 }

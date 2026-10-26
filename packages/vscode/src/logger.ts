@@ -3,7 +3,7 @@
  * 目标：任何问题都能从输出通道里查到完整链路，而不是靠猜。
  *
  * 三层结构：
- *   1. 扩展主进程 → VS Code 输出通道「Git Manager」
+ *   1. 扩展主进程 → VS Code 输出通道「Git Manager for VS Code」
  *   2. Webview 内 → 转发到主进程，与主进程日志合并到同一通道
  *   3. 关键错误 → 额外弹提示，保证用户可见
  *
@@ -29,7 +29,7 @@ let debugEnabled = false;
 export function initLogger(options: { debug?: boolean } = {}): void {
   debugEnabled = options.debug === true;
   if (!channel) {
-    channel = vscode.window.createOutputChannel('Git Manager');
+    channel = vscode.window.createOutputChannel('Git Manager for VS Code');
   }
 }
 

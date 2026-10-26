@@ -8,7 +8,7 @@ import * as assert from 'node:assert';
 import * as vscode from 'vscode';
 
 /** 扩展 ID，与 package.json 的 publisher.name 对应 */
-const EXTENSION_ID = 'guochen.git-manager-vscode';
+const EXTENSION_ID = 'thlg.git-manager-vscode';
 
 /**
  * 等待条件成立
