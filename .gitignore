@@ -51,3 +51,6 @@ out-integration/
 .vscode-test/
 .tmp-ud/
 test-fixture/
+
+# VS Code 扩展打包产物
+*.vsix
