@@ -50,8 +50,54 @@ import {
 /** 获取环境变量 */
 const PORT = parseInt(process.env.OPENCHAMBER_SERVICE_PORT || "0", 10);
 const TOKEN = process.env.OPENCHAMBER_SERVICE_TOKEN || "";
-/** 面板调试日志落盘路径（排查起点链路用，*.log 已被 gitignore） */
-const DEBUG_LOG_PATH = "/Users/guochen/workingarea/node-projects/git-manage/gitpanel-debug.log";
+/** 调试日志大小上限（字节），超限后截断重写，避免无限增长 */
+const DEBUG_LOG_MAX_BYTES = 1024 * 1024;
+
+/**
+ * 调试日志是否开启
+ * @returns GIT_MANAGE_DEBUG=1（或 true）时开启，其余情况关闭
+ */
+function isDebugLogEnabled(): boolean {
+  const flag = process.env.GIT_MANAGE_DEBUG || "";
+  return flag === "1" || flag.toLowerCase() === "true";
+}
+
+/**
+ * 追加一行调试日志（按平台写到用户目录，不依赖本机开发路径）
+ * 超过大小上限时截断重写，防止日志无限增长
+ * @param line 日志行（含换行符）
+ */
+async function appendDebugLog(line: string): Promise<void> {
+  const { appendFile, mkdir, stat, writeFile } = await import("fs/promises");
+  const { dirname, join } = await import("path");
+  const { homedir } = await import("os");
+  const platform = process.platform;
+  let baseDir: string;
+  if (platform === "win32") {
+    // Windows：%APPDATA%\git-manage
+    baseDir = process.env.APPDATA || join(homedir(), "AppData", "Roaming");
+  } else if (platform === "darwin") {
+    // macOS：~/Library/Logs/git-manage
+    baseDir = join(homedir(), "Library", "Logs");
+  } else {
+    // Linux：$XDG_CONFIG_HOME/git-manage，未设置则 ~/.config/git-manage
+    baseDir = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
+  }
+  const path = join(baseDir, "git-manage", "gitpanel-debug.log");
+  await mkdir(dirname(path), { recursive: true });
+  // 超限时截断重写，防止日志无限增长
+  let overflow = false;
+  try {
+    overflow = (await stat(path)).size + Buffer.byteLength(line) > DEBUG_LOG_MAX_BYTES;
+  } catch {
+    // 文件不存在视为未超限，交给 appendFile 创建
+  }
+  if (overflow) {
+    await writeFile(path, line, "utf8");
+  } else {
+    await appendFile(path, line, "utf8");
+  }
+}
 
 /** 验证请求 Token */
 function verifyToken(request: Request): boolean {
@@ -197,11 +243,13 @@ export async function handleRequest(request: Request): Promise<Response> {
         }
       }
       case "/git-debug-log": {
-        // 面板调试日志落盘（排查起点链路用），写失败不影响返回
+        // 面板调试日志落盘：仅 GIT_MANAGE_DEBUG 开启时写入用户目录，关闭时直接返回成功
+        if (!isDebugLogEnabled()) {
+          return Response.json({ success: true });
+        }
         const line = JSON.stringify({ ts: new Date().toISOString(), event: body.event, data: body.data }) + "\n";
         try {
-          const { appendFile } = await import("fs/promises");
-          await appendFile(DEBUG_LOG_PATH, line, "utf8");
+          await appendDebugLog(line);
         } catch (e) {
           console.error(`[git-manager-service] ${JSON.stringify({ event: "debug-log-write-error", message: String(e) })}`);
         }
