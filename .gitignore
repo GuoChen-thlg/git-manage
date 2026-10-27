@@ -27,6 +27,13 @@ coverage/
 reports/
 .stryker-tmp/
 
+# VSCode 扩展测试产物（@vscode/test-cli 下载的实例与临时 user-data）
+packages/vscode/.vscode-test/
+packages/vscode/.tmp-ud/
+packages/vscode/*.vsix
+packages/vscode/out-integration/
+packages/vscode/test-fixture/.tmp-integration/
+
 # Env
 .env
 .env.local
