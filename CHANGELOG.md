@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的格式约定，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。本文件基于本仓库提交历史整理。
 
+## [0.0.3] - 2026-10-27
+
+### 修复
+
+- 调试日志路径硬编码为开发机路径导致其他机器写入失败：改为按平台写到用户目录（Windows %APPDATA%、macOS ~/Library/Logs、Linux XDG_CONFIG_HOME）
+- 调试日志默认不再落盘：仅在环境变量 GIT_MANAGE_DEBUG=1（或 true）开启时写入，写入前自动创建目录，超过 1MiB 截断重写防止无限增长
+
 ## [0.0.2] - 2026-10-25
 
 ### 新增
