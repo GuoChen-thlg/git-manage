@@ -1,4 +1,5 @@
 import { gitExec } from './executor.js';
+import { GitError } from './types.js';
 import type { GitCommandOptions, Commit, CommitDetail, BlameLine, LogOptions } from './types.js';
 import { getCommitDiff } from './diff.js';
 
@@ -82,6 +83,12 @@ export async function getLog(
   }
 
   const result = await gitExec(args, gitOptions);
+
+  // 非零退出码不能静默当作「没有提交」：分支名写错、历史为空等情况必须区分，
+  // 否则界面会显示空白列表而用户无从判断原因
+  if (result.exitCode !== 0) {
+    throw new GitError(`Git 命令执行失败: ${args.join(' ')}\n${result.stderr}`, result);
+  }
 
   if (!result.stdout) {
     return [];

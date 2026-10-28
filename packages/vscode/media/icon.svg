@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- 背景圆角方块，使用 VS Code 编辑器深色背景 -->
+  <rect width="128" height="128" rx="24" fill="#1e1e1e"/>
+  <!-- Git 分支结构：主干 + 两条分叉，线条加粗保证小尺寸下仍清晰 -->
+  <g stroke="#589df6" stroke-width="8" stroke-linecap="round" fill="none">
+    <path d="M44 34 V94"/>
+    <path d="M44 62 C44 50 62 50 62 40 V34"/>
+    <path d="M44 74 C44 86 84 86 84 74 V66"/>
+  </g>
+  <!-- 提交节点 -->
+  <g fill="#589df6">
+    <circle cx="44" cy="30" r="9"/>
+    <circle cx="62" cy="32" r="8"/>
+    <circle cx="84" cy="62" r="8"/>
+    <circle cx="44" cy="98" r="9"/>
+  </g>
+</svg>

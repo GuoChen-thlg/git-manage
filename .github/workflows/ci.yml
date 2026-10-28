@@ -30,8 +30,21 @@ jobs:
         run: pnpm typecheck
 
       - name: 单元测试
-        run: pnpm exec vitest run --dir packages
+        run: pnpm exec vitest run
+
+      # vscode 包依赖 vscode 模块替身，使用包内独立配置运行
+      # 其中 e2e-flow.test.ts 用真实 git 仓库跑完整链路（真实 core，不打桩）
+      - name: 单元与端到端测试（vscode 包）
+        run: pnpm --filter git-manager-vscode run test
 
       # 黑盒测试：启动真实 service 进程，通过 HTTP 验证协议、鉴权与副作用
       - name: 黑盒测试（service）
         run: pnpm run test:blackbox
+
+      # 集成测试：启动真实 VS Code 实例，验证扩展激活、命令注册与 TreeView
+      # Linux 无桌面环境，需 xvfb 提供虚拟显示
+      - name: 安装 xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: 集成测试（真实 VS Code）
+        run: xvfb-run -a pnpm --filter git-manager-vscode run test:integration

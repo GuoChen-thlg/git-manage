@@ -27,6 +27,13 @@ coverage/
 reports/
 .stryker-tmp/
 
+# VSCode 扩展测试产物（@vscode/test-cli 下载的实例与临时 user-data）
+packages/vscode/.vscode-test/
+packages/vscode/.tmp-ud/
+packages/vscode/*.vsix
+packages/vscode/out-integration/
+packages/vscode/test-fixture/.tmp-integration/
+
 # Env
 .env
 .env.local
@@ -40,3 +47,17 @@ CLAUDE.md
 .opencode/
 .claude/
 .cursor/
+
+# 集成测试临时产物（可能出现在任意包目录下）
+tmp-integration/
+.tmp-integration/
+.tmp-boundary/
+gm-origin-*.git
+gm-wt-*/
+out-integration/
+.vscode-test/
+.tmp-ud/
+test-fixture/
+
+# VS Code 扩展打包产物
+*.vsix

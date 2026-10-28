@@ -395,9 +395,9 @@ describe('提交历史', () => {
     expect(mainLog.map(c => c.message)).not.toContain('功能提交');
   });
 
-  it('getCommitLog 对不存在的分支应返回空列表', async () => {
-    const log = await getCommitLog(repoDir, 50, 'not-exist-branch');
-    expect(log).toEqual([]);
+  it('getCommitLog 对不存在的分支应抛错而不是静默返回空列表', async () => {
+    // 回归：此前忽略 git 非零退出码，分支名写错时界面只显示空白，用户无从判断原因
+    await expect(getCommitLog(repoDir, 50, 'not-exist-branch')).rejects.toThrow(/not-exist-branch/);
   });
 
   it('getCommitLog 按路径过滤应只返回触碰该路径的提交', async () => {

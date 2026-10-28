@@ -1,0 +1,23 @@
+# 构建产物
+dist/
+out-integration/
+
+# 集成测试夹具（构建脚本自动生成）
+test-fixture/
+
+# VS Code 测试实例下载目录与用户数据
+.vscode-test/
+.tmp-ud/
+
+# 集成测试在各处创建的临时仓库
+# 目录名可能出现在包根、工作区夹具内或仓库根，统一忽略
+tmp-integration/
+.tmp-integration/
+.tmp-boundary/
+
+# 集成测试创建的裸仓库（origin 模拟）
+gm-origin-*.git
+gm-wt-*/
+
+# 打包产物
+*.vsix
