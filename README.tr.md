@@ -30,6 +30,8 @@
 - [JetBrains intellij-community](https://github.com/JetBrains/intellij-community) — Git araç penceresinin tasarımı ve uygulaması bu projenin en önemli referansıdır (Apache 2.0 lisansı)
 - [DetachHead/rebased](https://github.com/DetachHead/rebased) — Git yönetim paneli özellikleri için önemli bir referans
 
+> **Marka bildirimi**: IntelliJ IDEA, JetBrains s.r.o. tescilli bir markasıdır. Bu proje JetBrains ile bağlantılı değildir ve JetBrains tarafından onaylanmaz veya sponsorlanmaz; atıflar yalnızca etkileşim referanslarını açıklamak içindir.
+
 ## Lisans
 
 Bu proje [Apache License 2.0](LICENSE) ile açık kaynak olarak sunulmuştur, Copyright 2026 GuoChen-thlg.

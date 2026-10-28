@@ -30,6 +30,8 @@
 - [JetBrains intellij-community](https://github.com/JetBrains/intellij-community)，其 Git 工具窗的設計與實作是本專案最重要的參考（Apache 2.0 授權）
 - [DetachHead/rebased](https://github.com/DetachHead/rebased)，Git 管理面板功能的重要參考
 
+> **商標聲明**：IntelliJ IDEA 是 JetBrains s.r.o. 的註冊商標。本專案與 JetBrains 無隸屬、贊助或認可關係，文中提及僅用於描述互動參考對象。
+
 ## 授權條款
 
 本專案基於 [Apache License 2.0](LICENSE) 開源，Copyright 2026 GuoChen-thlg。

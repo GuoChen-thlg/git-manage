@@ -30,6 +30,8 @@ A cross-platform graphical Git management tool, delivered as an [OpenChamber](ht
 - [JetBrains intellij-community](https://github.com/JetBrains/intellij-community) — the design and implementation of its Git tool window is the most important reference for this project (Apache 2.0 license)
 - [DetachHead/rebased](https://github.com/DetachHead/rebased) — an important reference for the Git management panel features
 
+> **Trademark notice**: IntelliJ IDEA is a registered trademark of JetBrains s.r.o. This project is not affiliated with, endorsed by, or sponsored by JetBrains; mentions are solely to describe interaction references.
+
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE), Copyright 2026 GuoChen-thlg.

@@ -30,6 +30,8 @@
 - [JetBrains intellij-community](https://github.com/JetBrains/intellij-community) — дизайн і реалізація вікна Git є найважливішим орієнтиром для цього проєкту (ліцензія Apache 2.0)
 - [DetachHead/rebased](https://github.com/DetachHead/rebased) — важливий орієнтир для функцій панелі керування Git
 
+> **Застереження щодо торгової марки**: IntelliJ IDEA є зареєстрованою торговою маркою JetBrains s.r.o. Цей проєкт не пов'язаний з JetBrains і не схвалюється чи не спонсорується JetBrains; згадки зроблені виключно для опису об'єктів інтерактивних референсів.
+
 ## Ліцензія
 
 Проєкт поширюється за [Apache License 2.0](LICENSE), Copyright 2026 GuoChen-thlg.

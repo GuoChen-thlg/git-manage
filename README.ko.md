@@ -30,6 +30,8 @@
 - [JetBrains intellij-community](https://github.com/JetBrains/intellij-community) — Git 도구 창의 설계와 구현은 이 프로젝트의 가장 중요한 참고 자료입니다 (Apache 2.0 라이선스)
 - [DetachHead/rebased](https://github.com/DetachHead/rebased) — Git 관리 패널 기능의 중요한 참고 자료입니다
 
+> **상표 고지**: IntelliJ IDEA는 JetBrains s.r.o.의 등록 상표입니다. 본 프로젝트는 JetBrains와 어떤 계열 관계도 없으며, JetBrains의 보증 또는 후원을 받지 않습니다. 언급은 상호작용 참조 대상을 설명하기 위한 것입니다.
+
 ## 라이선스
 
 이 프로젝트는 [Apache License 2.0](LICENSE)으로 공개되며, Copyright 2026 GuoChen-thlg.

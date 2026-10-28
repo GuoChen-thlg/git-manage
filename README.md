@@ -67,6 +67,8 @@ https://github.com/GuoChen-thlg/git-manage.git#release
 - [JetBrains intellij-community](https://github.com/JetBrains/intellij-community)，其 Git 工具窗的设计与实现是本项目最重要的参考（Apache 2.0 许可）
 - [DetachHead/rebased](https://github.com/DetachHead/rebased)，Git 管理面板功能的重要参考
 
+> **商标声明**：IntelliJ IDEA 是 JetBrains s.r.o. 的注册商标。本项目与 JetBrains 无隶属、赞助或认可关系，文中提及仅用于描述交互参考对象。
+
 ## 许可证
 
 本项目基于 [Apache License 2.0](LICENSE) 开源，Copyright 2026 GuoChen-thlg。

@@ -30,6 +30,8 @@ Eine plattformübergreifende, grafische Git-Verwaltung, verfügbar als [OpenCham
 - [JetBrains intellij-community](https://github.com/JetBrains/intellij-community) — Design und Implementierung des Git-Fensters sind die wichtigste Referenz dieses Projekts (Apache-2.0-Lizenz)
 - [DetachHead/rebased](https://github.com/DetachHead/rebased) — wichtige Referenz für die Funktionen des Git-Verwaltungspanels
 
+> **Markenhinweis**: IntelliJ IDEA ist eine eingetragene Marke der JetBrains s.r.o. Dieses Projekt steht in keiner Verbindung zu JetBrains und wird weder von JetBrains unterstützt noch gesponsert; die Nennung erfolgt ausschließlich zur Beschreibung von Interaktionsreferenzen.
+
 ## Lizenz
 
 Dieses Projekt steht unter der [Apache License 2.0](LICENSE), Copyright 2026 GuoChen-thlg.
