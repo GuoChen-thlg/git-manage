@@ -2,7 +2,7 @@
   "name": "git-manager-vscode",
   "displayName": "Git Manager for VS Code",
   "description": "IntelliJ 风格的 Git 管理面板：分支树、提交图、差异对比与常用 git 操作",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "thlg",
   "license": "Apache-2.0",
   "private": true,
