@@ -2,6 +2,12 @@
 
 版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.0.2] - 2026-10-28
+
+### 变更
+
+- 改由主分支统一构建与发布：随 GitHub Release 附带 vsix 安装包，与 Marketplace 版本一致
+
 ## [0.0.1]
 
 首个版本。

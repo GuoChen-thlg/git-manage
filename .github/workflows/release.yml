@@ -54,11 +54,16 @@ jobs:
       - name: 打包扩展 zip
         run: pnpm --filter git-manager run pack
 
+      - name: 打包 VS Code 扩展 vsix
+        run: pnpm --filter git-manager-vscode run package
+
       - name: 上传构建制品
         uses: actions/upload-artifact@v4
         with:
           name: git-manager-extension
-          path: packages/openchamber/release/*.zip
+          path: |
+            packages/openchamber/release/*.zip
+            packages/vscode/*.vsix
           if-no-files-found: error
 
       # 把构建产物推到 release 分支，供「从 Git URL 安装」使用
@@ -85,5 +90,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: packages/openchamber/release/*.zip
+          files: |
+            packages/openchamber/release/*.zip
+            packages/vscode/*.vsix
           generate_release_notes: true
