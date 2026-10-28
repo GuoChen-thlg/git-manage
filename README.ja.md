@@ -30,6 +30,8 @@
 - [JetBrains intellij-community](https://github.com/JetBrains/intellij-community) — Git ツールウィンドウの設計と実装は本プロジェクトにとって最も重要な参考です（Apache 2.0 ライセンス）
 - [DetachHead/rebased](https://github.com/DetachHead/rebased) — Git 管理パネル機能の重要な参考です
 
+> **商標に関する告知**: IntelliJ IDEA は JetBrains s.r.o. の登録商標です。本プロジェクトは JetBrains とは無関係であり、承認・スポンサー・後援のいずれも受けていません。言及は操作の参照対象を説明するためのみに用いています。
+
 ## ライセンス
 
 本プロジェクトは [Apache License 2.0](LICENSE) で公開されています。Copyright 2026 GuoChen-thlg。

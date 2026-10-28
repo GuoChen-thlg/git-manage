@@ -30,6 +30,8 @@ Uma ferramenta gráfica de gerenciamento de Git multiplataforma, disponível com
 - [JetBrains intellij-community](https://github.com/JetBrains/intellij-community): o design e a implementação da janela Git são a principal referência deste projeto (licença Apache 2.0)
 - [DetachHead/rebased](https://github.com/DetachHead/rebased): referência importante para os recursos do painel de gerenciamento de Git
 
+> **Aviso de marca registrada**: IntelliJ IDEA é uma marca registrada da JetBrains s.r.o. Este projeto não é afiliado, endossado ou patrocinado pela JetBrains; as menções servem exclusivamente para descrever referências de interação.
+
 ## Licença
 
 Este projeto é distribuído sob a [Apache License 2.0](LICENSE), Copyright 2026 GuoChen-thlg.
