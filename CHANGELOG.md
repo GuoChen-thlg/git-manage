@@ -2,6 +2,12 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的格式约定，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。本文件基于本仓库提交历史整理。
 
+## [0.0.5] - 2026-10-28
+
+### 工程化
+
+- 发布流程新增 VS Code 扩展打包：Release 与构建制品附带 git-manager-vscode-0.0.2.vsix 安装包
+
 ## [0.0.4] - 2026-10-28
 
 ### 新增
