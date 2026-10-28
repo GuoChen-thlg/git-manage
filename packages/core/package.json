@@ -1,6 +1,6 @@
 {
   "name": "@git-manage/core",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Core Git management logic",
   "license": "Apache-2.0",
   "type": "module",
