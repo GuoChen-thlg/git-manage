@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Git Manager for OpenChamber — An IDE-Grade Git Tool Window, Inside Your Editor</title>
+  <meta name="description" content="Git Manager is a graphical Git extension for OpenChamber: branch management, commit history, diffs, and smart filtering — with interaction modeled after IntelliJ IDEA." />
+  <link rel="canonical" href="https://guochen-thlg.github.io/git-manage/openchamber/en/" />
+  <link rel="alternate" hreflang="en" href="https://guochen-thlg.github.io/git-manage/openchamber/en/" />
+  <link rel="alternate" hreflang="zh-CN" href="https://guochen-thlg.github.io/git-manage/openchamber/zh/" />
+  <link rel="alternate" hreflang="x-default" href="https://guochen-thlg.github.io/git-manage/openchamber/en/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Git Manager" />
+  <meta property="og:title" content="Git Manager for OpenChamber — An IDE-Grade Git Tool Window, Inside Your Editor" />
+  <meta property="og:description" content="Git Manager is a graphical Git extension for OpenChamber: branch management, commit history, diffs, and smart filtering — with interaction modeled after IntelliJ IDEA." />
+  <meta property="og:url" content="https://guochen-thlg.github.io/git-manage/openchamber/en/" />
+  <meta property="og:image" content="https://guochen-thlg.github.io/git-manage/assets/panel.png" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Git Manager for OpenChamber — An IDE-Grade Git Tool Window, Inside Your Editor" />
+  <meta name="twitter:description" content="Git Manager is a graphical Git extension for OpenChamber: branch management, commit history, diffs, and smart filtering — with interaction modeled after IntelliJ IDEA." />
+  <meta name="twitter:image" content="https://guochen-thlg.github.io/git-manage/assets/panel.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Git Manager for OpenChamber",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS, Windows, Linux",
+    "softwareVersion": "0.0.5",
+    "license": "https://www.apache.org/licenses/LICENSE-2.0",
+    "author": { "@type": "Person", "name": "GuoChen-thlg" },
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "description": "A graphical Git extension for OpenChamber, with interaction modeled after IntelliJ IDEA's Git tool window."
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can I install straight from the source branch?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. The panel and services are build artifacts and don't get committed along with the source branch. Use the ZIP, a local build folder, or the #release branch instead."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need git installed on my machine?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. The extension runs local git commands through the host's exec permission, so without git installed, those actions will fail."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which operating systems are supported?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cross-platform. If OpenChamber can run and git is installed, Windows, macOS, and Linux all work."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will this make me look more professional?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The moment that commit graph starts rolling, your coworkers will swear you just came back from a stint at some big-tech company. We don't guarantee promotions — we do guarantee it looks good."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Floating pill navigation -->
+  <header class="pillbar">
+    <div class="pill">
+      <a class="brand" href="./">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="9" r="2.2"/>
+          <path d="M6 7.2v9.6M8.2 5.4c4 .6 6.5 1.4 7.8 3.4"/>
+        </svg>
+        Git Manager <span class="brand-sub">/ OpenChamber</span>
+      </a>
+      <a class="navlink" href="#features">Features</a>
+      <a class="navlink" href="#install">Install</a>
+      <a class="navlink" href="#faq">FAQ</a>
+      <a class="navlink" href="../zh/">中文</a>
+    </div>
+    <div class="pill">
+      <a class="star" href="https://github.com/GuoChen-thlg/git-manage" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+        1.2K
+      </a>
+      <a class="btn btn-primary btn-pill" href="#install">Install</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="aura" aria-hidden="true"></div>
+    <canvas class="particles" data-particle="ember" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <div class="hero-inner">
+        <span class="eyebrow rv">v0.0.5 · OpenChamber extension <span class="hash mono">6276d81</span></span>
+        <h1 class="rv" style="--d:.06s">An IDE-grade Git tool window,<br /><span class="dim">now living inside your editor.</span></h1>
+        <p class="lead rv" style="--d:.12s">Branch tree, commit graph, diffs, multi-condition filtering. Interaction modeled after IntelliJ IDEA — if you think in an IDE-style workflow, install it and you already know how to drive.</p>
+        <div class="btn-row rv" style="--d:.18s">
+          <a class="btn btn-primary" href="#install">Get it installed</a>
+          <a class="btn btn-ghost" href="https://github.com/GuoChen-thlg/git-manage" target="_blank" rel="noopener">Peek at the source</a>
+          <span class="cmd">
+            <span>git-manage.git#release</span>
+            <button class="copy" type="button" data-copy="https://github.com/GuoChen-thlg/git-manage.git#release" data-done="Copied">Copy</button>
+          </span>
+        </div>
+        <div class="stats rv" style="--d:.24s">
+          <div class="stat"><span class="num">12</span><span class="label">UI LANGUAGES</span></div>
+          <div class="stat"><span class="num">≥1.22</span><span class="label">OPENCHAMBER</span></div>
+          <div class="stat"><span class="num">Apache-2.0</span><span class="label">LICENSE</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshot -->
+  <div class="wrap shot-zone">
+    <div class="shot-aura" aria-hidden="true"></div>
+    <figure class="shot rv">
+      <picture>
+        <source type="image/avif" srcset="../../assets/panel.avif" />
+        <source type="image/webp" srcset="../../assets/panel.webp" />
+        <img src="../../assets/panel.png" alt="Git Manager panel in the wild: branch tree on the left, commit list in the middle, diff area on the right" width="1566" height="1017" loading="lazy" />
+      </picture>
+      <figcaption class="cap">Live panel · branches · commit graph · diffs</figcaption>
+    </figure>
+  </div>
+
+  <main class="wrap">
+    <!-- Features -->
+    <section class="sec" id="features">
+      <div class="sec-head">
+        <h2 class="rv">Five features,<br />all packed into one panel.</h2>
+        <p class="sec-sub rv" style="--d:.08s">Every interaction polished against a mature IDE as the benchmark — not our invention, we just had a very good teacher.</p>
+      </div>
+      <div class="grid">
+        <div class="card rv" style="--d:.04s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="5" r="2.4"/><circle cx="6" cy="19" r="2.4"/><circle cx="18" cy="9" r="2.4"/><path d="M6 7.4v9.2M8.4 5.6c4 .6 6.6 1.3 7.9 3.2"/></svg></div>
+          <h3>Branch management</h3>
+          <p>Browse local and remote branches in grouped trees, star the ones you use daily. Positions are recorded before deletion so a mis-click is one button away from undone, unmerged branches get a clear warning, and the current branch is locked against accidents.</p>
+        </div>
+        <div class="card rv" style="--d:.1s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5h14M5 10h9M5 15h14M5 20h7"/></svg></div>
+          <h3>Commit history</h3>
+          <p>Commit list, commit graph, and commit details, plus cherry-pick, revert, and stash — the handful of moves you make a hundred times a day, all within arm's reach.</p>
+        </div>
+        <div class="card rv" style="--d:.16s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></div>
+          <h3>Diff viewer</h3>
+          <p>File-level and commit-level diffs, with visual staging that actually makes sense. What changed, and whether it belongs in the index — clear at a glance.</p>
+        </div>
+        <div class="card rv" style="--d:.04s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16l-6.5 7.5V19l-3 1.5v-8L4 5z"/></svg></div>
+          <h3>Smart filtering</h3>
+          <p>Combine case, regex, branch, author, date, and path filters. Paths support IDEA-style tree multi-select, so even in a huge monorepo you land on the right commit in seconds.</p>
+        </div>
+        <div class="card rv" style="--d:.1s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.3 3.9 8.5S14.6 18.1 12 20.5C9.4 18.1 8.1 15.2 8.1 12S9.4 5.9 12 3.5z"/></svg></div>
+          <h3>12 UI languages</h3>
+          <p>Twelve languages built in. Strings and date formats follow your system language automatically — zero configuration required.</p>
+        </div>
+        <div class="card rv" style="--d:.16s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></div>
+          <h3>Deleted branches come back</h3>
+          <p>The branch's location is recorded before deletion, then restored with one click straight from the notification. Butterfingers welcome.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Install -->
+    <section class="sec" id="install">
+      <div class="sec-head">
+        <h2 class="rv">Three ways to install.<br />No way out — pick your favorite.</h2>
+        <p class="sec-sub rv" style="--d:.08s">Install from OpenChamber's Settings → Extensions. Any one of these will do.</p>
+      </div>
+      <div class="steps">
+        <div class="step rv">
+          <span class="no">01</span>
+          <div>
+            <h3>Install from ZIP</h3>
+            <p>Download the matching git-manager-[version].zip from the releases page, pick the file in Settings, or just drag it straight into the install area.</p>
+            <a class="lnk" href="https://github.com/GuoChen-thlg/git-manage/releases" target="_blank" rel="noopener">Grab it from Releases →</a>
+          </div>
+        </div>
+        <div class="step rv" style="--d:.08s">
+          <span class="no">02</span>
+          <div>
+            <h3>Install from a folder (local development)</h3>
+            <p>Start the build watcher first so code changes rebuild artifacts automatically, then select the packages/openchamber directory. Without a build you'll get a missing-build prompt.</p>
+            <span class="cmd"><span>pnpm install &amp;&amp; pnpm dev</span><button class="copy" type="button" data-copy="pnpm install && pnpm dev" data-done="Copied">Copy</button></span>
+          </div>
+        </div>
+        <div class="step rv" style="--d:.16s">
+          <span class="no">03</span>
+          <div>
+            <h3>Install from a Git URL</h3>
+            <p>Paste the repository URL and the host shallow-clones it before installing (the repo must already contain the build artifacts). #release points at the release branch where the artifacts live.</p>
+            <span class="cmd"><span>https://github.com/GuoChen-thlg/git-manage.git#release</span><button class="copy" type="button" data-copy="https://github.com/GuoChen-thlg/git-manage.git#release" data-done="Copied">Copy</button></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="sec" id="faq">
+      <div class="sec-head">
+        <h2 class="rv">FAQ.</h2>
+      </div>
+      <div class="faq">
+        <details class="rv">
+          <summary>Can I install straight from the source branch?</summary>
+          <p>No. The panel and services are build artifacts and don't get committed along with the source branch. Use the ZIP, a local build folder, or the #release branch instead.</p>
+        </details>
+        <details class="rv">
+          <summary>Do I need git installed on my machine?</summary>
+          <p>Yes. The extension runs local git commands through the host's exec permission, so without git installed, those actions will fail.</p>
+        </details>
+        <details class="rv">
+          <summary>Which operating systems are supported?</summary>
+          <p>Cross-platform. If OpenChamber can run and git is installed, Windows, macOS, and Linux all work.</p>
+        </details>
+        <details class="rv">
+          <summary>Will this make me look more professional?</summary>
+          <p>The moment that commit graph starts rolling, your coworkers will swear you just came back from a stint at some big-tech company. We don't guarantee promotions — we do guarantee it looks good.</p>
+        </details>
+      </div>
+    </section>
+
+    <footer>
+      <p class="foot-tm">IntelliJ IDEA is a registered trademark of JetBrains s.r.o. This project is not affiliated with, sponsored by, or endorsed by JetBrains. Any mention is solely to describe the interaction reference.</p>
+      <div class="foot-row">
+        <span>© 2026 GuoChen-thlg · Apache-2.0</span>
+        <div class="foot-links">
+          <a class="foot-steal" href="https://github.com/GuoChen-thlg/git-manage" target="_blank" rel="noopener">(Legally) steal our code →</a>
+          <a href="https://docs.openchamber.dev/sdk/" target="_blank" rel="noopener">OpenChamber SDK</a>
+          <a href="../zh/">中文</a>
+          <a href="../../vscode/en/">VS Code edition</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <script src="../../shared/site.js"></script>
+</body>
+</html>

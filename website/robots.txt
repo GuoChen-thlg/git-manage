@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://guochen-thlg.github.io/git-manage/sitemap.xml
