@@ -515,7 +515,8 @@ export async function handleRequest(request: Request): Promise<Response> {
         return new Response("Not Found", { status: 404 });
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    // 只回传错误文本：Error 取 message（不含堆栈），其余值经模板字符串转文本，避免异常细节外泄
+    const message = error instanceof Error ? error.message : `Unexpected error: ${error}`;
     return new Response(message, { status: 500 });
   }
 }

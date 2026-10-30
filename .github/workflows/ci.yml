@@ -5,6 +5,10 @@ on:
     branches: [dev, main]
   pull_request:
 
+# 最小权限：CI 只需读取代码执行构建与测试
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
