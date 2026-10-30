@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Git Manager for VS Code — 把 IDE 级的 Git 工具窗搬进 VS Code</title>
+  <meta name="description" content="Git Manager 是 VS Code 的 Git 图形化管理扩展：分支管理、提交历史、差异对比与智能过滤，交互深度参考 IntelliJ IDEA。" />
+  <link rel="canonical" href="https://guochen-thlg.github.io/git-manage/vscode/zh/" />
+  <link rel="alternate" hreflang="zh-CN" href="https://guochen-thlg.github.io/git-manage/vscode/zh/" />
+  <link rel="alternate" hreflang="en" href="https://guochen-thlg.github.io/git-manage/vscode/en/" />
+  <link rel="alternate" hreflang="x-default" href="https://guochen-thlg.github.io/git-manage/vscode/en/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Git Manager" />
+  <meta property="og:title" content="Git Manager for VS Code — 把 IDE 级的 Git 工具窗搬进 VS Code" />
+  <meta property="og:description" content="Git Manager 是 VS Code 的 Git 图形化管理扩展：分支管理、提交历史、差异对比与智能过滤，交互深度参考 IntelliJ IDEA。" />
+  <meta property="og:url" content="https://guochen-thlg.github.io/git-manage/vscode/zh/" />
+  <meta property="og:image" content="https://guochen-thlg.github.io/git-manage/assets/vscode-panel.png" />
+  <meta property="og:locale" content="zh_CN" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Git Manager for VS Code — 把 IDE 级的 Git 工具窗搬进 VS Code" />
+  <meta name="twitter:description" content="Git Manager 是 VS Code 的 Git 图形化管理扩展：分支管理、提交历史、差异对比与智能过滤，交互深度参考 IntelliJ IDEA。" />
+  <meta name="twitter:image" content="https://guochen-thlg.github.io/git-manage/assets/vscode-panel.png" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Git Manager for VS Code",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Windows, macOS, Linux",
+    "softwareVersion": "0.0.2",
+    "license": "https://www.apache.org/licenses/LICENSE-2.0",
+    "author": { "@type": "Person", "name": "GuoChen-thlg" },
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "description": "VS Code 的 Git 图形化管理扩展，交互深度参考 IntelliJ IDEA 的 Git 工具窗。"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "源码分支能直接安装吗？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "不能。扩展需要打包后的产物，源码分支里没有。请从 Marketplace 安装，或下载 VSIX 走「从 VSIX 安装」。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "需要本机安装 git 吗？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "需要。扩展在扩展宿主进程里调用本机 git 命令，未安装时相关操作会失败。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "支持哪些系统？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "跨平台。只要 VS Code 能跑、本机有 git，Windows、macOS、Linux 都行。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "和 OpenChamber 版是什么关系？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "同一个插件的两个宿主版本，功能对齐、同步维护。VS Code 版给天天开着 VS Code 的人，OpenChamber 版给另一边的同事——两边打同一场仗。"
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+  <!-- 悬浮胶囊导航 -->
+  <header class="pillbar">
+    <div class="pill">
+      <a class="brand" href="./">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="9" r="2.2"/>
+          <path d="M6 7.2v9.6M8.2 5.4c4 .6 6.5 1.4 7.8 3.4"/>
+        </svg>
+        Git Manager <span class="brand-sub">/ VS Code</span>
+      </a>
+      <a class="navlink" href="#features">功能</a>
+      <a class="navlink" href="#install">安装</a>
+      <a class="navlink" href="#faq">常见问题</a>
+      <a class="navlink" href="../en/">English</a>
+    </div>
+    <div class="pill">
+      <a class="star" href="https://github.com/GuoChen-thlg/git-manage" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.3 9.3 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+        1.2K
+      </a>
+      <a class="btn btn-primary btn-pill" href="https://marketplace.visualstudio.com/items?itemName=thlg.git-manager-vscode" target="_blank" rel="noopener">安装</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="aura" aria-hidden="true"></div>
+    <canvas class="particles" data-particle="digital" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <div class="hero-inner">
+        <span class="eyebrow rv">v0.0.2 · VS Code 扩展 <span class="hash mono">thlg.git-manager-vscode</span></span>
+        <h1 class="rv" style="--d:.06s">把 IDE 级的 Git 工具窗，<br /><span class="dim">搬进 VS Code。</span></h1>
+        <p class="lead rv" style="--d:.12s">分支树、提交图、差异对比、多条件过滤，全部收进侧栏一个面板。交互深度参考 IntelliJ IDEA——习惯 IDE 式 Git 工作流的开发者，装上就能用。</p>
+        <div class="btn-row rv" style="--d:.18s">
+          <a class="btn btn-primary" href="https://marketplace.visualstudio.com/items?itemName=thlg.git-manager-vscode" target="_blank" rel="noopener">从 Marketplace 安装</a>
+          <a class="btn btn-ghost" href="https://github.com/GuoChen-thlg/git-manage" target="_blank" rel="noopener">看看源码</a>
+          <span class="cmd">
+            <span>thlg.git-manager-vscode</span>
+            <button class="copy" type="button" data-copy="thlg.git-manager-vscode" data-done="已复制">复制</button>
+          </span>
+        </div>
+        <div class="stats rv" style="--d:.24s">
+          <div class="stat"><span class="num">12</span><span class="label">界面语言</span></div>
+          <div class="stat"><span class="num">≥1.74</span><span class="label">VS CODE</span></div>
+          <div class="stat"><span class="num">Apache-2.0</span><span class="label">开源协议</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 截图 -->
+  <div class="wrap shot-zone">
+    <div class="shot-aura" aria-hidden="true"></div>
+    <figure class="shot rv">
+      <picture>
+        <source type="image/avif" srcset="../../assets/vscode-panel.avif" />
+        <source type="image/webp" srcset="../../assets/vscode-panel.webp" />
+        <img src="../../assets/vscode-panel.png" alt="VS Code 中 Git Manager 面板实拍：左侧分支列表、中间提交历史、右侧提交详情" width="1680" height="930" loading="lazy" />
+      </picture>
+      <figcaption class="cap">面板实拍 · 分支树 · 提交图 · 差异对比</figcaption>
+    </figure>
+  </div>
+
+  <main class="wrap">
+    <!-- 功能 -->
+    <section class="sec" id="features">
+      <div class="sec-head">
+        <h2 class="rv">六项能力，<br />一个侧栏面板全包了。</h2>
+        <p class="sec-sub rv" style="--d:.08s">以成熟 IDE 为标杆打磨交互细节——不是我们原创，是标杆教得好。</p>
+      </div>
+      <div class="grid">
+        <div class="card rv" style="--d:.04s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="5" r="2.4"/><circle cx="6" cy="19" r="2.4"/><circle cx="18" cy="9" r="2.4"/><path d="M6 7.4v9.2M8.4 5.6c4 .6 6.6 1.3 7.9 3.2"/></svg></div>
+          <h3>分支管理</h3>
+          <p>本地与远程分组浏览、收藏常用分支。删除前自动记录位置，误删一键还原；未合并明确提醒，当前分支锁定防误操作。</p>
+        </div>
+        <div class="card rv" style="--d:.1s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5h14M5 10h9M5 15h14M5 20h7"/></svg></div>
+          <h3>提交历史</h3>
+          <p>提交列表、提交图、提交详情，外加 cherry-pick、revert、stash——日常最高频的那几步都在手边。</p>
+        </div>
+        <div class="card rv" style="--d:.16s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></div>
+          <h3>差异对比</h3>
+          <p>文件级与提交级差异，直观的暂存区管理。改了什么、要不要进暂存，一眼看清。</p>
+        </div>
+        <div class="card rv" style="--d:.04s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16l-6.5 7.5V19l-3 1.5v-8L4 5z"/></svg></div>
+          <h3>智能过滤</h3>
+          <p>大小写、正则、分支、作者、日期、路径组合过滤，路径支持 IDEA 风格树形多选，大仓库里也能秒级定位。</p>
+        </div>
+        <div class="card rv" style="--d:.1s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.3 3.9 8.5S14.6 18.1 12 20.5C9.4 18.1 8.1 15.2 8.1 12S9.4 5.9 12 3.5z"/></svg></div>
+          <h3>多语言界面</h3>
+          <p>内置 12 种语言，文案与日期格式随系统语言自动切换，无需手动设置。</p>
+        </div>
+        <div class="card rv" style="--d:.16s">
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></div>
+          <h3>误删可还原</h3>
+          <p>删除分支前记录位置，删除后从通知里一键找回。手滑不背锅。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 安装 -->
+    <section class="sec" id="install">
+      <div class="sec-head">
+        <h2 class="rv">两种安装方式，<br />总有一款逃不掉。</h2>
+        <p class="sec-sub rv" style="--d:.08s">在 VS Code 的扩展面板里装，任选其一。</p>
+      </div>
+      <div class="steps">
+        <div class="step rv">
+          <span class="no">01</span>
+          <div>
+            <h3>从 Marketplace 安装</h3>
+            <p>打开扩展面板（Ctrl+Shift+X / Cmd+Shift+X），搜索 Git Manager 或 thlg.git-manager-vscode，点击安装即可。后续更新随 VS Code 自动推送。</p>
+            <span class="cmd"><span>thlg.git-manager-vscode</span><button class="copy" type="button" data-copy="thlg.git-manager-vscode" data-done="已复制">复制</button></span>
+            <a class="lnk" href="https://marketplace.visualstudio.com/items?itemName=thlg.git-manager-vscode" target="_blank" rel="noopener">前往 Marketplace →</a>
+          </div>
+        </div>
+        <div class="step rv" style="--d:.08s">
+          <span class="no">02</span>
+          <div>
+            <h3>从 VSIX 安装</h3>
+            <p>下载 git-manager-vscode-0.0.2.vsix，在扩展面板 · 更多操作 · 从 VSIX 安装 中选择该文件。离线环境同样适用。</p>
+            <span class="cmd"><span>https://github.com/GuoChen-thlg/git-manage/releases/download/v0.0.5/git-manager-vscode-0.0.2.vsix</span><button class="copy" type="button" data-copy="https://github.com/GuoChen-thlg/git-manage/releases/download/v0.0.5/git-manager-vscode-0.0.2.vsix" data-done="已复制">复制</button></span>
+            <a class="lnk" href="https://github.com/GuoChen-thlg/git-manage/releases/download/v0.0.5/git-manager-vscode-0.0.2.vsix" target="_blank" rel="noopener">下载 git-manager-vscode-0.0.2.vsix →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="sec" id="faq">
+      <div class="sec-head">
+        <h2 class="rv">常见问题。</h2>
+      </div>
+      <div class="faq">
+        <details class="rv">
+          <summary>源码分支能直接安装吗？</summary>
+          <p>不能。扩展需要打包后的产物，源码分支里没有。请从 Marketplace 安装，或下载 VSIX 走「从 VSIX 安装」。</p>
+        </details>
+        <details class="rv">
+          <summary>需要本机安装 git 吗？</summary>
+          <p>需要。扩展在扩展宿主进程里调用本机 git 命令，未安装时相关操作会失败。</p>
+        </details>
+        <details class="rv">
+          <summary>支持哪些系统？</summary>
+          <p>跨平台。只要 VS Code 能跑、本机有 git，Windows、macOS、Linux 都行。</p>
+        </details>
+        <details class="rv">
+          <summary>和 OpenChamber 版是什么关系？</summary>
+          <p>同一个插件的两个宿主版本，功能对齐、同步维护。VS Code 版给天天开着 VS Code 的人，OpenChamber 版给另一边的同事——两边打同一场仗。</p>
+        </details>
+      </div>
+    </section>
+
+    <footer>
+      <p class="foot-tm">IntelliJ IDEA 是 JetBrains s.r.o. 的注册商标。本项目与 JetBrains 无隶属、赞助或认可关系，文中提及仅用于描述交互参考对象。</p>
+      <div class="foot-row">
+        <span>© 2026 GuoChen-thlg · Apache-2.0</span>
+        <div class="foot-links">
+          <a class="foot-steal" href="https://github.com/GuoChen-thlg/git-manage" target="_blank" rel="noopener">(合法)偷走我们的代码 →</a>
+          <a href="https://marketplace.visualstudio.com/items?itemName=thlg.git-manager-vscode" target="_blank" rel="noopener">VS Code Marketplace</a>
+          <a href="../en/">English</a>
+          <a href="../../openchamber/zh/">OpenChamber 版</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <script src="../../shared/site.js"></script>
+</body>
+</html>

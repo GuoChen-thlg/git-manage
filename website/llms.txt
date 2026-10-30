@@ -1,0 +1,20 @@
+# Git Manager
+
+> Git Manager is an open-source (Apache-2.0) graphical Git management extension, available for two hosts: OpenChamber and VS Code. Features: branch management with recovery, commit history/graph, diff view, multi-criteria filtering, 12 UI languages.
+
+## Pages
+
+- [OpenChamber (zh)](https://guochen-thlg.github.io/git-manage/openchamber/zh/)
+- [OpenChamber (en)](https://guochen-thlg.github.io/git-manage/openchamber/en/)
+- [VS Code (zh)](https://guochen-thlg.github.io/git-manage/vscode/zh/)
+- [VS Code (en)](https://guochen-thlg.github.io/git-manage/vscode/en/)
+
+## Install
+
+- OpenChamber: install from a ZIP, a local build folder, or the Git URL https://github.com/GuoChen-thlg/git-manage.git#release
+- VS Code: install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=thlg.git-manager-vscode), or download a VSIX from [GitHub Releases](https://github.com/GuoChen-thlg/git-manage/releases)
+
+## Resources
+
+- [GitHub repository](https://github.com/GuoChen-thlg/git-manage)
+- [Releases](https://github.com/GuoChen-thlg/git-manage/releases)
