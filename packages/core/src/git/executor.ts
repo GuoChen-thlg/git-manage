@@ -26,6 +26,14 @@ export interface GitCommandLog {
   stderr: string;
 }
 
+/**
+ * 禁用的 git 危险选项列表（不含等号值形式）
+ * 这些选项可让 git 去执行指定的外部程序（clone/fetch/pull/ls-remote 的 --upload-pack、
+ * push/rebase 的 --receive-pack、push/rebase 的 --exec），
+ * 一旦外部输入未经校验流入命令参数，就会造成二阶命令注入（任意命令执行），因此一律拒绝
+ */
+const FORBIDDEN_GIT_OPTIONS = ['--upload-pack', '--receive-pack', '--exec'];
+
 /** 命令日志保留上限（环形缓冲，超出丢弃最旧） */
 const GIT_LOG_LIMIT = 200;
 /** 单条日志中 stdout/stderr 的保留字节上限 */
@@ -89,9 +97,26 @@ export async function gitExec(
 ): Promise<GitResult> {
   const { cwd, timeout = 30000, env } = options;
 
-  // 字符串命令按空白拆分为参数数组；数组命令保留原始参数边界
-  const args = typeof command === 'string' ? command.split(/\s+/).filter(Boolean) : command;
+  // 字符串命令按空白拆分为参数数组；数组命令复制新数组：
+  // 既避免执行期间被调用方修改，也不让外部输入直接成为执行参数
+  const args = typeof command === 'string' ? command.split(/\s+/).filter(Boolean) : [...command];
   const commandText = Array.isArray(command) ? command.join(' ') : command;
+
+  // 危险选项校验（防二阶命令注入）：--upload-pack / --receive-pack / --exec 可让 git 执行
+  // 外部程序，命中（选项本身或 --xxx=值 形式）即拒绝。放在 try 之外：
+  // 校验失败不是命令执行失败，不进入执行流程，也不记入命令日志
+  const forbidden = args.find(
+    arg => FORBIDDEN_GIT_OPTIONS.some(opt => arg === opt || arg.startsWith(`${opt}=`))
+  );
+  if (forbidden) {
+    const option = FORBIDDEN_GIT_OPTIONS.find(
+      opt => forbidden === opt || forbidden.startsWith(`${opt}=`)
+    );
+    throw new GitError(
+      `Git 选项 ${option ?? forbidden} 已被禁用：该选项会指定 git 执行外部程序，存在命令注入风险`,
+      { stdout: '', stderr: '', exitCode: 1 }
+    );
+  }
 
   // 计时用于命令日志展示耗时
   const startedAt = Date.now();
