@@ -1,0 +1,130 @@
+/**
+ * 面板统一样式入口
+ * 主题色/字体/圆角统一走 --gm-* 语义变量，映射到宿主注入的 --oc-* 主题变量；
+ * 宿主未注入时回退到一套中性浅色/深色（prefers-color-scheme）双端默认值，
+ * 保证预览或测试环境（无宿主 theme）仍可读。
+ * 组件不再内联颜色，仅保留运行时计算值（弹层坐标/几何）。
+ */
+
+:root {
+  /* 主题色语义层：映射宿主 --oc-*；宿主未注入时走回退值 */
+  --gm-bg: var(--oc-bg, #ffffff);
+  --gm-elevated: var(--oc-elevated, #f7f7f8);
+  --gm-fg: var(--oc-fg, #1f2328);
+  --gm-muted: var(--oc-muted, #656d76);
+  --gm-subtle: var(--oc-subtle, #8c959f);
+  --gm-border: var(--oc-border, #d0d7de);
+  --gm-hover: var(--oc-hover, rgba(20, 20, 20, 0.06));
+  --gm-selection: var(--oc-selection, rgba(0, 92, 230, 0.12));
+  --gm-focus: var(--oc-focus, #0969da);
+  --gm-primary: var(--oc-primary, #0969da);
+  --gm-primary-fg: var(--oc-primary-fg, #ffffff);
+  --gm-primary-text: var(--oc-primary-text, #0969da);
+  --gm-muted-surface: var(--oc-muted-surface, #f6f8fa);
+  --gm-elevated-fg: var(--oc-elevated-fg, #1f2328);
+  --gm-active: var(--oc-active, rgba(0, 0, 0, 0.12));
+  --gm-selection-fg: var(--oc-selection-fg, #1f2328);
+
+  --gm-success: var(--oc-success, #1a7f37);
+  --gm-warning: var(--oc-warning, #9a6700);
+  --gm-error: var(--oc-error, #cf222e);
+  --gm-info: var(--oc-info, #0969da);
+  --gm-success-text: var(--oc-success-text, #1a7f37);
+  --gm-warning-text: var(--oc-warning-text, #9a6700);
+  --gm-error-text: var(--oc-error-text, #cf222e);
+  --gm-info-text: var(--oc-info-text, #0969da);
+
+  --gm-font: var(--oc-font, system-ui, -apple-system, "Segoe UI", sans-serif);
+  --gm-mono: var(--oc-mono, ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace);
+  --gm-radius: var(--oc-radius, 6px);
+
+  /* 语法高亮（diff 行 tokeniser 消费） */
+  --gm-syntax-keyword: var(--oc-syntax-keyword, #8250df);
+  --gm-syntax-string: var(--oc-syntax-string, #0a3069);
+  --gm-syntax-number: var(--oc-syntax-number, #0550ae);
+  --gm-syntax-function: var(--oc-syntax-function, #8250df);
+  --gm-syntax-type: var(--oc-syntax-type, #953800);
+  --gm-syntax-comment: var(--oc-syntax-comment, #6e7781);
+  --gm-syntax-variable: var(--oc-syntax-variable, #24292f);
+  --gm-syntax-operator: var(--oc-syntax-operator, #cf222e);
+}
+
+/* 宿主未注入 --oc-* 时的深色回退（跟随系统偏好） */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gm-bg: var(--oc-bg, #0d1117);
+    --gm-elevated: var(--oc-elevated, #161b22);
+    --gm-fg: var(--oc-fg, #e6edf3);
+    --gm-muted: var(--oc-muted, #8d96a0);
+    --gm-subtle: var(--oc-subtle, #6e7681);
+    --gm-border: var(--oc-border, #30363d);
+    --gm-hover: var(--oc-hover, rgba(255, 255, 255, 0.07));
+    --gm-selection: var(--oc-selection, rgba(56, 139, 253, 0.28));
+    --gm-focus: var(--oc-focus, #58a6ff);
+    --gm-primary: var(--oc-primary, #58a6ff);
+    --gm-primary-fg: var(--oc-primary-fg, #0d1117);
+    --gm-primary-text: var(--oc-primary-text, #58a6ff);
+    --gm-muted-surface: var(--oc-muted-surface, #161b22);
+    --gm-elevated-fg: var(--oc-elevated-fg, #e6edf3);
+    --gm-active: var(--oc-active, rgba(255, 255, 255, 0.15));
+    --gm-selection-fg: var(--oc-selection-fg, #e6edf3);
+
+    --gm-success: var(--oc-success, #3fb950);
+    --gm-warning: var(--oc-warning, #d29922);
+    --gm-error: var(--oc-error, #f85149);
+    --gm-info: var(--oc-info, #58a6ff);
+    --gm-success-text: var(--oc-success-text, #3fb950);
+    --gm-warning-text: var(--oc-warning-text, #d29922);
+    --gm-error-text: var(--oc-error-text, #f85149);
+    --gm-info-text: var(--oc-info-text, #58a6ff);
+
+    --gm-syntax-keyword: var(--oc-syntax-keyword, #d2a8ff);
+    --gm-syntax-string: var(--oc-syntax-string, #a5d6ff);
+    --gm-syntax-number: var(--oc-syntax-number, #79c0ff);
+    --gm-syntax-function: var(--oc-syntax-function, #d2a8ff);
+    --gm-syntax-type: var(--oc-syntax-type, #ffa657);
+    --gm-syntax-comment: var(--oc-syntax-comment, #8b949e);
+    --gm-syntax-variable: var(--oc-syntax-variable, #e6edf3);
+    --gm-syntax-operator: var(--oc-syntax-operator, #ff7b72);
+  }
+}
+
+/* 根容器默认应用主题背景/前景/字体 */
+#root {
+  background: var(--gm-bg);
+  color: var(--gm-fg);
+  font-family: var(--gm-font);
+}
+
+/* 分支删除通知卡片：固定右下角悬浮卡，随主题配色 */
+.gm-notify {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1100;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 10px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  font-size: 12px;
+  color: var(--gm-fg);
+  max-width: 320px;
+}
+
+.gm-notify-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.gm-notify-link {
+  color: var(--gm-primary-text);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.gm-notify-link-hover {
+  text-decoration: underline;
+}

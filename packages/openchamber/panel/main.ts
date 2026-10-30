@@ -15,7 +15,7 @@
  * └──────────────────────────────────────────────────────────┘
  */
 
-import { mountEmpty } from "@openchamber/sdk/ui";
+import { mountEmpty, applyHostReady } from "@openchamber/sdk/ui";
 
 import { html } from './html';
 import { host } from './host';
@@ -799,10 +799,36 @@ async function checkGitRepository(): Promise<boolean> {
   }
 }
 
+/**
+ * 首屏可见性兜底：面板在首个 ready 到达前隐藏，避免以默认配色先闪一下；
+ * 若宿主静默（1.5s 内无 ready），强制显示以保证面板可用。
+ */
+const FIRST_PAINT_FALLBACK_MS = 1500;
+let firstPaintDone = false;
+let firstPaintTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** 标记首屏已就绪：显示根节点并取消兜底计时器（幂等） */
+function revealPanel(): void {
+  if (firstPaintDone) return;
+  firstPaintDone = true;
+  if (firstPaintTimer !== null) {
+    clearTimeout(firstPaintTimer);
+    firstPaintTimer = null;
+  }
+  document.documentElement.style.visibility = 'visible';
+}
+
 async function init(): Promise<void> {
-  // 菜单文案语言跟随宿主设置
+  // 首屏隐藏，等首个 ready 注入主题后再显示；兜底计时器防宿主静默
+  document.documentElement.style.visibility = 'hidden';
+  firstPaintTimer = setTimeout(revealPanel, FIRST_PAINT_FALLBACK_MS);
+
+  // 语言与主题跟随宿主 ready 上下文；每次 ready 都重绘主题，
+  // 覆盖宿主主题切换后重推 ready 的场景（SDK 未文档化，需实测）
   host.onReady((context) => {
     setLocale(context.locale);
+    applyHostReady(context, document.documentElement);
+    revealPanel();
   });
   host.onDirectory((dir) => {
     console.debug(JSON.stringify({

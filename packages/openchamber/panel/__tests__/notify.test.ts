@@ -6,6 +6,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { showBranchDeletedNotify } from '../components/notify';
 import { host } from '../host';
 import { setLocale } from '../i18n';
+import {
+  expectThemedClass,
+  expectNoHardcodedHex,
+  expectOnlyRuntimeInlineStyles,
+} from './theme-helpers';
 
 // 宿主模块打桩：避免真实 connectHost 握手，并在用例中断言 toast 调用
 vi.mock('../host', () => ({
@@ -74,11 +79,11 @@ describe('notify', () => {
       expect(card.textContent).toContain('已删除的分支: dev');
       expect(findLink('还原')).toBeTruthy();
       expect(findLink('删除跟踪的分支')).toBeTruthy();
-      // 卡片为固定右下角的深色面板风格
-      expect(card.style.position).toBe('fixed');
-      expect(card.style.right).toBe('12px');
-      expect(card.style.bottom).toBe('12px');
-      expect(card.style.background).toBeTruthy();
+      // 卡片为固定右下角的悬浮面板风格，主题走 .gm-notify class + --gm-* 变量
+      expectThemedClass(card, 'gm-notify');
+      // 内联只允许运行时状态（如 opacity/pointerEvents），主题/几何由 CSS 类承担
+      expectOnlyRuntimeInlineStyles(card);
+      expectNoHardcodedHex(card);
     });
 
     it('仅提供 onRestore 时只显示还原链接，不显示删除跟踪链接', () => {
