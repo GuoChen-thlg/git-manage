@@ -64,3 +64,6 @@ test-fixture/
 
 # 主题样式中间片段(已合并进 panel/styles.css,不入库)
 packages/openchamber/panel/__styles__/
+
+# 换肤预览 harness(mock 宿主,不入库)
+preview/
