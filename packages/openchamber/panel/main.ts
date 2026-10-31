@@ -102,13 +102,13 @@ async function render(): Promise<void> {
 
     // 主布局: 上下结构 (内容 + 底部Tab栏)
     const mainLayout = html`
-      <div style="display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden;"></div>
+      <div class="gm-main-layout"></div>
     `;
 
     // 顶部细进度条：Fetch 等耗时操作期间显示流动动画，空闲时高度为 0 不占位
     const progressBar = html`
-      <div data-progress style="height: 0; flex-shrink: 0; overflow: hidden; background: #2b2b2b; position: relative; transition: height 0.15s;">
-        <div data-progress-inner style="position: absolute; top: 0; left: 0; height: 2px; width: 30%; background: #589df6; opacity: 0;"></div>
+      <div data-progress class="gm-progress">
+        <div data-progress-inner class="gm-progress-inner"></div>
       </div>
     `;
     mainLayout.appendChild(progressBar);
@@ -118,7 +118,7 @@ async function render(): Promise<void> {
 
     // 内容区域: 左中右三栏
     const contentArea = html`
-      <div style="display: flex; flex: 1; width: 100%; overflow: hidden;"></div>
+      <div class="gm-content-area"></div>
     `;
     mainLayout.appendChild(contentArea);
 
@@ -130,7 +130,7 @@ async function render(): Promise<void> {
 
     // A 区域: 分支面板 (左侧 220px)
     const branchPanel = html`
-      <div style="width: 220px; min-width: 220px; border-right: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e;"></div>
+      <div class="gm-pane-branch"></div>
     `;
     // 会话级保留上次的显隐状态
     branchPanel.style.display = getState().branchPanelHidden ? 'none' : '';
@@ -151,7 +151,7 @@ async function render(): Promise<void> {
 
     // B 区域: 提交列表 (中间 - 占大部分空间)
     const commitListPanel = html`
-      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #333;"></div>
+      <div class="gm-pane-commits"></div>
     `;
     contentArea.appendChild(commitListPanel);
 
@@ -298,13 +298,13 @@ async function render(): Promise<void> {
 
     // C 区域: 右侧详情面板 (固定宽度 300px)
     const detailPanel = html`
-      <div style="width: 300px; min-width: 200px; display: flex; flex-direction: column; overflow: hidden;"></div>
+      <div class="gm-pane-detail"></div>
     `;
     contentArea.appendChild(detailPanel);
 
     // C1: 变更文件 (上半部分)
     const fileDiffPanel = html`
-      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid #333;"></div>
+      <div class="gm-pane-filediff"></div>
     `;
     detailPanel.appendChild(fileDiffPanel);
 
@@ -313,7 +313,7 @@ async function render(): Promise<void> {
 
     // C2: 提交详情 (下半部分)
     const commitDetailPanel = html`
-      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"></div>
+      <div class="gm-pane-commitdetail"></div>
     `;
     detailPanel.appendChild(commitDetailPanel);
 
@@ -325,7 +325,7 @@ async function render(): Promise<void> {
     // 底部区域：可折叠的面板容器 + Tab 栏
     // 三个页签共用同一容器，切换时重建对应面板
     const bottomPanel = html`
-      <div data-bottom-panel style="display: none; height: 220px; min-height: 120px; border-top: 1px solid #333; overflow: hidden;"></div>
+      <div data-bottom-panel class="gm-bottom-panel"></div>
     `;
     root.appendChild(bottomPanel);
 
@@ -372,8 +372,7 @@ async function render(): Promise<void> {
     function updateTabStyles(): void {
       tabBar.querySelectorAll<HTMLElement>('[data-tab]').forEach((el) => {
         const isActive = el.dataset.tab === activeTab && activeTab !== 'git';
-        el.style.color = isActive ? '#fff' : '#888';
-        el.style.background = isActive ? '#1e1e1e' : 'transparent';
+        el.classList.toggle('gm-tab-active', isActive);
       });
     }
 
@@ -447,11 +446,11 @@ function createProgressBar(element: HTMLElement): ProgressBar {
  */
 function createTabBar(onSwitch: (tab: 'git' | 'console' | 'worktrees') => void): HTMLElement {
   const bar = html`
-    <div style="flex-shrink: 0; border-top: 1px solid #333;">
-      <div style="display: flex; background: #2d2d2d; padding: 0; align-items: center;">
-        <div data-tab="git" style="padding: 4px 12px; font-size: 11px; color: #fff; background: #1e1e1e; border-right: 1px solid #333; cursor: pointer;">Git</div>
-        <div data-tab="console" style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; border-right: 1px solid #333;">${t('main.tabConsole')}</div>
-        <div data-tab="worktrees" style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer;">Worktrees</div>
+    <div class="gm-tabbar">
+      <div class="gm-tabbar-row">
+        <div data-tab="git" class="gm-tab gm-tab-active">Git</div>
+        <div data-tab="console" class="gm-tab">${t('main.tabConsole')}</div>
+        <div data-tab="worktrees" class="gm-tab">Worktrees</div>
       </div>
     </div>
   `;

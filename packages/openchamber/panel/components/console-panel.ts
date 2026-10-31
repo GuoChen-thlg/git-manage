@@ -59,29 +59,29 @@ export function createConsolePanel(
   container.style.minHeight = '0';
 
   const header = html`
-    <div style="display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-bottom: 1px solid #333; flex-shrink: 0; font-size: 11px; color: #888;">
+    <div class="gm-console-header">
       <span data-log-count>0</span>
       <span>${t('console.commandCount')}</span>
-      <span style="flex: 1;"></span>
-      <button data-log-clear style="padding: 1px 8px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer; font-size: 11px;">${t('console.clear')}</button>
+      <span class="gm-console-header-spacer"></span>
+      <button data-log-clear class="gm-console-clear-btn">${t('console.clear')}</button>
     </div>
   `;
   container.appendChild(header);
 
   const body = html`
-    <div style="flex: 1; display: flex; overflow: hidden; min-height: 0;"></div>
+    <div class="gm-console-body"></div>
   `;
   container.appendChild(body);
 
   // 左侧：命令列表
   const listEl = html`
-    <div data-log-list style="width: 320px; min-width: 220px; overflow-y: auto; border-right: 1px solid #333;"></div>
+    <div data-log-list class="gm-console-list"></div>
   `;
   body.appendChild(listEl);
 
   // 右侧：选中命令的完整输出
   const outputEl = html`
-    <div data-log-output style="flex: 1; overflow: auto; padding: 6px 8px; font-family: monospace; font-size: 11px; color: #ccc; white-space: pre-wrap; word-break: break-all;"></div>
+    <div data-log-output class="gm-console-output"></div>
   `;
   body.appendChild(outputEl);
 
@@ -96,7 +96,7 @@ export function createConsolePanel(
 
     if (entries.length === 0) {
       const empty = document.createElement('div');
-      empty.style.cssText = 'padding: 12px 8px; color: #666; font-size: 11px;';
+      empty.className = 'gm-console-empty';
       empty.textContent = t('console.noCommands');
       listEl.appendChild(empty);
       return;
@@ -106,20 +106,19 @@ export function createConsolePanel(
     for (const entry of [...entries].reverse()) {
       const row = document.createElement('div');
       row.dataset.logId = String(entry.id);
-      row.style.cssText = `padding: 4px 8px; cursor: pointer; border-bottom: 1px solid #2a2a2a; font-size: 11px; ${
-        selectedId === entry.id ? 'background: #2e4a6e;' : ''
-      }`;
+      // 主题/几何走 class；选中态由 class 承载，失败态文字色走 gm-console-row-fail
+      row.className = 'gm-console-row'
+        + (selectedId === entry.id ? ' gm-console-row-selected' : '')
+        + (entry.ok ? '' : ' gm-console-row-fail');
 
       const cmd = document.createElement('div');
-      cmd.style.cssText = `overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ${
-        entry.ok ? 'color: #ccc;' : 'color: #f48771;'
-      }`;
+      cmd.className = 'gm-console-cmd';
       cmd.textContent = entry.command;
       cmd.title = entry.command;
       row.appendChild(cmd);
 
       const meta = document.createElement('div');
-      meta.style.cssText = 'color: #666; margin-top: 2px;';
+      meta.className = 'gm-console-meta';
       meta.textContent = `${formatTime(entry.startedAt)} · ${entry.durationMs}ms · ${entry.ok ? '0' : entry.exitCode}`;
       row.appendChild(meta);
 

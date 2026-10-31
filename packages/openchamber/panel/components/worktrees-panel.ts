@@ -59,18 +59,18 @@ export function createWorktreesPanel(
 
   // 工具栏
   const toolbar = html`
-    <div style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-bottom: 1px solid #333; flex-shrink: 0;">
-      <button data-wt-action="add" style="padding: 2px 8px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer; font-size: 11px;">${t('worktree.add')}</button>
-      <button data-wt-action="prune" style="padding: 2px 8px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer; font-size: 11px;">${t('worktree.prune')}</button>
-      <button data-wt-action="refresh" style="padding: 2px 8px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer; font-size: 11px;">${t('worktree.refresh')}</button>
-      <span data-wt-count style="font-size: 11px; color: #888; margin-left: 4px;"></span>
+    <div class="gm-wt-toolbar">
+      <button data-wt-action="add" class="gm-wt-btn">${t('worktree.add')}</button>
+      <button data-wt-action="prune" class="gm-wt-btn">${t('worktree.prune')}</button>
+      <button data-wt-action="refresh" class="gm-wt-btn">${t('worktree.refresh')}</button>
+      <span data-wt-count class="gm-wt-count"></span>
     </div>
   `;
   container.appendChild(toolbar);
 
   // 列表
   const listEl = html`
-    <div data-wt-list style="flex: 1; overflow-y: auto; min-height: 0;"></div>
+    <div data-wt-list class="gm-wt-list"></div>
   `;
   container.appendChild(listEl);
 
@@ -92,7 +92,7 @@ export function createWorktreesPanel(
 
     if (list.length === 0) {
       const empty = document.createElement('div');
-      empty.style.cssText = 'padding: 12px 8px; color: #666; font-size: 11px;';
+      empty.className = 'gm-wt-empty';
       empty.textContent = t('worktree.empty');
       listEl.appendChild(empty);
       return;
@@ -101,13 +101,11 @@ export function createWorktreesPanel(
     for (const wt of list) {
       const row = document.createElement('div');
       row.dataset.path = wt.path;
-      row.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-bottom: 1px solid #2a2a2a; font-size: 11px;';
+      row.className = 'gm-wt-row';
 
-      // 分支名（detached 时用短哈希）
+      // 分支名（detached 时用短哈希）：主工作区蓝、普通工作区橙，由 class 承载
       const branch = document.createElement('span');
-      branch.style.cssText = `flex-shrink: 0; padding: 0 5px; border-radius: 2px; font-size: 10px; ${
-        wt.isMain ? 'background: #2a3a4a; color: #589df6;' : 'background: #4a3a1a; color: #e8a838;'
-      }`;
+      branch.className = 'gm-wt-badge ' + (wt.isMain ? 'gm-wt-badge-main' : 'gm-wt-badge-normal');
       branch.textContent = wt.detached
         ? `detached ${wt.head.slice(0, 7)}`
         : (wt.branch ?? '').replace('refs/heads/', '');
@@ -115,7 +113,7 @@ export function createWorktreesPanel(
 
       // 路径
       const pathEl = document.createElement('span');
-      pathEl.style.cssText = 'flex: 1; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+      pathEl.className = 'gm-wt-path';
       pathEl.textContent = wt.path;
       pathEl.title = wt.path;
       row.appendChild(pathEl);
@@ -123,7 +121,7 @@ export function createWorktreesPanel(
       // 主工作区标记
       if (wt.isMain) {
         const main = document.createElement('span');
-        main.style.cssText = 'color: #589df6; font-size: 10px; flex-shrink: 0;';
+        main.className = 'gm-wt-tag-main';
         main.textContent = t('worktree.main');
         row.appendChild(main);
       }
@@ -131,7 +129,7 @@ export function createWorktreesPanel(
       // 锁定标记
       if (wt.locked) {
         const lock = document.createElement('span');
-        lock.style.cssText = 'color: #e8a838; font-size: 10px; flex-shrink: 0;';
+        lock.className = 'gm-wt-tag-lock';
         lock.textContent = `🔒 ${wt.locked}`;
         row.appendChild(lock);
       }
@@ -140,7 +138,7 @@ export function createWorktreesPanel(
       if (!wt.isMain) {
         const removeBtn = document.createElement('button');
         removeBtn.textContent = t('worktree.remove');
-        removeBtn.style.cssText = 'padding: 1px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer; font-size: 10px; flex-shrink: 0;';
+        removeBtn.className = 'gm-wt-remove-btn';
         removeBtn.addEventListener('click', () => {
           // 沙箱中 window.confirm 不可用，改用扩展自身对话框
           showConfirmDialog(t('worktree.removeConfirm', { path: wt.path }), async () => {
@@ -190,7 +188,7 @@ export function createWorktreesPanel(
     } catch (e) {
       if (disposed) return;
       console.error(JSON.stringify({ prefix: '[worktree]', event: 'list_error', error: String(e) }));
-      listEl.innerHTML = `<div style="padding: 12px 8px; color: #f44336; font-size: 11px;">${t('worktree.loadFailed')}</div>`;
+      listEl.innerHTML = `<div class="gm-wt-load-error">${t('worktree.loadFailed')}</div>`;
     }
   };
 

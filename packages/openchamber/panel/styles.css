@@ -1870,3 +1870,327 @@
   font-size: 12px;
   color: var(--gm-error-text);
 }
+
+/* ============ console-panel ============ */
+
+/**
+ * console-panel 控制台面板样式
+ * 主题色/字体/圆角走 --gm-* 语义变量
+ */
+
+.gm-console-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--gm-muted);
+}
+
+.gm-console-header-spacer {
+  flex: 1;
+}
+
+.gm-console-clear-btn {
+  padding: 1px 8px;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  color: var(--gm-fg);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.gm-console-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.gm-console-list {
+  width: 320px;
+  min-width: 220px;
+  overflow-y: auto;
+  border-right: 1px solid var(--gm-border);
+}
+
+.gm-console-output {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 8px;
+  font-family: var(--gm-mono);
+  font-size: 11px;
+  color: var(--gm-fg);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.gm-console-empty {
+  padding: 12px 8px;
+  color: var(--gm-subtle);
+  font-size: 11px;
+}
+
+.gm-console-row {
+  padding: 4px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 11px;
+}
+
+.gm-console-row-selected {
+  background: var(--gm-selection);
+}
+
+.gm-console-row-fail .gm-console-cmd {
+  color: var(--gm-error-text);
+}
+
+.gm-console-cmd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gm-fg);
+}
+
+.gm-console-meta {
+  color: var(--gm-subtle);
+  margin-top: 2px;
+}
+
+/* ============ worktrees-panel ============ */
+
+/**
+ * worktrees-panel 工作区列表面板样式
+ * 主题色/字体/圆角走 --gm-* 语义变量
+ */
+
+.gm-wt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+
+.gm-wt-btn {
+  padding: 2px 8px;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  color: var(--gm-fg);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.gm-wt-count {
+  font-size: 11px;
+  color: var(--gm-muted);
+  margin-left: 4px;
+}
+
+.gm-wt-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.gm-wt-empty {
+  padding: 12px 8px;
+  color: var(--gm-subtle);
+  font-size: 11px;
+}
+
+.gm-wt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 11px;
+}
+
+.gm-wt-badge {
+  flex-shrink: 0;
+  padding: 0 5px;
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.gm-wt-badge-main {
+  background: var(--gm-selection);
+  color: var(--gm-primary-text);
+}
+
+.gm-wt-badge-normal {
+  background: var(--gm-muted-surface);
+  color: var(--gm-warning-text);
+}
+
+.gm-wt-path {
+  flex: 1;
+  color: var(--gm-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-wt-tag-main {
+  color: var(--gm-primary-text);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.gm-wt-tag-lock {
+  color: var(--gm-warning-text);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.gm-wt-remove-btn {
+  padding: 1px 6px;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  color: var(--gm-fg);
+  cursor: pointer;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.gm-wt-load-error {
+  padding: 12px 8px;
+  color: var(--gm-error-text);
+  font-size: 11px;
+}
+
+/* ============ main-chrome ============ */
+
+/**
+ * main.ts 面板框架 chrome 样式
+ * 布局几何 + 主题色走 --gm-* 语义变量
+ */
+
+.gm-main-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.gm-content-area {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 顶部细进度条 */
+.gm-progress {
+  height: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--gm-muted-surface);
+  position: relative;
+  transition: height 0.15s;
+}
+
+.gm-progress-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 30%;
+  background: var(--gm-primary);
+  opacity: 0;
+}
+
+/* A 区域：分支面板（220px） */
+.gm-pane-branch {
+  width: 220px;
+  min-width: 220px;
+  border-right: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gm-bg);
+}
+
+/* B 区域：提交列表（中间） */
+.gm-pane-commits {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--gm-border);
+}
+
+/* C 区域：右侧详情面板（300px） */
+.gm-pane-detail {
+  width: 300px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* C1：变更文件 */
+.gm-pane-filediff {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+/* C2：提交详情 */
+.gm-pane-commitdetail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 底部可折叠面板容器 */
+.gm-bottom-panel {
+  display: none;
+  height: 220px;
+  min-height: 120px;
+  border-top: 1px solid var(--gm-border);
+  overflow: hidden;
+}
+
+/* Tab 栏 */
+.gm-tabbar {
+  flex-shrink: 0;
+  border-top: 1px solid var(--gm-border);
+}
+
+.gm-tabbar-row {
+  display: flex;
+  background: var(--gm-muted-surface);
+  padding: 0;
+  align-items: center;
+}
+
+.gm-tab {
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  border-right: 1px solid var(--gm-border);
+}
+
+.gm-tab:last-child {
+  border-right: none;
+}
+
+.gm-tab-active {
+  color: var(--gm-fg);
+  background: var(--gm-bg);
+}
