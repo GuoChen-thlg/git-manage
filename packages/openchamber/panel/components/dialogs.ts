@@ -12,13 +12,13 @@ import { classifyCreateBranchError, errorText, showOperationError } from './erro
 /** 显示重命名对话框 */
 export function showRenameDialog(branch: Branch, service: ServiceClient, directory: string): void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.renameBranch')}: ${branch.name}</div>
-        <input id="rename-input" type="text" value="${branch.name}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="rename-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="rename-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('dialog.renameBranch')}: ${branch.name}</div>
+        <input id="rename-input" type="text" value="${branch.name}" class="gm-dialog-input gm-dialog-input--mb12" />
+        <div class="gm-dialog-actions">
+          <button id="rename-cancel" class="gm-dialog-btn">${t('dialog.cancel')}</button>
+          <button id="rename-ok" class="gm-dialog-btn gm-dialog-btn-primary">${t('dialog.ok')}</button>
         </div>
       </div>
     </div>
@@ -88,18 +88,18 @@ export function showCreateBranchDialog(options: CreateBranchDialogOptions): void
     ?? `${t('dialog.startPoint')}：${startPoint ? startPoint.slice(0, 8) : t('dialog.currentHead')}`;
 
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t(titleKey ?? 'dialog.createBranchTitle')}</div>
-        <div style="font-size: 11px; color: #888; margin-bottom: 8px; word-break: break-all;">${startText}</div>
-        <input id="new-branch-input" type="text" placeholder="${t('dialog.inputBranchName')}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
-        <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px; font-size: 12px; color: #ccc; cursor: pointer;">
-          <input id="new-branch-checkout" type="checkbox" checked style="margin: 0; cursor: pointer;" />
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t(titleKey ?? 'dialog.createBranchTitle')}</div>
+        <div class="gm-dialog-desc--sm">${startText}</div>
+        <input id="new-branch-input" type="text" placeholder="${t('dialog.inputBranchName')}" class="gm-dialog-input gm-dialog-input--mb12" />
+        <label class="gm-dialog-check-label gm-dialog-check-label--mb12">
+          <input id="new-branch-checkout" type="checkbox" checked class="gm-dialog-check" />
           ${t('dialog.checkoutAfterCreate')}
         </label>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="create-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="create-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.create')}</button>
+        <div class="gm-dialog-actions">
+          <button id="create-cancel" class="gm-dialog-btn">${t('dialog.cancel')}</button>
+          <button id="create-ok" class="gm-dialog-btn gm-dialog-btn-primary">${t('dialog.create')}</button>
         </div>
       </div>
     </div>
@@ -155,21 +155,21 @@ export function showDateFilterDialog(): void {
   const state = getState();
 
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.dateFilter')}</div>
-        <div style="margin-bottom: 8px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('dialog.startDate')}</div>
-          <input id="date-from" type="date" value="${state.filterDateFrom}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('dialog.dateFilter')}</div>
+        <div class="gm-dialog-field">
+          <div class="gm-dialog-note">${t('dialog.startDate')}</div>
+          <input id="date-from" type="date" value="${state.filterDateFrom}" class="gm-dialog-input" />
         </div>
-        <div style="margin-bottom: 12px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('dialog.endDate')}</div>
-          <input id="date-to" type="date" value="${state.filterDateTo}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
+        <div class="gm-dialog-field gm-dialog-field--mb12">
+          <div class="gm-dialog-note">${t('dialog.endDate')}</div>
+          <input id="date-to" type="date" value="${state.filterDateTo}" class="gm-dialog-input" />
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="date-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="date-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.clear')}</button>
-          <button id="date-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+        <div class="gm-dialog-actions">
+          <button id="date-cancel" class="gm-dialog-btn">${t('dialog.cancel')}</button>
+          <button id="date-clear" class="gm-dialog-btn">${t('dialog.clear')}</button>
+          <button id="date-ok" class="gm-dialog-btn gm-dialog-btn-primary">${t('dialog.ok')}</button>
         </div>
       </div>
     </div>
@@ -209,27 +209,27 @@ export function showResetDialog(hash: string, service: ServiceClient, directory:
   let selectedMode: 'soft' | 'mixed' | 'hard' = 'mixed';
 
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.resetTo', { hash })}</div>
-        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">${t('dialog.selectResetMode')}</div>
-        <div id="reset-modes" style="margin-bottom: 12px;">
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; padding: 4px 0; cursor: pointer;">
-            <input type="radio" name="reset-mode" value="soft" style="margin: 0;" />
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w360">
+        <div class="gm-dialog-title">${t('dialog.resetTo', { hash })}</div>
+        <div class="gm-dialog-desc">${t('dialog.selectResetMode')}</div>
+        <div id="reset-modes" class="gm-dialog-modes">
+          <label class="gm-dialog-mode-label">
+            <input type="radio" name="reset-mode" value="soft" class="gm-dialog-check" />
             ${t('dialog.resetSoft')}
           </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; padding: 4px 0; cursor: pointer;">
-            <input type="radio" name="reset-mode" value="mixed" checked style="margin: 0;" />
+          <label class="gm-dialog-mode-label">
+            <input type="radio" name="reset-mode" value="mixed" checked class="gm-dialog-check" />
             ${t('dialog.resetMixed')}
           </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; padding: 4px 0; cursor: pointer;">
-            <input type="radio" name="reset-mode" value="hard" style="margin: 0;" />
+          <label class="gm-dialog-mode-label">
+            <input type="radio" name="reset-mode" value="hard" class="gm-dialog-check" />
             ${t('dialog.resetHard')}
           </label>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="reset-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="reset-ok" style="padding: 4px 12px; background: #b71c1c; border: 1px solid #c62828; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.reset')}</button>
+        <div class="gm-dialog-actions">
+          <button id="reset-cancel" class="gm-dialog-btn">${t('dialog.cancel')}</button>
+          <button id="reset-ok" class="gm-dialog-btn gm-dialog-btn-danger">${t('dialog.reset')}</button>
         </div>
       </div>
     </div>
@@ -274,14 +274,14 @@ export function showResetDialog(hash: string, service: ServiceClient, directory:
  */
 export function showGotoDialog(onSubmit: (query: string) => boolean): void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('goto.title')}</div>
-        <input id="goto-input" type="text" placeholder="${t('goto.placeholder')}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px;" />
-        <div id="goto-error" style="display: none; font-size: 11px; color: #f44336; margin-bottom: 8px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="goto-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="goto-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('goto.ok')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('goto.title')}</div>
+        <input id="goto-input" type="text" placeholder="${t('goto.placeholder')}" class="gm-dialog-input gm-dialog-input--mb8" />
+        <div id="goto-error" class="gm-dialog-error" style="display: none;"></div>
+        <div class="gm-dialog-actions">
+          <button id="goto-cancel" class="gm-dialog-btn">${t('dialog.cancel')}</button>
+          <button id="goto-ok" class="gm-dialog-btn gm-dialog-btn-primary">${t('goto.ok')}</button>
         </div>
       </div>
     </div>
@@ -339,21 +339,21 @@ export function showDateRangeDialog(
   onApply: (range: { from: string; to: string }) => void,
 ): () => void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('filter.date')}</div>
-        <div style="margin-bottom: 8px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('filter.dateFrom')}</div>
-          <input id="daterange-from" type="date" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('filter.date')}</div>
+        <div class="gm-dialog-field">
+          <div class="gm-dialog-note">${t('filter.dateFrom')}</div>
+          <input id="daterange-from" type="date" class="gm-dialog-input" />
         </div>
-        <div style="margin-bottom: 12px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('filter.dateTo')}</div>
-          <input id="daterange-to" type="date" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
+        <div class="gm-dialog-field gm-dialog-field--mb12">
+          <div class="gm-dialog-note">${t('filter.dateTo')}</div>
+          <input id="daterange-to" type="date" class="gm-dialog-input" />
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="daterange-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('filter.ok')}</button>
-          <button id="daterange-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.clear')}</button>
-          <button id="daterange-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.cancel')}</button>
+        <div class="gm-dialog-actions">
+          <button id="daterange-ok" class="gm-dialog-btn gm-dialog-btn-primary">${t('filter.ok')}</button>
+          <button id="daterange-clear" class="gm-dialog-btn">${t('filter.clear')}</button>
+          <button id="daterange-cancel" class="gm-dialog-btn">${t('filter.cancel')}</button>
         </div>
       </div>
     </div>
@@ -438,16 +438,16 @@ export function showPathFilterDialog(
   onApply: (paths: string[]) => void,
 ): void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('filter.path')}</div>
-        <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('filter.editPaths')}</div>
-        <textarea id="pathfilter-input" placeholder="${t('dialog.pathPlaceholder')}" style="width: 100%; height: 120px; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px; resize: vertical; font-family: inherit;">${selected.join('\n')}</textarea>
-        <div id="pathfilter-hint" style="display: none; font-size: 11px; color: #ffb300; margin-bottom: 8px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="pathfilter-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('filter.ok')}</button>
-          <button id="pathfilter-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.clear')}</button>
-          <button id="pathfilter-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.cancel')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('filter.path')}</div>
+        <div class="gm-dialog-note">${t('filter.editPaths')}</div>
+        <textarea id="pathfilter-input" placeholder="${t('dialog.pathPlaceholder')}" class="gm-dialog-textarea gm-dialog-textarea--h120">${selected.join('\n')}</textarea>
+        <div id="pathfilter-hint" class="gm-dialog-hint" style="display: none;"></div>
+        <div class="gm-dialog-actions">
+          <button id="pathfilter-ok" class="gm-dialog-btn gm-dialog-btn-primary">${t('filter.ok')}</button>
+          <button id="pathfilter-clear" class="gm-dialog-btn">${t('filter.clear')}</button>
+          <button id="pathfilter-cancel" class="gm-dialog-btn">${t('filter.cancel')}</button>
         </div>
       </div>
     </div>
@@ -693,15 +693,15 @@ export function showPathTreeDialog(
   onApply: (paths: string[]) => void,
 ): void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('filter.selectPaths')}</div>
-        <div id="pathtree-list" style="height: 240px; overflow: auto; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; padding: 4px 0; box-sizing: border-box;"></div>
-        <div id="pathtree-hint" style="display: none; font-size: 11px; color: #ffb300; margin-top: 6px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
-          <button id="pathtree-ok" disabled style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('filter.ok')}</button>
-          <button id="pathtree-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.clear')}</button>
-          <button id="pathtree-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.cancel')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w360">
+        <div class="gm-dialog-title">${t('filter.selectPaths')}</div>
+        <div id="pathtree-list" class="gm-dialog-list"></div>
+        <div id="pathtree-hint" class="gm-dialog-hint gm-dialog-hint--top" style="display: none;"></div>
+        <div class="gm-dialog-actions gm-dialog-actions--top">
+          <button id="pathtree-ok" disabled class="gm-dialog-btn gm-dialog-btn-primary">${t('filter.ok')}</button>
+          <button id="pathtree-clear" class="gm-dialog-btn">${t('filter.clear')}</button>
+          <button id="pathtree-cancel" class="gm-dialog-btn">${t('filter.cancel')}</button>
         </div>
       </div>
     </div>
@@ -791,14 +791,14 @@ export function showPathTreeDialog(
     const isExpanded = expanded.has(node.path);
 
     const row = document.createElement('div');
-    row.className = 'pathtree-row';
+    row.className = 'pathtree-row gm-dialog-row';
     row.dataset.path = node.path;
     row.dataset.depth = String(depth);
-    row.style.cssText = `display: flex; align-items: center; gap: 6px; padding: 2px 6px 2px ${6 + depth * 14}px; cursor: pointer; font-size: 12px; color: #ccc;`;
+    // 左缩进随层级运行时计算（主题/布局在 .gm-dialog-row，仅缩进内联）
+    row.style.paddingLeft = `${6 + depth * 14}px`;
 
     const toggle = document.createElement('span');
-    toggle.className = 'pathtree-toggle';
-    toggle.style.cssText = 'width: 12px; flex: none; display: inline-block; text-align: center; user-select: none;';
+    toggle.className = 'pathtree-toggle gm-dialog-toggle';
     toggle.textContent = expandable ? (isExpanded ? '▾' : '▸') : '';
     row.appendChild(toggle);
 
@@ -837,7 +837,7 @@ export function showPathTreeDialog(
     if (failed) {
       const error = document.createElement('div');
       error.id = 'pathtree-error';
-      error.style.cssText = 'padding: 8px; font-size: 12px; color: #f44336;';
+      error.className = 'gm-dialog-load-error';
       error.textContent = t('filter.loadPathsFailed');
       listEl.appendChild(error);
       return;
@@ -854,7 +854,7 @@ export function showPathTreeDialog(
     if (nodes.length === 0) {
       const empty = document.createElement('div');
       empty.id = 'pathtree-empty';
-      empty.style.cssText = 'padding: 8px; font-size: 12px; color: #888;';
+      empty.className = 'gm-dialog-empty';
       empty.textContent = t('filter.noPaths');
       listEl.appendChild(empty);
       okBtn.disabled = true;
@@ -947,13 +947,13 @@ export function showDeleteBranchDialog(
   onConfirm: (force: boolean) => Promise<void>,
 ): void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div id="delete-branch-message" style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('branch.forceDelete', { name: branchName })}</div>
-        <div id="delete-branch-error" style="display: none; font-size: 11px; color: #f44336; margin-bottom: 8px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="delete-branch-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.cancel')}</button>
-          <button id="delete-branch-ok" style="padding: 4px 12px; background: #b71c1c; border: 1px solid #c62828; border-radius: 3px; color: #fff; cursor: pointer;">${t('branch.forceDeleteButton')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div id="delete-branch-message" class="gm-dialog-title">${t('branch.forceDelete', { name: branchName })}</div>
+        <div id="delete-branch-error" class="gm-dialog-error" style="display: none;"></div>
+        <div class="gm-dialog-actions">
+          <button id="delete-branch-cancel" class="gm-dialog-btn">${t('filter.cancel')}</button>
+          <button id="delete-branch-ok" class="gm-dialog-btn gm-dialog-btn-danger">${t('branch.forceDeleteButton')}</button>
         </div>
       </div>
     </div>
@@ -1045,14 +1045,14 @@ export function showRewordCommitDialog(
   onConfirm: (message: string) => Promise<void>,
 ): void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 420px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('commit.rewordTitle')}</div>
-        <textarea id="reword-input" style="width: 100%; height: 96px; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px; resize: vertical; font-family: inherit;"></textarea>
-        <div id="reword-error" style="display: none; font-size: 11px; color: #f44336; margin-bottom: 8px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="reword-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="reword-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w420">
+        <div class="gm-dialog-title">${t('commit.rewordTitle')}</div>
+        <textarea id="reword-input" class="gm-dialog-textarea"></textarea>
+        <div id="reword-error" class="gm-dialog-error" style="display: none;"></div>
+        <div class="gm-dialog-actions">
+          <button id="reword-cancel" class="gm-dialog-btn">${t('dialog.cancel')}</button>
+          <button id="reword-ok" class="gm-dialog-btn gm-dialog-btn-primary">${t('dialog.ok')}</button>
         </div>
       </div>
     </div>
@@ -1127,12 +1127,12 @@ export function showConfirmDialog(
   danger = false,
 ): void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1002;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div id="confirm-message" style="font-size: 12px; color: #ccc; margin-bottom: 16px; word-break: break-word; white-space: pre-wrap;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="confirm-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="confirm-ok" style="padding: 4px 12px; background: ${danger ? '#b71c1c' : '#0d47a1'}; border: 1px solid ${danger ? '#c62828' : '#1565c0'}; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+    <div class="gm-dialog-overlay gm-dialog-overlay--top">
+      <div class="gm-dialog-panel gm-dialog-panel--w360">
+        <div id="confirm-message" class="gm-dialog-confirm-msg"></div>
+        <div class="gm-dialog-actions">
+          <button id="confirm-cancel" class="gm-dialog-btn">${t('dialog.cancel')}</button>
+          <button id="confirm-ok" class="gm-dialog-btn ${danger ? 'gm-dialog-btn-danger' : 'gm-dialog-btn-primary'}">${t('dialog.ok')}</button>
         </div>
       </div>
     </div>
@@ -1174,13 +1174,13 @@ export function showPromptDialog(
   onConfirm: (values: string[]) => void | Promise<void>,
 ): void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1002;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 380px;">
-        <div id="prompt-title" style="font-size: 14px; color: #ccc; margin-bottom: 12px;"></div>
+    <div class="gm-dialog-overlay gm-dialog-overlay--top">
+      <div class="gm-dialog-panel gm-dialog-panel--w380">
+        <div id="prompt-title" class="gm-dialog-title"></div>
         <div id="prompt-fields"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
-          <button id="prompt-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="prompt-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+        <div class="gm-dialog-actions gm-dialog-actions--top">
+          <button id="prompt-cancel" class="gm-dialog-btn">${t('dialog.cancel')}</button>
+          <button id="prompt-ok" class="gm-dialog-btn gm-dialog-btn-primary">${t('dialog.ok')}</button>
         </div>
       </div>
     </div>
@@ -1191,7 +1191,7 @@ export function showPromptDialog(
   const inputs: HTMLInputElement[] = [];
   for (const [index, field] of fields.entries()) {
     const label = document.createElement('div');
-    label.style.cssText = 'font-size: 11px; color: #888; margin: 8px 0 4px;';
+    label.className = 'gm-dialog-label';
     label.textContent = field.label;
     fieldsEl.appendChild(label);
 
@@ -1200,7 +1200,7 @@ export function showPromptDialog(
     input.dataset.promptIndex = String(index);
     input.value = field.value ?? '';
     input.placeholder = field.placeholder ?? '';
-    input.style.cssText = 'width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;';
+    input.className = 'gm-dialog-input';
     fieldsEl.appendChild(input);
     inputs.push(input);
   }

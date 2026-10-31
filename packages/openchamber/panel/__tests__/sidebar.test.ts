@@ -11,6 +11,10 @@ import { createSidebar, SidebarHandlers } from '../components/sidebar';
 import { createInitialState, setState, stateManager } from '../state';
 import { setLocale } from '../i18n';
 import { getIcon } from '../icons';
+import {
+  expectSemanticClass,
+  expectOnlyRuntimeInlineStyles,
+} from './theme-helpers';
 
 /** 12 个图标的 key 顺序（对齐 IDEA 分支面板工具栏） */
 const KEYS = [
@@ -135,11 +139,12 @@ describe('sidebar', () => {
   it('容器应该沿用 40px 图标栏样式', () => {
     createBar();
 
-    expect(container.style.width).toBe('40px');
-    expect(container.style.background).toBe('rgb(43, 43, 43)');
-    expect(container.style.gap).toBe('2px');
-    expect(btn('refresh').style.width).toBe('32px');
-    expect(btn('refresh').style.height).toBe('32px');
+    expectSemanticClass(container, 'gm-sidebar');
+    expectOnlyRuntimeInlineStyles(container);
+    
+    
+    expectOnlyRuntimeInlineStyles(container);
+    
   });
 
   it('每个图标按钮点击应该只触发对应的 handler', () => {
@@ -183,10 +188,10 @@ describe('sidebar', () => {
     const refresh = btn('refresh');
 
     refresh.dispatchEvent(new MouseEvent('mouseenter'));
-    expect(refresh.style.background).toBe('rgb(60, 60, 60)');
+    expect(refresh.classList.contains('gm-sidebar-btn-hover')).toBe(true);
 
     refresh.dispatchEvent(new MouseEvent('mouseleave'));
-    expect(refresh.style.background).toBe('transparent');
+    expect(refresh.classList.contains('gm-sidebar-btn-hover')).toBe(false);
   });
 
   it('dispose 应该清空容器且点击不再触发 handler', () => {
@@ -281,11 +286,11 @@ describe('sidebar', () => {
     for (const key of KEYS) {
       const b = btn(key);
       // 初始背景显式定为 transparent（激活态才设置高亮底色）
-      expect(b.style.background, `按钮 ${key} 初始背景`).toBe('transparent');
+      expect(b.classList.contains('gm-sidebar-btn-hover'), `按钮 ${key} 初始背景`).toBe(false);
       b.dispatchEvent(new MouseEvent('mouseenter'));
-      expect(b.style.background, `按钮 ${key} hover 背景`).toBe('rgb(60, 60, 60)');
+      expect(b.classList.contains('gm-sidebar-btn-hover'), `按钮 ${key} hover 背景`).toBe(true);
       b.dispatchEvent(new MouseEvent('mouseleave'));
-      expect(b.style.background, `按钮 ${key} 离开背景`).toBe('transparent');
+      expect(b.classList.contains('gm-sidebar-btn-hover'), `按钮 ${key} 离开背景`).toBe(false);
     }
   });
 
@@ -323,17 +328,17 @@ describe('sidebar', () => {
 
     // 初始未激活：无背景
     expect(btn.dataset.active).toBe('false');
-    expect(btn.style.background).toBe('transparent');
+    expect(btn.classList.contains('gm-sidebar-btn-active')).toBe(false);
 
     // 激活：设置高亮背景
     setState(s => { s.showOnlyMyBranches = true; });
     expect(btn.dataset.active).toBe('true');
-    expect(btn.style.background).toBe('rgb(46, 74, 110)');
+    expect(btn.classList.contains('gm-sidebar-btn-active')).toBe(true);
 
     // 再次关闭：恢复透明
     setState(s => { s.showOnlyMyBranches = false; });
     expect(btn.dataset.active).toBe('false');
-    expect(btn.style.background).toBe('transparent');
+    expect(btn.classList.contains('gm-sidebar-btn-active')).toBe(false);
   });
 
   it('没有本地分支时我的分支按钮应该禁用且点击不触发 handler', () => {

@@ -19,6 +19,7 @@ import { setState, createInitialState, getState } from '../state';
 import type { Branch } from '../state';
 import type { ServiceClient } from '../service';
 import { setLocale } from '../i18n';
+import { expectThemedClass, expectNoHardcodedHex } from './theme-helpers';
 
 /** 宿主 toast 断言句柄 */
 const { toastMock } = vi.hoisted(() => ({ toastMock: vi.fn().mockResolvedValue(undefined) }));
@@ -109,9 +110,14 @@ describe('dialogs', () => {
       const overlay = getOverlay();
       expect(overlay.textContent).toContain(`重命名分支: ${branch.name}`);
 
+      // 主题视觉走语义类与 --gm-* 变量，不含硬编码色值
+      expectThemedClass(overlay.firstElementChild as HTMLElement, 'gm-dialog-panel');
+      expectNoHardcodedHex(overlay);
+
       const input = overlay.querySelector('#rename-input') as HTMLInputElement;
       expect(input).toBeTruthy();
       expect(input.value).toBe('old-name');
+      expectThemedClass(input, 'gm-dialog-input');
       expect(overlay.querySelector('#rename-ok')).toBeTruthy();
       expect(overlay.querySelector('#rename-cancel')).toBeTruthy();
     });
@@ -1183,7 +1189,9 @@ describe('dialogs', () => {
       // 层级缩进与箭头列宽是行样式契约：根 6px、子层 6+14=20px、箭头列固定 12px
       expect(rowByPath('docs').style.paddingLeft).toBe('6px');
       expect(rowByPath('docs/readme.md').style.paddingLeft).toBe('20px');
-      expect(rowByPath('docs').querySelector<HTMLElement>('.pathtree-toggle')!.style.width).toBe('12px');
+      // 展开箭头宽度由 .gm-dialog-toggle 类承担，行带主题类
+      expectThemedClass(rowByPath('docs').querySelector<HTMLElement>('.pathtree-toggle')!, 'gm-dialog-toggle');
+      expectThemedClass(rowByPath('docs'), 'gm-dialog-row');
 
       // 行必须渲染路径名标签
       expect(rowByPath('package.json').textContent).toContain('package.json');
@@ -1381,7 +1389,7 @@ describe('dialogs', () => {
       expect(rows().length).toBe(0);
       expect((document.getElementById('pathtree-ok') as HTMLButtonElement).disabled).toBe(true);
       // 占位文案保留内联字号（可读性契约）
-      expect((document.getElementById('pathtree-empty') as HTMLElement).style.fontSize).toBe('12px');
+      expect((document.getElementById('pathtree-empty') as HTMLElement).classList.contains('gm-dialog-empty')).toBe(true);
     });
 
     it('拉取失败应在容器内显示错误文案并输出 [dialog] 结构化错误日志', async () => {
@@ -1402,7 +1410,7 @@ describe('dialogs', () => {
       expect(log).toMatchObject({ prefix: '[dialog]', event: 'list_files_error' });
       expect((document.getElementById('pathtree-ok') as HTMLButtonElement).disabled).toBe(true);
       // 错误文案保留内联字号（可见性契约）
-      expect((document.getElementById('pathtree-error') as HTMLElement).style.fontSize).toBe('12px');
+      expect((document.getElementById('pathtree-error') as HTMLElement).classList.contains('gm-dialog-load-error')).toBe(true);
     });
 
     it('确定与清除后对话框都应关闭', async () => {

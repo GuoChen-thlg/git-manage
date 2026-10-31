@@ -7,6 +7,7 @@ import { showFileContextMenu, hideFileContextMenu } from '../components/file-con
 import { setState, createInitialState, FileDiff } from '../state';
 import { setLocale } from '../i18n';
 import { ServiceClient } from '../service';
+import { expectThemedClass, expectNoHardcodedHex } from './theme-helpers';
 
 /** 测试目录 */
 const DIRECTORY = '/repo';
@@ -53,22 +54,6 @@ function findMenuItem(menu: HTMLElement, label: string): HTMLElement | undefined
 }
 
 /**
- * 断言样式颜色值（兼容 3/6 位 hex，jsdom 可能把 hex 规范化为 rgb 字符串）
- * @param actual 实际样式值
- * @param hex 期望的十六进制颜色
- */
-function expectStyleColor(actual: string, hex: string): void {
-  // 3 位 hex 展开为 6 位
-  const full = hex.length === 4
-    ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
-    : hex;
-  const r = parseInt(full.slice(1, 3), 16);
-  const g = parseInt(full.slice(3, 5), 16);
-  const b = parseInt(full.slice(5, 7), 16);
-  expect([hex, full, `rgb(${r}, ${g}, ${b})`]).toContain(actual);
-}
-
-/**
  * 获取当前文件菜单元素
  * @returns 菜单元素
  */
@@ -109,22 +94,23 @@ describe('file-context-menu', () => {
       trigger.dispatchEvent(createContextMenuEvent());
 
       const menu = getMenu();
-      expect(menu.style.position).toBe('fixed');
       expect(menu.style.left).toBe('10px');
       expect(menu.style.top).toBe('10px');
+      expectThemedClass(menu, 'gm-filectx-menu');
+      expectNoHardcodedHex(menu);
 
       const labels = (Array.from(menu.children) as HTMLElement[])
-        .filter(el => el.style.height !== '1px')
+        .filter(el => !el.classList.contains('gm-filectx-sep'))
         .map(el => el.textContent);
       expect(labels).toEqual(ALL_LABELS);
 
       // 4 条分隔线
-      const separators = (Array.from(menu.children) as HTMLElement[]).filter(el => el.style.height === '1px');
+      const separators = (Array.from(menu.children) as HTMLElement[]).filter(el => el.classList.contains('gm-filectx-sep'));
       expect(separators).toHaveLength(4);
-      expectStyleColor(separators[0].style.background, '#444');
+      expectThemedClass(separators[0], 'gm-filectx-sep');
     });
 
-    it('回滚选中更改应显示为危险红色，普通项为默认样式', () => {
+    it('回滚选中更改应显示为危险项，普通项为默认样式（均由语义类表达）', () => {
       showFileContextMenu(createContextMenuEvent(), fileDiff, {} as ServiceClient, DIRECTORY);
 
       const menu = getMenu();
@@ -132,22 +118,20 @@ describe('file-context-menu', () => {
       const normalItem = findMenuItem(menu, '显示差异');
 
       expect(dangerItem).toBeTruthy();
-      expectStyleColor(dangerItem!.style.color, '#f44336');
+      expect(dangerItem!.classList.contains('gm-filectx-item-danger')).toBe(true);
       expect(normalItem).toBeTruthy();
-      expectStyleColor(normalItem!.style.color, '#ccc');
-      expect(normalItem!.style.cursor).toBe('pointer');
+      expectThemedClass(normalItem!, 'gm-filectx-item');
     });
 
-    it('悬停菜单项应显示高亮，移出后恢复透明', () => {
+    it('悬停菜单项应显示高亮，移出后恢复（class 切换）', () => {
       showFileContextMenu(createContextMenuEvent(), fileDiff, {} as ServiceClient, DIRECTORY);
 
       const item = findMenuItem(getMenu(), '显示差异')!;
       item.dispatchEvent(new MouseEvent('mouseenter'));
-      expect(item.style.background).not.toBe('');
-      expect(item.style.background).not.toBe('transparent');
+      expect(item.classList.contains('gm-filectx-item-hover')).toBe(true);
 
       item.dispatchEvent(new MouseEvent('mouseleave'));
-      expect(item.style.background).toBe('transparent');
+      expect(item.classList.contains('gm-filectx-item-hover')).toBe(false);
     });
 
     it('点击显示差异应记录日志并关闭菜单', async () => {
@@ -186,7 +170,7 @@ describe('file-context-menu', () => {
       vi.runAllTimers();
 
       const menu = getMenu();
-      const separator = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px')!;
+      const separator = (Array.from(menu.children) as HTMLElement[]).find(el => el.classList.contains('gm-filectx-sep'))!;
       separator.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       expect(document.getElementById('git-file-context-menu')).toBeTruthy();
@@ -250,16 +234,15 @@ describe('file-context-menu', () => {
       }
     });
 
-    it('菜单项与分隔线应应用默认内联样式', () => {
+    it('菜单项与分隔线应应用语义类', () => {
       showFileContextMenu(createContextMenuEvent(), fileDiff, {} as ServiceClient, DIRECTORY);
 
       const menu = getMenu();
       const item = findMenuItem(menu, '显示差异')!;
-      expect(item.style.padding).toBe('6px 12px');
-      expect(item.style.fontSize).toBe('12px');
+      expectThemedClass(item, 'gm-filectx-item');
 
-      const sep = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px') as HTMLElement;
-      expect(sep.style.margin).toMatch(/^4px 0(px)?$/);
+      const sep = (Array.from(menu.children) as HTMLElement[]).find(el => el.classList.contains('gm-filectx-sep')) as HTMLElement;
+      expectThemedClass(sep, 'gm-filectx-sep');
     });
 
     it('鼠标位于菜单容器自身时不触发高亮与恢复', () => {
@@ -267,10 +250,10 @@ describe('file-context-menu', () => {
 
       const menu = getMenu();
       menu.dispatchEvent(new MouseEvent('mouseenter'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-filectx-item-hover')).toBe(false);
 
       menu.dispatchEvent(new MouseEvent('mouseleave'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-filectx-item-hover')).toBe(false);
     });
 
     it('点击菜单项内的嵌套元素不应执行动作或关闭菜单', async () => {

@@ -11,6 +11,12 @@ import { showContextMenu } from '../components/context-menu';
 import { createInitialState, getState, setState, stateManager, Branch } from '../state';
 import { ServiceClient } from '../service';
 import { setLocale, t } from '../i18n';
+import {
+  expectThemedClass,
+  expectSemanticClass,
+  expectOnlyRuntimeInlineStyles,
+  expectNoHardcodedHex,
+} from './theme-helpers';
 
 // 右键菜单模块打桩：分支面板只关心是否以正确参数触发 showContextMenu，菜单自身渲染由 context-menu 测试覆盖
 vi.mock('../components/context-menu', () => ({
@@ -316,16 +322,19 @@ describe('branch-panel', () => {
     setState(s => { s.branches = makeBranches(); });
     createPanel();
 
-    // 当前分支（HEAD）默认高亮 #2a3a4a
-    expect(branchItem('main').style.backgroundColor).toBe('rgb(42, 58, 74)');
-    // 普通分支无背景
-    expect(branchItem('develop').style.backgroundColor).not.toBe('rgb(42, 58, 74)');
-    expect(branchItem('develop').style.backgroundColor).not.toBe('rgb(46, 74, 110)');
+    // 当前分支（HEAD）带当前态语义类
+    expectSemanticClass(branchItem('main'), ['gm-branch-item', 'gm-branch-item-current']);
+    // 普通分支无背景态类
+    expectSemanticClass(branchItem('develop'), 'gm-branch-item');
+    expect(branchItem('develop').classList.contains('gm-branch-item-current')).toBe(false);
+    expect(branchItem('develop').classList.contains('gm-branch-item-selected')).toBe(false);
 
-    // 点击选中 develop → 选中高亮 #2e4a6e，main 保持当前分支高亮
+    // 点击选中 develop → 选中态类，main 保持当前分支态
     branchItem('develop').click();
-    expect(branchItem('develop').style.backgroundColor).toBe('rgb(46, 74, 110)');
-    expect(branchItem('main').style.backgroundColor).toBe('rgb(42, 58, 74)');
+    expectSemanticClass(branchItem('develop'), ['gm-branch-item', 'gm-branch-item-selected']);
+    expect(branchItem('develop').classList.contains('gm-branch-item-current')).toBe(false);
+    expectSemanticClass(branchItem('main'), ['gm-branch-item', 'gm-branch-item-current']);
+    expect(branchItem('main').classList.contains('gm-branch-item-selected')).toBe(false);
   });
 
   it('state.branches 变化应该通过订阅局部更新列表而不重建搜索框', () => {
@@ -736,15 +745,17 @@ describe('branch-panel', () => {
     const nameSpan = (item: HTMLElement, name: string) =>
       Array.from(item.querySelectorAll('span')).find(s => s.textContent === name) as HTMLElement;
 
-    // 当前分支名称加粗
-    expect(nameSpan(main, 'main').style.fontWeight).toBe('bold');
-    // 普通分支名称有颜色
-    expect(nameSpan(develop, 'develop').style.color).not.toBe('');
+    // 当前分支名称加粗（语义类承载，字体/颜色由 CSS 变量负责）
+    expectThemedClass(nameSpan(main, 'main'), ['gm-branch-item-name', 'gm-branch-item-name-current']);
+    // 普通分支名称有基础名类，无当前态类
+    expectThemedClass(nameSpan(develop, 'develop'), 'gm-branch-item-name');
+    expect(nameSpan(develop, 'develop').classList.contains('gm-branch-item-name-current')).toBe(false);
 
-    // 普通分支 bgStyle 为空串：style 属性恰好等于布局样式，不含额外背景声明
-    expect(develop.getAttribute('style')?.trimEnd()).toBe(
-      'display: flex; align-items: center; padding: 3px 8px 3px 20px; cursor: pointer; font-size: 12px;'
-    );
+    // 普通分支项无内联背景：style 属性为空（主题样式全部由 CSS 类承担）
+    expect(develop.getAttribute('style') ?? '').toBe('');
+    expectOnlyRuntimeInlineStyles(develop);
+    // 分支名 span 子树（不含图标 SVG）不应出现硬编码颜色
+    expectNoHardcodedHex(nameSpan(develop, 'develop'));
   });
 
   it('按未推送/未拉取状态渲染上下箭头徽标', () => {

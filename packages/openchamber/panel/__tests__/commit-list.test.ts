@@ -12,6 +12,10 @@ import { createCommitListPanel, filterCommits } from '../components/commit-list'
 import { createInitialState, getState, setState, stateManager, CommitInfo } from '../state';
 import { ServiceClient } from '../service';
 import { setLocale } from '../i18n';
+import {
+  expectThemedClass,
+  expectSemanticClass,
+} from './theme-helpers';
 
 /** 宿主 toast 断言句柄（vi.mock 工厂在提升阶段执行，只能引用外部变量以外的东西，故用 vi.hoisted） */
 const { toastMock, writeClipboardMock } = vi.hoisted(() => ({
@@ -324,8 +328,10 @@ describe('commit-list', () => {
     expect(rows.length).toBe(4);
     expect(row('h1').textContent).toContain(commits[0].message);
     expect(row('h1').textContent).toContain('张三');
-    // 未选中行的初始背景由模板写入 transparent（jsdom 不解析 background 简写，断言原始样式串）
-    expect(row('h1').getAttribute('style')).toContain('background: transparent');
+    // 未选中行：带基础行类，无选中/悬停态类（主题样式由 CSS 类承担）
+    expectSemanticClass(row('h1'), 'gm-commit-row');
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(false);
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(false);
 
     // 左侧过滤控件 + 右侧角三项（刷新 / 设置 / 跳转）
     for (const action of ['btn-regex', 'btn-case', 'btn-filter-branch', 'btn-filter-user', 'btn-filter-date', 'btn-filter-path', 'btn-refresh', 'btn-settings', 'btn-goto']) {
@@ -355,9 +361,9 @@ describe('commit-list', () => {
     expect(onCommitSelect).toHaveBeenCalledWith(commits[1]);
     expect(getState().selectedCommit).toBe(commits[1]);
     expect(selectedHashes()).toEqual(['h2']);
-    // 选中行高亮 #2a3a4a
-    expect(row('h2').style.backgroundColor).toBe('rgb(42, 58, 74)');
-    expect(row('h1').style.backgroundColor).not.toBe('rgb(42, 58, 74)');
+    // 选中行带选中态语义类
+    expectSemanticClass(row('h2'), ['gm-commit-row', 'gm-commit-row-selected']);
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(false);
   });
 
   it('Ctrl/Cmd 点击应该切换多选集合', () => {
@@ -556,29 +562,32 @@ describe('commit-list', () => {
     createPanel();
     const list = row('h1').parentElement as HTMLElement;
 
-    // 未选中：悬停行内子元素（非冒泡事件在捕获阶段命中）→ 悬停色
+    // 未选中：悬停行内子元素（非冒泡事件在捕获阶段命中）→ 悬停态类
     const inner1 = row('h1').querySelector('span') as HTMLElement;
     inner1.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-    expect(row('h1').style.backgroundColor).toBe('rgb(42, 45, 46)');
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(true);
 
-    // 目标没有 data-hash 祖先：不应改写列表容器背景
+    // 目标没有 data-hash 祖先：不应改写列表容器状态
     list.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-    expect(list.style.backgroundColor).toBe('');
+    expect(list.classList.contains('gm-commit-row-hover')).toBe(false);
+    expect(list.classList.contains('gm-commit-row-selected')).toBe(false);
 
-    // 移出未选中行 → 恢复透明
+    // 移出未选中行 → 移除悬停态且无选中态
     inner1.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    expect(row('h1').style.backgroundColor).toBe('transparent');
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(false);
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(false);
 
     list.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    expect(list.style.backgroundColor).toBe('');
+    expect(list.classList.contains('gm-commit-row-hover')).toBe(false);
 
-    // 选中后：移出应回到选中高亮色
+    // 选中后：移出应回到选中态
     clickRow('h1');
     const inner2 = row('h1').querySelector('span') as HTMLElement;
     inner2.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-    expect(row('h1').style.backgroundColor).toBe('rgb(42, 45, 46)');
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(true);
     inner2.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    expect(row('h1').style.backgroundColor).toBe('rgb(42, 58, 74)');
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(false);
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(true);
 
     // 直接派发到列表容器（closest 未命中）的悬停/移出不应抛出异常
     expect(windowErrors).toEqual([]);
@@ -589,13 +598,14 @@ describe('commit-list', () => {
     createPanel();
     // 只改 selectedCommit，保证订阅回调的 changed 仅含该字段
     setState(s => { s.selectedCommit = commits[0]; });
-    expect(row('h1').style.backgroundColor).toBe('rgb(42, 58, 74)');
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(true);
 
     const target = row('h1');
     target.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-    expect(target.style.backgroundColor).toBe('rgb(42, 45, 46)');
+    expect(target.classList.contains('gm-commit-row-hover')).toBe(true);
     target.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    expect(target.style.backgroundColor).toBe('rgb(42, 58, 74)');
+    expect(target.classList.contains('gm-commit-row-hover')).toBe(false);
+    expect(target.classList.contains('gm-commit-row-selected')).toBe(true);
   });
 
   it('分支标签应该按提交映射渲染本地/远程配色并在分支变化时刷新', () => {
@@ -615,7 +625,7 @@ describe('commit-list', () => {
 
     /** 取某提交行上的分支标签元素 */
     const tagOf = (hash: string, name: string) =>
-      [...row(hash).querySelectorAll<HTMLElement>('span[style*="border-radius: 2px"]')]
+      [...row(hash).querySelectorAll<HTMLElement>('span[data-ref]')]
         .find(el => el.textContent === name);
 
     // 同一提交上的多个分支标签都要保留
@@ -623,28 +633,27 @@ describe('commit-list', () => {
     expect(row('h1').textContent).toContain('feature/x');
     expect(row('h1').textContent).not.toContain('Stryker was here');
 
-    // 本地分支配色
+    // 本地分支配色（语义类）
     const devTag = tagOf('h1', 'dev');
     expect(devTag).toBeTruthy();
-    expect(devTag!.style.backgroundColor).toBe('rgb(74, 58, 26)');  // #4a3a1a
-    expect(devTag!.style.color).toBe('rgb(232, 168, 56)');         // #e8a838
+    expectThemedClass(devTag!, ['gm-commit-ref', 'gm-commit-ref-local']);
 
     // 远程分支（含 '/'）配色
     const featureTag = tagOf('h1', 'feature/x');
     expect(featureTag).toBeTruthy();
-    expect(featureTag!.style.backgroundColor).toBe('rgb(26, 58, 74)'); // #1a3a4a
-    expect(featureTag!.style.color).toBe('rgb(88, 157, 246)');         // #589df6
+    expectThemedClass(featureTag!, ['gm-commit-ref', 'gm-commit-ref-remote']);
     const originTag = tagOf('h2', 'origin/main');
     expect(originTag).toBeTruthy();
-    expect(originTag!.style.backgroundColor).toBe('rgb(26, 58, 74)');
+    expect(originTag!.classList.contains('gm-commit-ref-remote')).toBe(true);
 
     // HEAD 不算本地分支
     const headTag = tagOf('h3', 'HEAD');
     expect(headTag).toBeTruthy();
-    expect(headTag!.style.backgroundColor).toBe('rgb(26, 58, 74)');
+    expect(headTag!.classList.contains('gm-commit-ref-remote')).toBe(true);
+    expect(headTag!.classList.contains('gm-commit-ref-local')).toBe(false);
 
     // 无分支的提交：没有标签、没有残留占位文本
-    expect(row('h4').querySelectorAll('span[style*="border-radius: 2px"]').length).toBe(0);
+    expect(row('h4').querySelectorAll('span[data-ref]').length).toBe(0);
     expect(row('h4').textContent).not.toContain('Stryker was here');
 
     // 分支字段变化通过订阅局部刷新出新标签
@@ -1454,12 +1463,15 @@ describe('commit-list', () => {
     setupCommits();
     createPanel();
 
+    // 日期列显示 → 作者列走基础类（左边距 12px 由 CSS 类承担）
     const authorCol = row('h1').querySelector('[data-col="author"]') as HTMLElement;
-    expect(authorCol.style.marginLeft).toBe('12px'); // 日期列显示 → 12px
+    expectSemanticClass(authorCol, 'gm-commit-col-author');
+    expect(authorCol.classList.contains('gm-commit-col-author-shift')).toBe(false);
 
+    // 日期列隐藏 → 作者列接替右对齐（shift 类）
     setState(s => { s.displaySettings.showDate = false; });
     const authorCol2 = row('h1').querySelector('[data-col="author"]') as HTMLElement;
-    expect(authorCol2.style.marginLeft).toBe('auto'); // 日期列隐藏 → 接替右对齐
+    expectSemanticClass(authorCol2, ['gm-commit-col-author', 'gm-commit-col-author-shift']);
   });
 
   it('作者名中的特殊字符应经转义后按原文渲染', () => {
@@ -1551,9 +1563,8 @@ describe('commit-list', () => {
 
   // ===== 过滤工具栏接线（Cc / .* / 分支▾ / 用户▾ / 日期▾ / 路径▾） =====
 
-  /** 激活态按钮背景色断言值（#1a3a5a / #333） */
-  const ACTIVE_BG = 'rgb(26, 58, 90)';
-  const IDLE_BG = 'rgb(51, 51, 51)';
+  /** 过滤按钮激活态语义类 */
+  const ACTIVE_CLASS = 'gm-commit-filter-btn-active';
 
   /** 获取当前打开的下拉菜单容器（不存在返回 null） */
   const dropdownMenu = () => document.getElementById('git-dropdown-menu');
@@ -1674,21 +1685,20 @@ describe('commit-list', () => {
     try {
       regexBtn.click();
       expect(getState().searchRegex).toBe(true);
-      expect(regexBtn.style.backgroundColor).toBe(ACTIVE_BG);
-      expect(regexBtn.style.border).toBe('1px solid rgb(42, 90, 138)');
-      expect(regexBtn.style.color).toBe('rgb(207, 232, 255)');
+      expect(regexBtn.classList.contains(ACTIVE_CLASS)).toBe(true);
+      expectSemanticClass(regexBtn, 'gm-commit-filter-btn');
 
       caseBtn.click();
       expect(getState().searchCaseSensitive).toBe(true);
-      expect(caseBtn.style.backgroundColor).toBe(ACTIVE_BG);
+      expect(caseBtn.classList.contains(ACTIVE_CLASS)).toBe(true);
 
       regexBtn.click(); // 再次点击恢复
       expect(getState().searchRegex).toBe(false);
-      expect(regexBtn.style.backgroundColor).toBe(IDLE_BG);
+      expect(regexBtn.classList.contains(ACTIVE_CLASS)).toBe(false);
 
       caseBtn.click();
       expect(getState().searchCaseSensitive).toBe(false);
-      expect(caseBtn.style.backgroundColor).toBe(IDLE_BG);
+      expect(caseBtn.classList.contains(ACTIVE_CLASS)).toBe(false);
 
       const events = parseDebugLogs(debugSpy).map(p => p.event);
       expect(events).toContain('search_regex_toggled');
@@ -1706,13 +1716,13 @@ describe('commit-list', () => {
     const dateBtn = toolbarBtn('btn-filter-date');
 
     setState(s => { s.logBranch = 'dev'; });
-    expect(branchBtn.style.backgroundColor).toBe(ACTIVE_BG);
+    expect(branchBtn.classList.contains(ACTIVE_CLASS)).toBe(true);
 
     setState(s => { s.filterAuthor = '张三'; });
-    expect(userBtn.style.backgroundColor).toBe(ACTIVE_BG);
+    expect(userBtn.classList.contains(ACTIVE_CLASS)).toBe(true);
 
     setState(s => { s.filterDateFrom = new Date().toISOString(); });
-    expect(dateBtn.style.backgroundColor).toBe(ACTIVE_BG);
+    expect(dateBtn.classList.contains(ACTIVE_CLASS)).toBe(true);
 
     // 清除全部过滤状态 → 恢复未激活样式
     setState(s => {
@@ -1720,9 +1730,9 @@ describe('commit-list', () => {
       s.filterAuthor = '';
       s.filterDateFrom = '';
     });
-    expect(branchBtn.style.backgroundColor).toBe(IDLE_BG);
-    expect(userBtn.style.backgroundColor).toBe(IDLE_BG);
-    expect(dateBtn.style.backgroundColor).toBe(IDLE_BG);
+    expect(branchBtn.classList.contains(ACTIVE_CLASS)).toBe(false);
+    expect(userBtn.classList.contains(ACTIVE_CLASS)).toBe(false);
+    expect(dateBtn.classList.contains(ACTIVE_CLASS)).toBe(false);
     // 按钮元素引用未被重建（激活态刷新只改样式）
     expect(toolbarBtn('btn-filter-branch')).toBe(branchBtn);
   });
@@ -1832,7 +1842,7 @@ describe('commit-list', () => {
     dropdownRow('李四')!.click();
     expect(getState().filterAuthor).toBe('李四');
     expect(filteredHashes()).toEqual(['h2']);
-    expect(toolbarBtn('btn-filter-user').style.backgroundColor).toBe(ACTIVE_BG);
+    expect(toolbarBtn('btn-filter-user').classList.contains(ACTIVE_CLASS)).toBe(true);
 
     // 再次打开选“全部” → 清除作者过滤
     toolbarBtn('btn-filter-user').click();
@@ -1840,7 +1850,7 @@ describe('commit-list', () => {
     dropdownRow('all')!.click();
     expect(getState().filterAuthor).toBe('');
     expect(filteredHashes()).toEqual(['h1', 'h2', 'h3', 'h4']);
-    expect(toolbarBtn('btn-filter-user').style.backgroundColor).toBe(IDLE_BG);
+    expect(toolbarBtn('btn-filter-user').classList.contains(ACTIVE_CLASS)).toBe(false);
   });
 
   it('用户下拉应输出结构化选择日志', () => {
@@ -1893,7 +1903,7 @@ describe('commit-list', () => {
       expect(getState().filterDateFrom).toBe(new Date(2026, 0, 15, 0, 0, 0, 0).toISOString());
       expect(getState().filterDateTo).toBe(new Date(2026, 0, 15, 23, 59, 59, 999).toISOString());
       expect(filteredHashes()).toEqual(['c-new']); // 旧提交被排除
-      expect(toolbarBtn('btn-filter-date').style.backgroundColor).toBe(ACTIVE_BG);
+      expect(toolbarBtn('btn-filter-date').classList.contains(ACTIVE_CLASS)).toBe(true);
     } finally {
       vi.useRealTimers();
     }
@@ -1945,7 +1955,7 @@ describe('commit-list', () => {
       expect(getState().filterDateFrom).toBe('');
       expect(getState().filterDateTo).toBe('');
       expect(filteredHashes()).toEqual(['h1', 'h2', 'h3', 'h4']);
-      expect(toolbarBtn('btn-filter-date').style.backgroundColor).toBe(IDLE_BG);
+      expect(toolbarBtn('btn-filter-date').classList.contains(ACTIVE_CLASS)).toBe(false);
 
       // 再打开：all 勾选、today 无勾
       toolbarBtn('btn-filter-date').click();
@@ -1976,7 +1986,7 @@ describe('commit-list', () => {
     expect(getState().filterDateFrom).toBe('2026-01-01');
     expect(getState().filterDateTo).toBe('2026-01-31');
     expect(document.getElementById('daterange-from')).toBeNull(); // 应用后关闭
-    expect(toolbarBtn('btn-filter-date').style.backgroundColor).toBe(ACTIVE_BG);
+    expect(toolbarBtn('btn-filter-date').classList.contains(ACTIVE_CLASS)).toBe(true);
   });
 
   it('日期下拉应输出结构化选择日志', () => {
@@ -2001,13 +2011,13 @@ describe('commit-list', () => {
 
     const pathBtn = toolbarBtn('btn-filter-path') as HTMLButtonElement;
     const branchBtn = toolbarBtn('btn-filter-branch');
-    // 不再是禁用态：无 disabled 属性、可点击光标、不弱化透明度
+    // 不再是禁用态：无 disabled 属性、与其他下拉按钮同语义类、不弱化透明度
     expect(pathBtn.hasAttribute('disabled')).toBe(false);
     expect(pathBtn.disabled).toBe(false);
-    expect(pathBtn.getAttribute('style')).toBe(branchBtn.getAttribute('style'));
-    expect(pathBtn.style.cursor).toBe('pointer');
-    expect(pathBtn.getAttribute('style')).not.toContain('opacity');
-    expect(pathBtn.getAttribute('style')).not.toContain('not-allowed');
+    expect(pathBtn.className).toBe(branchBtn.className);
+    expectSemanticClass(pathBtn, 'gm-commit-filter-btn');
+    expect(pathBtn.getAttribute('style') ?? '').not.toContain('opacity');
+    expect(pathBtn.getAttribute('style') ?? '').not.toContain('not-allowed');
     // label 为 zh-CN 的 filter.path 文案（不再设置 pathSoon 提示）
     expect(pathBtn.textContent).toContain('路径');
     expect(pathBtn.title).not.toContain('暂未实现');
@@ -2055,7 +2065,7 @@ describe('commit-list', () => {
     setupCommits();
     createPanel();
     setState(s => { s.filterPaths = ['src/']; }); // 已有路径过滤 → 按钮激活
-    expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(ACTIVE_BG);
+    expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(true);
     getLogMock.mockResolvedValue(makeCommits());
 
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
@@ -2068,7 +2078,7 @@ describe('commit-list', () => {
       await vi.waitFor(() => {
         expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, undefined);
       });
-      expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(IDLE_BG); // 激活态熄灭
+      expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(false); // 激活态熄灭
 
       const log = parseDebugLogs(debugSpy).find(p => p.event === 'path_dropdown_select');
       expect(log).toMatchObject({ prefix: '[commit-list]', event: 'path_dropdown_select', path: [] });
@@ -2113,7 +2123,7 @@ describe('commit-list', () => {
     await vi.waitFor(() => {
       expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, undefined);
     });
-    expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(IDLE_BG); // 激活态熄灭
+    expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(false); // 激活态熄灭
   });
 
   it('点选择文件夹应打开路径勾选树并保留不在列表中的已选路径', async () => {
@@ -2163,7 +2173,7 @@ describe('commit-list', () => {
       await vi.waitFor(() => {
         expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, ['src']);
       });
-      expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(ACTIVE_BG);
+      expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(true);
 
       const log = parseDebugLogs(debugSpy).find(p => p.event === 'path_dropdown_select');
       expect(log).toMatchObject({ prefix: '[commit-list]', event: 'path_dropdown_select', path: ['src'] });
@@ -2195,13 +2205,13 @@ describe('commit-list', () => {
     setupCommits();
     createPanel();
     const pathBtn = toolbarBtn('btn-filter-path');
-    expect(pathBtn.style.backgroundColor).toBe(IDLE_BG); // 初始空数组不过滤
+    expect(pathBtn.classList.contains(ACTIVE_CLASS)).toBe(false); // 初始空数组不过滤
 
     setState(s => { s.filterPaths = ['src/']; });
-    expect(pathBtn.style.backgroundColor).toBe(ACTIVE_BG); // 非空 → 点亮
+    expect(pathBtn.classList.contains(ACTIVE_CLASS)).toBe(true); // 非空 → 点亮
 
     setState(s => { s.filterPaths = []; });
-    expect(pathBtn.style.backgroundColor).toBe(IDLE_BG); // 恢复空数组 → 熄灭
+    expect(pathBtn.classList.contains(ACTIVE_CLASS)).toBe(false); // 恢复空数组 → 熄灭
     // 激活态刷新只改样式，不重建按钮元素
     expect(toolbarBtn('btn-filter-path')).toBe(pathBtn);
   });
@@ -2269,7 +2279,7 @@ describe('commit-list', () => {
     await vi.waitFor(() => {
       expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, ['src/', 'docs/core']);
     });
-    expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(ACTIVE_BG); // 激活态点亮
+    expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(true); // 激活态点亮
   });
 
   it('编辑路径确定值与当前相同应仅关闭且不重复发起请求', () => {
@@ -2346,7 +2356,8 @@ describe('commit-list', () => {
     createPanel();
 
     const list = row('h1').parentElement as HTMLElement;
-    expect(list.style.userSelect).toBe('none');
+    // 文字禁选由 .gm-commit-list 类承担（user-select: none）
+    expectSemanticClass(list, 'gm-commit-list');
   });
 
   it('拖拽应该连续选中经过的提交行', () => {
@@ -2595,10 +2606,10 @@ describe('commit-list', () => {
       [...menu.querySelectorAll<HTMLElement>('div')].find(el => el.textContent === label);
 
     // 改写历史的项置灰（对齐 IDEA：不可用时菜单项直接禁用，而非点击后报错）
-    expect(findItem('编辑提交信息')?.style.color).toBe('rgb(102, 102, 102)');
-    expect(findItem('删除提交')?.style.color).toBe('rgb(102, 102, 102)');
+    expect(findItem('编辑提交信息')?.classList.contains('gm-ctx-item-disabled')).toBe(true);
+    expect(findItem('删除提交')?.classList.contains('gm-ctx-item-disabled')).toBe(true);
     // 不影响历史的项仍可用
-    expect(findItem('复制提交哈希')?.style.color).not.toBe('rgb(102, 102, 102)');
+    expect(findItem('复制提交哈希')?.classList.contains('gm-ctx-item-disabled')).toBe(false);
   });
 
   it('工作区干净时，编辑提交信息与删除提交应可用', async () => {
@@ -2611,7 +2622,7 @@ describe('commit-list', () => {
     const findItem = (label: string) =>
       [...menu.querySelectorAll<HTMLElement>('div')].find(el => el.textContent === label);
 
-    expect(findItem('编辑提交信息')?.style.color).not.toBe('rgb(102, 102, 102)');
-    expect(findItem('删除提交')?.style.color).not.toBe('rgb(102, 102, 102)');
+    expect(findItem('编辑提交信息')?.classList.contains('gm-ctx-item-disabled')).toBe(false);
+    expect(findItem('删除提交')?.classList.contains('gm-ctx-item-disabled')).toBe(false);
   });
 });

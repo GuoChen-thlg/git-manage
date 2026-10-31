@@ -8,6 +8,7 @@ import { host } from '../host';
 import { getState, setState, createInitialState, Branch, CommitInfo, FileDiff } from '../state';
 import { setLocale, t } from '../i18n';
 import { ServiceClient, DeleteBranchResult } from '../service';
+import { expectThemedClass, expectNoHardcodedHex } from './theme-helpers';
 
 // 宿主模块打桩：避免真实 connectHost 握手，并在用例中断言 toast 调用
 vi.mock('../host', () => ({
@@ -134,22 +135,6 @@ async function flush(rounds = 10): Promise<void> {
 }
 
 /**
- * 断言样式颜色值（兼容 3/6 位 hex，jsdom 可能把 hex 规范化为 rgb 字符串）
- * @param actual 实际样式值
- * @param hex 期望的十六进制颜色
- */
-function expectStyleColor(actual: string, hex: string): void {
-  // 3 位 hex 展开为 6 位
-  const full = hex.length === 4
-    ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
-    : hex;
-  const r = parseInt(full.slice(1, 3), 16);
-  const g = parseInt(full.slice(3, 5), 16);
-  const b = parseInt(full.slice(5, 7), 16);
-  expect([hex, full, `rgb(${r}, ${g}, ${b})`]).toContain(actual);
-}
-
-/**
  * 获取当前菜单元素
  * @returns 菜单元素
  */
@@ -157,6 +142,33 @@ function getMenu(): HTMLElement {
   const menu = document.getElementById('git-context-menu');
   expect(menu).toBeTruthy();
   return menu as HTMLElement;
+}
+
+/**
+ * 判断菜单直属子元素是否为分隔线（主题化后按语义类识别）
+ * @param el 菜单子元素
+ * @returns 是否为分隔线
+ */
+function isSep(el: HTMLElement): boolean {
+  return el.classList.contains('gm-ctx-sep');
+}
+
+/**
+ * 收集菜单直属分隔线
+ * @param menu 菜单元素
+ * @returns 分隔线元素数组
+ */
+function getSeps(menu: HTMLElement): HTMLElement[] {
+  return (Array.from(menu.children) as HTMLElement[]).filter(isSep);
+}
+
+/**
+ * 收集菜单直属非分隔线（可选项）元素
+ * @param menu 菜单元素
+ * @returns 可选项元素数组
+ */
+function getItems(menu: HTMLElement): HTMLElement[] {
+  return (Array.from(menu.children) as HTMLElement[]).filter(el => !isSep(el));
 }
 
 describe('context-menu', () => {
@@ -233,12 +245,13 @@ describe('context-menu', () => {
       trigger.dispatchEvent(createContextMenuEvent());
 
       const menu = getMenu();
-      expect(menu.style.position).toBe('fixed');
       expect(menu.style.left).toBe('10px');
       expect(menu.style.top).toBe('10px');
+      expectThemedClass(menu, 'gm-ctx-menu');
+      expectNoHardcodedHex(menu);
 
       const labels = (Array.from(menu.children) as HTMLElement[])
-        .filter(el => el.style.height !== '1px')
+        .filter(el => !isSep(el))
         .map(el => el.textContent);
       expect(labels).toEqual([
         '签出分支',
@@ -251,12 +264,12 @@ describe('context-menu', () => {
         '删除分支',
       ]);
       // 3 条分隔线
-      const separators = (Array.from(menu.children) as HTMLElement[]).filter(el => el.style.height === '1px');
+      const separators = getSeps(menu);
       expect(separators).toHaveLength(3);
-      expectStyleColor(separators[0].style.background, '#444');
+      expectThemedClass(separators[0], 'gm-ctx-sep');
     });
 
-    it('删除分支项应显示为危险红色，普通项与分隔线为默认样式', () => {
+    it('删除分支项应显示为危险项，普通项与分隔线为默认样式（均由语义类表达）', () => {
       const service = createMockService();
       showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
 
@@ -265,23 +278,21 @@ describe('context-menu', () => {
       const normalItem = findMenuItem(menu, '签出分支');
 
       expect(dangerItem).toBeTruthy();
-      expectStyleColor(dangerItem!.style.color, '#f44336');
+      expect(dangerItem!.classList.contains('gm-ctx-item-danger')).toBe(true);
       expect(normalItem).toBeTruthy();
-      expectStyleColor(normalItem!.style.color, '#ccc');
-      expect(normalItem!.style.cursor).toBe('pointer');
+      expectThemedClass(normalItem!, 'gm-ctx-item');
     });
 
-    it('悬停菜单项应显示高亮，移出后恢复透明', () => {
+    it('悬停菜单项应显示高亮，移出后恢复（class 切换）', () => {
       const service = createMockService();
       showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
 
       const item = findMenuItem(getMenu(), '签出分支')!;
       item.dispatchEvent(new MouseEvent('mouseenter'));
-      expect(item.style.background).not.toBe('');
-      expect(item.style.background).not.toBe('transparent');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(true);
 
       item.dispatchEvent(new MouseEvent('mouseleave'));
-      expect(item.style.background).toBe('transparent');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(false);
     });
 
     it('点击签出分支应调用 checkoutBranch 并刷新分支列表后关闭菜单', async () => {
@@ -418,7 +429,7 @@ describe('context-menu', () => {
       const item = findMenuItem(getMenu(), '删除分支');
       expect(item).toBeTruthy();
       // 对齐 IDEA：含当前分支时动作置灰，点击不执行
-      expect(item!.style.color).toBe('rgb(102, 102, 102)');
+      expect(item!.classList.contains('gm-ctx-item-disabled')).toBe(true);
       item!.click();
       await flush();
       expect(service.deleteBranch).not.toHaveBeenCalled();
@@ -451,12 +462,11 @@ describe('context-menu', () => {
       showContextMenu(createContextMenuEvent(), currentBranch, service, DIRECTORY);
 
       const item = findMenuItem(getMenu(), '删除分支')!;
-      expect(item.style.cursor).toBe('default');
-      expectStyleColor(item.style.color, '#666');
+      expect(item.classList.contains('gm-ctx-item-disabled')).toBe(true);
 
       // 悬停不高亮（跳过禁用项）
       item.dispatchEvent(new MouseEvent('mouseenter'));
-      expect(item.style.background).toBe('');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(false);
 
       // 点击不执行动作、不打开对话框、不关闭菜单（回归：委托处理曾漏检 disabled）
       item.click();
@@ -711,7 +721,7 @@ describe('context-menu', () => {
       vi.runAllTimers();
 
       const menu = getMenu();
-      const separator = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px')!;
+      const separator = getSeps(menu)[0];
       separator.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       expect(document.getElementById('git-context-menu')).toBeTruthy();
@@ -757,9 +767,7 @@ describe('context-menu', () => {
       expect(menu.style.left).toBe('10px');
       expect(menu.style.top).toBe('10px');
 
-      const labels = (Array.from(menu.children) as HTMLElement[])
-        .filter(el => el.style.height !== '1px')
-        .map(el => el.textContent);
+      const labels = getItems(menu).map(el => el.textContent);
       // 顺序对齐 IDEA 提交右键菜单：复制 → Cherry-pick/比较 → Reset/Revert
       // → 撤销/编辑/删除 → 推送至此 → 分支/标签
       expect(labels).toEqual([
@@ -775,7 +783,7 @@ describe('context-menu', () => {
         '新建分支',
         '新建标签',
       ]);
-      const separators = (Array.from(menu.children) as HTMLElement[]).filter(el => el.style.height === '1px');
+      const separators = getSeps(menu);
       expect(separators).toHaveLength(5);
     });
 
@@ -882,7 +890,7 @@ describe('context-menu', () => {
       vi.runAllTimers();
 
       const menu = getMenu();
-      const separator = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px')!;
+      const separator = getSeps(menu)[0];
       separator.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       expect(document.getElementById('git-context-menu')).toBeTruthy();
@@ -908,9 +916,7 @@ describe('context-menu', () => {
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, batchHashes);
 
       const menu = getMenu();
-      const labels = (Array.from(menu.children) as HTMLElement[])
-        .filter(el => el.style.height !== '1px')
-        .map(el => el.textContent);
+      const labels = getItems(menu).map(el => el.textContent);
       expect(labels).toEqual([
         '已选中 3 个提交',
         '复制哈希列表',
@@ -918,12 +924,11 @@ describe('context-menu', () => {
         'Revert 全部 (3)',
       ]);
       // 仅 1 条分隔线
-      expect((Array.from(menu.children) as HTMLElement[]).filter(el => el.style.height === '1px')).toHaveLength(1);
+      expect(getSeps(menu)).toHaveLength(1);
 
       // 首项为禁用态
       const disabledItem = findMenuItem(menu, '已选中 3 个提交')!;
-      expect(disabledItem.style.cursor).toBe('default');
-      expectStyleColor(disabledItem.style.color, '#666');
+      expect(disabledItem.classList.contains('gm-ctx-item-disabled')).toBe(true);
     });
 
     it('点击复制哈希列表应按换行拼接写入剪贴板', async () => {
@@ -998,50 +1003,38 @@ describe('context-menu', () => {
       const service = createMockService();
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, ['h1']);
 
-      const labels = (Array.from(getMenu().children) as HTMLElement[])
-        .filter(el => el.style.height !== '1px')
-        .map(el => el.textContent);
+      const labels = getItems(getMenu()).map(el => el.textContent);
       expect(labels).toContain('复制提交哈希');
       expect(labels).not.toContain('已选中 1 个提交');
     });
   });
 
-  describe('内联样式细节', () => {
-    it('分支菜单容器、菜单项与分隔线应应用完整内联样式', () => {
+  describe('主题化样式细节', () => {
+    it('分支菜单容器、菜单项与分隔线应应用语义类，不含硬编码色值', () => {
       const service = createMockService();
       showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
 
       const menu = getMenu();
-      expectStyleColor(menu.style.background, '#2d2d2d');
-      expect(menu.style.border).toMatch(/^1px solid/);
-      expect(menu.style.borderRadius).toBe('4px');
-      expect(menu.style.padding).toMatch(/^4px 0(px)?$/);
-      expect(menu.style.zIndex).toBe('1000');
-      expect(menu.style.minWidth).toBe('160px');
-      expect(menu.style.boxShadow).toContain('0 2px 8px');
+      expectThemedClass(menu, 'gm-ctx-menu');
+      expectNoHardcodedHex(menu);
 
       const item = findMenuItem(menu, '签出分支')!;
-      expect(item.style.padding).toBe('6px 12px');
-      expect(item.style.fontSize).toBe('12px');
+      expectThemedClass(item, 'gm-ctx-item');
 
-      const sep = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px') as HTMLElement;
-      expect(sep.style.margin).toMatch(/^4px 0(px)?$/);
+      const sep = getSeps(menu)[0];
+      expectThemedClass(sep, 'gm-ctx-sep');
     });
 
-    it('单提交菜单的菜单项与分隔线应应用默认样式', () => {
+    it('单提交菜单的菜单项与分隔线应应用语义类', () => {
       const service = createMockService();
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
 
       const menu = getMenu();
       const item = findMenuItem(menu, '复制提交哈希')!;
-      expect(item.style.padding).toBe('6px 12px');
-      expect(item.style.fontSize).toBe('12px');
-      expect(item.style.cursor).toBe('pointer');
-      expectStyleColor(item.style.color, '#ccc');
+      expectThemedClass(item, 'gm-ctx-item');
 
-      const sep = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px') as HTMLElement;
-      expectStyleColor(sep.style.background, '#444');
-      expect(sep.style.margin).toMatch(/^4px 0(px)?$/);
+      const sep = getSeps(menu)[0];
+      expectThemedClass(sep, 'gm-ctx-sep');
     });
   });
 
@@ -1297,10 +1290,10 @@ describe('context-menu', () => {
 
       const menu = getMenu();
       menu.dispatchEvent(new MouseEvent('mouseenter'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-ctx-item-hover')).toBe(false);
 
       menu.dispatchEvent(new MouseEvent('mouseleave'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-ctx-item-hover')).toBe(false);
     });
 
     it('单提交菜单悬停与移出仅作用于菜单项，容器自身无响应', () => {
@@ -1310,16 +1303,16 @@ describe('context-menu', () => {
       const menu = getMenu();
       // 容器自身：高亮与恢复都不应生效
       menu.dispatchEvent(new MouseEvent('mouseenter'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-ctx-item-hover')).toBe(false);
       menu.dispatchEvent(new MouseEvent('mouseleave'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-ctx-item-hover')).toBe(false);
 
-      // 菜单项：精确高亮色与恢复
+      // 菜单项：精确高亮类与恢复
       const item = findMenuItem(menu, '复制提交哈希')!;
       item.dispatchEvent(new MouseEvent('mouseenter'));
-      expectStyleColor(item.style.background, '#3a3a3a');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(true);
       item.dispatchEvent(new MouseEvent('mouseleave'));
-      expect(item.style.background).toBe('transparent');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(false);
     });
 
     it('点击分支菜单项内的嵌套元素不应执行动作或关闭菜单', async () => {

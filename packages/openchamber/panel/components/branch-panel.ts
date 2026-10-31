@@ -67,13 +67,13 @@ export function createBranchPanel(
 
     // 搜索框
     const searchContainer = html`
-      <div style="padding: 4px 6px; border-bottom: 1px solid #333; flex-shrink: 0;">
-        <div style="display: flex; align-items: center; background: #2a2a2a; border: 1px solid #444; border-radius: 3px; padding: 0 6px;">
-          <span style="color: #888; font-size: 12px; margin-right: 4px;">${getIcon('search')}</span>
+      <div class="gm-branch-search">
+        <div class="gm-branch-search-box">
+          <span class="gm-branch-search-icon">${getIcon('search')}</span>
           <input 
             type="text" 
             placeholder="${t('branch.searchPlaceholder')}" 
-            style="flex: 1; padding: 4px 0; background: transparent; border: none; color: #ccc; font-size: 12px; outline: none;"
+            class="gm-branch-search-input"
           />
         </div>
       </div>
@@ -90,7 +90,7 @@ export function createBranchPanel(
 
     // 分支列表
     listContainer = html`
-      <div style="flex: 1; overflow-y: auto; overflow-x: hidden;"></div>
+      <div class="gm-branch-list"></div>
     `;
 
     listContainer.addEventListener('click', (e) => {
@@ -319,9 +319,9 @@ export function createBranchPanel(
     const isExpanded = expandedGroups.has(title);
 
     const groupEl = html`
-      <div style="margin-bottom: 2px;">
-        <div data-group="${title}" style="display: flex; align-items: center; padding: 4px 8px; font-size: 11px; color: #888; cursor: pointer; user-select: none;">
-          <span style="margin-right: 4px; font-size: 8px;">${isExpanded ? '▼' : '▶'}</span>
+      <div class="gm-branch-group">
+        <div data-group="${title}" class="gm-branch-group-header">
+          <span class="gm-branch-group-arrow">${isExpanded ? '▼' : '▶'}</span>
           ${title}
         </div>
       </div>
@@ -336,9 +336,9 @@ export function createBranchPanel(
           // 文件夹分组
           const folderExpanded = expandedGroups.has(key);
           const folderEl = html`
-            <div style="margin-left: 12px;">
-              <div data-group="${key}" style="display: flex; align-items: center; padding: 3px 8px; font-size: 11px; color: #888; cursor: pointer; user-select: none;">
-                <span style="margin-right: 4px; font-size: 8px;">${folderExpanded ? '▼' : '▶'}</span>
+            <div class="gm-branch-folder">
+              <div data-group="${key}" class="gm-branch-folder-header">
+                <span class="gm-branch-group-arrow">${folderExpanded ? '▼' : '▶'}</span>
                 ${key}
               </div>
             </div>
@@ -363,9 +363,9 @@ export function createBranchPanel(
   /** 创建简单分组 (HEAD, 远程) */
   function createGroup(title: string, branches: Branch[], expanded: boolean): HTMLElement {
     const group = html`
-      <div style="margin-bottom: 2px;">
-        <div data-group="${title}" style="display: flex; align-items: center; padding: 4px 8px; font-size: 11px; color: #888; cursor: pointer; user-select: none;">
-          <span style="margin-right: 4px; font-size: 8px;">${expanded ? '▼' : '▶'}</span>
+      <div class="gm-branch-group">
+        <div data-group="${title}" class="gm-branch-group-header">
+          <span class="gm-branch-group-arrow">${expanded ? '▼' : '▶'}</span>
           ${title}
         </div>
       </div>
@@ -386,22 +386,26 @@ export function createBranchPanel(
     // 选中态：点击的分支（多选集合优先，其次单选分支；区别于 HEAD 当前分支）
     const isSelected = state.selectedBranches.has(branch.name)
       || (state.selectedBranches.size === 0 && state.selectedBranch?.name === branch.name);
-    const bgStyle = isSelected
-      ? 'background: #2e4a6e;'
+    // 状态类：选中 > 当前分支；主题样式由 __styles__/branch-panel.css 承担
+    const itemClass = isSelected
+      ? 'gm-branch-item gm-branch-item-selected'
       : branch.isCurrent
-        ? 'background: #2a3a4a;'
-        : '';
+        ? 'gm-branch-item gm-branch-item-current'
+        : 'gm-branch-item';
+    const nameClass = branch.isCurrent
+      ? 'gm-branch-item-name gm-branch-item-name-current'
+      : 'gm-branch-item-name';
 
     return html`
       <div 
-        style="display: flex; align-items: center; padding: 3px 8px 3px 20px; cursor: pointer; font-size: 12px; ${bgStyle}"
+        class="${itemClass}"
         data-branch="${branch.name}"
       >
-        <span style="margin-right: 6px; flex-shrink: 0;">${getIcon('branchIcon')}</span>
-        ${isFavorite ? `<span style="margin-right: 4px; display: flex; align-items: center; width: 12px; flex-shrink: 0;" title="${t('branch.unfavorite')}">${getIcon('favorite')}</span>` : ''}
-        <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ${branch.isCurrent ? 'font-weight: bold; color: #fff;' : 'color: #ccc;'}">${branch.name}</span>
-        ${branch.hasUnpushed && branch.unpushedCount ? `<span style="font-size: 10px; color: #4caf50; margin-left: 4px;">↑${branch.unpushedCount}</span>` : ''}
-        ${branch.hasUnpulled && branch.unpulledCount ? `<span style="font-size: 10px; color: #589df6; margin-left: 4px;">↓${branch.unpulledCount}</span>` : ''}
+        <span class="gm-branch-item-icon">${getIcon('branchIcon')}</span>
+        ${isFavorite ? `<span class="gm-branch-item-star" title="${t('branch.unfavorite')}">${getIcon('favorite')}</span>` : ''}
+        <span class="${nameClass}">${branch.name}</span>
+        ${branch.hasUnpushed && branch.unpushedCount ? `<span class="gm-branch-badge-unpushed">↑${branch.unpushedCount}</span>` : ''}
+        ${branch.hasUnpulled && branch.unpulledCount ? `<span class="gm-branch-badge-unpulled">↓${branch.unpulledCount}</span>` : ''}
       </div>
     `;
   }

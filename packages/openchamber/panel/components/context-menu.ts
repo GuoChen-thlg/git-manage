@@ -234,16 +234,11 @@ export function showContextMenu(
 
   const menu = document.createElement("div");
   menu.id = "git-context-menu";
-  menu.style.position = "fixed";
+  // 主题/几何样式统一在 __styles__/context-menu.css 的 .gm-ctx-* 类里；
+  // 内联只保留运行时定位坐标（指针位置）
+  menu.className = "gm-ctx-menu";
   menu.style.left = `${e.clientX}px`;
   menu.style.top = `${e.clientY}px`;
-  menu.style.background = "#2d2d2d";
-  menu.style.border = "1px solid #444";
-  menu.style.borderRadius = "4px";
-  menu.style.padding = "4px 0";
-  menu.style.zIndex = "1000";
-  menu.style.minWidth = "160px";
-  menu.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.5)";
 
   // 删除目标：多选时作用于全部选中分支；未多选时就是右键的这个分支。
   // 参数语义与侧栏删除按钮一致：selectedBranches 非空时以多选为准
@@ -346,9 +341,7 @@ export function showContextMenu(
   for (const item of items) {
     if ("type" in item && item.type === "separator") {
       const sep = document.createElement("div");
-      sep.style.height = "1px";
-      sep.style.background = "#444";
-      sep.style.margin = "4px 0";
+      sep.className = "gm-ctx-sep";
       menu.appendChild(sep);
       continue;
     }
@@ -356,10 +349,11 @@ export function showContextMenu(
     const menuItem = item as MenuItem;
     const el = document.createElement("div");
     el.textContent = menuItem.label;
-    el.style.padding = "6px 12px";
-    el.style.cursor = menuItem.disabled ? "default" : "pointer";
-    el.style.fontSize = "12px";
-    el.style.color = menuItem.disabled ? "#666" : menuItem.danger ? "#f44336" : "#ccc";
+    el.className = menuItem.disabled
+      ? "gm-ctx-item gm-ctx-item-disabled"
+      : menuItem.danger
+        ? "gm-ctx-item gm-ctx-item-danger"
+        : "gm-ctx-item";
 
     menu.appendChild(el);
   }
@@ -368,14 +362,14 @@ export function showContextMenu(
   menu.addEventListener('mouseenter', (e) => {
     const target = (e.target as HTMLElement).closest('div');
     if (target && target.parentElement === menu && !findItemByLabel(target.textContent)?.disabled) {
-      target.style.background = "#3a3a3a";
+      target.classList.add('gm-ctx-item-hover');
     }
   }, true);
 
   menu.addEventListener('mouseleave', (e) => {
     const target = (e.target as HTMLElement).closest('div');
     if (target && target.parentElement === menu) {
-      target.style.background = "transparent";
+      target.classList.remove('gm-ctx-item-hover');
     }
   }, true);
 
@@ -433,26 +427,16 @@ export function showCommitContextMenu(
     items.find(i => !("type" in i) && (i as MenuItem).label === label) as MenuItem | undefined;
 
   const menu = html`
-    <div id="git-context-menu" style="
-      position: fixed;
+    <div id="git-context-menu" class="gm-ctx-menu gm-ctx-menu-wide" style="
       left: ${e.clientX}px;
       top: ${e.clientY}px;
-      background: #2d2d2d;
-      border: 1px solid #444;
-      border-radius: 4px;
-      padding: 4px 0;
-      z-index: 1000;
-      min-width: 200px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     "></div>
   `;
 
   for (const item of items) {
     if ("type" in item && item.type === "separator") {
       const sep = document.createElement("div");
-      sep.style.height = "1px";
-      sep.style.background = "#444";
-      sep.style.margin = "4px 0";
+      sep.className = "gm-ctx-sep";
       menu.appendChild(sep);
       continue;
     }
@@ -460,10 +444,11 @@ export function showCommitContextMenu(
     const menuItem = item as MenuItem;
     const el = document.createElement("div");
     el.textContent = menuItem.label;
-    el.style.padding = "6px 12px";
-    el.style.cursor = menuItem.disabled ? "default" : "pointer";
-    el.style.fontSize = "12px";
-    el.style.color = menuItem.disabled ? "#666" : menuItem.danger ? "#f44336" : "#ccc";
+    el.className = menuItem.disabled
+      ? "gm-ctx-item gm-ctx-item-disabled"
+      : menuItem.danger
+        ? "gm-ctx-item gm-ctx-item-danger"
+        : "gm-ctx-item";
 
     menu.appendChild(el);
   }
@@ -471,14 +456,14 @@ export function showCommitContextMenu(
   menu.addEventListener('mouseenter', (ev) => {
     const target = (ev.target as HTMLElement).closest('div');
     if (target && target.parentElement === menu && !findItemByLabel(target.textContent)?.disabled) {
-      target.style.background = "#3a3a3a";
+      target.classList.add('gm-ctx-item-hover');
     }
   }, true);
 
   menu.addEventListener('mouseleave', (ev) => {
     const target = (ev.target as HTMLElement).closest('div');
     if (target && target.parentElement === menu) {
-      target.style.background = "transparent";
+      target.classList.remove('gm-ctx-item-hover');
     }
   }, true);
 
@@ -892,29 +877,29 @@ function buildBatchCommitItems(
 /** 显示 Reset 对话框 */
 function showResetDialog(commit: CommitInfo, service: ServiceClient, directory: string): void {
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('reset.title')}</div>
-        <div style="font-size: 12px; color: #888; margin-bottom: 12px; word-break: break-all;">
+    <div class="gm-ctx-overlay">
+      <div class="gm-ctx-panel">
+        <div class="gm-ctx-title">${t('reset.title')}</div>
+        <div class="gm-ctx-desc">
           ${commit.shortHash} - ${commit.message}
         </div>
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; cursor: pointer;">
+        <div class="gm-ctx-modes">
+          <label class="gm-ctx-mode">
             <input type="radio" name="reset-mode" value="soft" checked />
             <span><b>--soft</b> ${t('reset.softDesc')}</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; cursor: pointer;">
+          <label class="gm-ctx-mode">
             <input type="radio" name="reset-mode" value="mixed" />
             <span><b>--mixed</b> ${t('reset.mixedDesc')}</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; cursor: pointer;">
+          <label class="gm-ctx-mode">
             <input type="radio" name="reset-mode" value="hard" />
             <span><b>--hard</b> ${t('reset.hardDesc')}</span>
           </label>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="reset-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="reset-ok" style="padding: 4px 12px; background: #d32f2f; border: 1px solid #f44336; border-radius: 3px; color: #fff; cursor: pointer;">Reset</button>
+        <div class="gm-ctx-actions">
+          <button id="reset-cancel" class="gm-ctx-btn">${t('dialog.cancel')}</button>
+          <button id="reset-ok" class="gm-ctx-btn gm-ctx-btn-danger">Reset</button>
         </div>
       </div>
     </div>

@@ -132,18 +132,18 @@ describe('compare-view', () => {
 
     // 未点击文件时 diff 区隐藏
     const content = document.querySelector('#compare-detail [data-compare-diff="src/a.ts"]') as HTMLElement;
-    expect(content.style.display).toBe('none');
+    expect(content.classList.contains('gm-compare-file-content-active')).toBe(false);
 
     (document.querySelector('#compare-detail [data-compare-path="src/a.ts"]') as HTMLElement).click();
 
-    expect(content.style.display).toBe('block');
+    expect(content.classList.contains('gm-compare-file-content-active')).toBe(true);
     expect(content.textContent).toContain('const a = 1;');
     expect(content.textContent).toContain('const b = 2;');
     expect(content.textContent).toContain('const b = 3;');
 
     // 再次点击收起
     (document.querySelector('#compare-detail [data-compare-path="src/a.ts"]') as HTMLElement).click();
-    expect(content.style.display).toBe('none');
+    expect(content.classList.contains('gm-compare-file-content-active')).toBe(false);
   });
 
   it('提交详情加载失败时应该在右侧显示错误', async () => {
