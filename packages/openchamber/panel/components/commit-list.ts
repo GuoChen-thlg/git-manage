@@ -638,7 +638,8 @@ export function createCommitListPanel(
    */
   const mountBranchSelect = (root: HTMLElement): SelectHandle => {
     const handle = mountSelect(root, {
-      label: t('filter.branch'),
+      // 工具栏内联紧凑布局，不传 label（Kit select 的 label 为纵向堆叠会撑乱工具栏行高）；
+      // 语义由 trigger 当前值 + title 提示承载
       value: getState().logBranch ?? ALL_OPTION_ID,
       options: buildBranchOptions(),
       placeholder: t('filter.all'),
@@ -678,7 +679,7 @@ export function createCommitListPanel(
    */
   const mountUserSelect = (root: HTMLElement): SelectHandle => {
     const handle = mountSelect(root, {
-      label: t('filter.user'),
+      // 工具栏内联紧凑布局，不传 label（同分支下拉，避免纵向堆叠撑乱工具栏行高）
       value: getState().filterAuthor || ALL_OPTION_ID,
       options: buildUserOptions(),
       placeholder: t('filter.all'),

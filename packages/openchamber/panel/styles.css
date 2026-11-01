@@ -2117,3 +2117,19 @@
 .gm-syntax-comment { color: var(--gm-syntax-comment); }
 .gm-syntax-variable { color: var(--gm-syntax-variable); }
 .gm-syntax-operator { color: var(--gm-syntax-operator); }
+
+/* ============ 工具栏内联下拉（分支/用户过滤）对齐 ============ */
+/* Kit select 默认为表单纵向（label 在上），工具栏场景去掉 label 后仅剩 trigger，
+   这里让其与工具栏其它控件同行垂直居中、不撑高行 */
+.gm-commit-filter-slot {
+  display: flex;
+  align-items: center;
+}
+.gm-commit-filter-slot .oc-sdk-select {
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+}
+.gm-commit-filter-slot .oc-sdk-trigger {
+  height: 26px;
+}

@@ -2454,9 +2454,12 @@ describe('commit-list', () => {
     expect(toolbarBtn('btn-case').title).toBe('大小写敏感');
     expect(toolbarBtn('btn-filter-date').textContent).toContain('日期');
     expect(toolbarBtn('btn-filter-path').textContent).toContain('路径');
-    // 分支/用户过滤为 Kit select：标签文案为 i18n 的分支/用户
-    expect(kitSelect('filter-branch').querySelector('.oc-sdk-field-label')?.textContent).toBe('分支');
-    expect(kitSelect('filter-user').querySelector('.oc-sdk-field-label')?.textContent).toBe('用户');
+    // 分支/用户过滤为 Kit select：工具栏内联紧凑布局不带 label（避免纵向堆叠），
+    // 语义由 trigger 当前值（占位“全部”）承载，故断言 select 就位且占位文案为 i18n 的“全部”
+    const branchTrigger = kitSelect('filter-branch').querySelector('.oc-sdk-trigger-value');
+    const userTrigger = kitSelect('filter-user').querySelector('.oc-sdk-trigger-value');
+    expect(branchTrigger?.textContent).toBe('全部');
+    expect(userTrigger?.textContent).toBe('全部');
   });
 
   it('Ctrl+A 应该全选当前过滤后的提交', () => {
