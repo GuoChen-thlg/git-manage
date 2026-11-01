@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Git Manager — 插件官网入口</title>
+  <meta name="description" content="Git Manager 是 OpenChamber 与 VS Code 的 Git 图形化管理扩展。本页为官网入口，默认跳转中文站点，也可自选英文站点与宿主版本。" />
+  <link rel="canonical" href="https://guochen-thlg.github.io/git-manage/vscode/zh/" />
+  <link rel="alternate" hreflang="zh-CN" href="https://guochen-thlg.github.io/git-manage/vscode/zh/" />
+  <link rel="alternate" hreflang="en" href="https://guochen-thlg.github.io/git-manage/vscode/en/" />
+  <link rel="alternate" hreflang="x-default" href="https://guochen-thlg.github.io/git-manage/vscode/zh/" />
+  <meta http-equiv="refresh" content="0; url=vscode/zh/" />
+  <style>
+    /* 跳转落地页样式自包含内联，避免加载站点样式造成二次下载 */
+    :root {
+      --bg: #1f1f1f;
+      --fg: #d4d4d4;
+      --muted: #9d9d9d;
+      --link: #4daafc;
+      --line: #3c3c3c;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    main {
+      max-width: 560px;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 28px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    p {
+      margin: 0 0 16px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+    a {
+      color: var(--link);
+      text-decoration: none;
+    }
+    a:hover, a:focus { text-decoration: underline; }
+    .primary {
+      display: inline-block;
+      margin: 4px 8px;
+      padding: 8px 18px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-size: 15px;
+    }
+    .links {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .links a { margin: 4px 10px; }
+  </style>
+  <script>
+    // 跳转兜底：meta refresh 被禁用时用 JS 立即跳转
+    window.location.replace("vscode/zh/");
+  </script>
+</head>
+<body>
+  <main>
+    <h1>Git Manager</h1>
+    <p>OpenChamber 与 VS Code 的 Git 图形化管理扩展。</p>
+    <p>
+      <a class="primary" href="vscode/zh/">进入中文站</a>
+      <a class="primary" href="vscode/en/">Enter English site</a>
+    </p>
+    <div class="links">
+      <p>也可自选版本与语言：</p>
+      <a href="vscode/zh/">VS Code 中文</a>
+      <a href="vscode/en/">VS Code English</a>
+      <a href="openchamber/zh/">OpenChamber 中文</a>
+      <a href="openchamber/en/">OpenChamber English</a>
+    </div>
+  </main>
+</body>
+</html>
