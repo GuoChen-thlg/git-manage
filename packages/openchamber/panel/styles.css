@@ -1,0 +1,2178 @@
+/**
+ * 面板统一样式入口
+ * 主题色/字体/圆角统一走 --gm-* 语义变量，映射到宿主注入的 --oc-* 主题变量；
+ * 宿主未注入时回退到一套中性浅色/深色（prefers-color-scheme）双端默认值，
+ * 保证预览或测试环境（无宿主 theme）仍可读。
+ * 组件不再内联颜色，仅保留运行时计算值（弹层坐标/几何）。
+ */
+
+:root {
+  /* 主题色语义层：映射宿主 --oc-*；宿主未注入时走回退值 */
+  --gm-bg: var(--oc-bg, #ffffff);
+  --gm-elevated: var(--oc-elevated, #f7f7f8);
+  --gm-fg: var(--oc-fg, #1f2328);
+  --gm-muted: var(--oc-muted, #656d76);
+  --gm-subtle: var(--oc-subtle, #8c959f);
+  --gm-border: var(--oc-border, #d0d7de);
+  --gm-hover: var(--oc-hover, rgba(20, 20, 20, 0.06));
+  --gm-selection: var(--oc-selection, rgba(0, 92, 230, 0.12));
+  --gm-focus: var(--oc-focus, #0969da);
+  --gm-primary: var(--oc-primary, #0969da);
+  --gm-primary-fg: var(--oc-primary-fg, #ffffff);
+  --gm-primary-text: var(--oc-primary-text, #0969da);
+  --gm-muted-surface: var(--oc-muted-surface, #f6f8fa);
+  --gm-elevated-fg: var(--oc-elevated-fg, #1f2328);
+  --gm-active: var(--oc-active, rgba(0, 0, 0, 0.12));
+  --gm-selection-fg: var(--oc-selection-fg, #1f2328);
+
+  --gm-success: var(--oc-success, #1a7f37);
+  --gm-warning: var(--oc-warning, #9a6700);
+  --gm-error: var(--oc-error, #cf222e);
+  --gm-info: var(--oc-info, #0969da);
+  --gm-success-text: var(--oc-success-text, #1a7f37);
+  --gm-warning-text: var(--oc-warning-text, #9a6700);
+  --gm-error-text: var(--oc-error-text, #cf222e);
+  --gm-info-text: var(--oc-info-text, #0969da);
+
+  --gm-font: var(--oc-font, system-ui, -apple-system, "Segoe UI", sans-serif);
+  --gm-mono: var(--oc-mono, ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace);
+  --gm-radius: var(--oc-radius, 6px);
+
+  /* 语法高亮（diff 行 tokeniser 消费） */
+  --gm-syntax-keyword: var(--oc-syntax-keyword, #8250df);
+  --gm-syntax-string: var(--oc-syntax-string, #0a3069);
+  --gm-syntax-number: var(--oc-syntax-number, #0550ae);
+  --gm-syntax-function: var(--oc-syntax-function, #8250df);
+  --gm-syntax-type: var(--oc-syntax-type, #953800);
+  --gm-syntax-comment: var(--oc-syntax-comment, #6e7781);
+  --gm-syntax-variable: var(--oc-syntax-variable, #24292f);
+  --gm-syntax-operator: var(--oc-syntax-operator, #cf222e);
+}
+
+/* 宿主未注入 --oc-* 时的深色回退（跟随系统偏好） */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gm-bg: var(--oc-bg, #0d1117);
+    --gm-elevated: var(--oc-elevated, #161b22);
+    --gm-fg: var(--oc-fg, #e6edf3);
+    --gm-muted: var(--oc-muted, #8d96a0);
+    --gm-subtle: var(--oc-subtle, #6e7681);
+    --gm-border: var(--oc-border, #30363d);
+    --gm-hover: var(--oc-hover, rgba(255, 255, 255, 0.07));
+    --gm-selection: var(--oc-selection, rgba(56, 139, 253, 0.28));
+    --gm-focus: var(--oc-focus, #58a6ff);
+    --gm-primary: var(--oc-primary, #58a6ff);
+    --gm-primary-fg: var(--oc-primary-fg, #0d1117);
+    --gm-primary-text: var(--oc-primary-text, #58a6ff);
+    --gm-muted-surface: var(--oc-muted-surface, #161b22);
+    --gm-elevated-fg: var(--oc-elevated-fg, #e6edf3);
+    --gm-active: var(--oc-active, rgba(255, 255, 255, 0.15));
+    --gm-selection-fg: var(--oc-selection-fg, #e6edf3);
+
+    --gm-success: var(--oc-success, #3fb950);
+    --gm-warning: var(--oc-warning, #d29922);
+    --gm-error: var(--oc-error, #f85149);
+    --gm-info: var(--oc-info, #58a6ff);
+    --gm-success-text: var(--oc-success-text, #3fb950);
+    --gm-warning-text: var(--oc-warning-text, #d29922);
+    --gm-error-text: var(--oc-error-text, #f85149);
+    --gm-info-text: var(--oc-info-text, #58a6ff);
+
+    --gm-syntax-keyword: var(--oc-syntax-keyword, #d2a8ff);
+    --gm-syntax-string: var(--oc-syntax-string, #a5d6ff);
+    --gm-syntax-number: var(--oc-syntax-number, #79c0ff);
+    --gm-syntax-function: var(--oc-syntax-function, #d2a8ff);
+    --gm-syntax-type: var(--oc-syntax-type, #ffa657);
+    --gm-syntax-comment: var(--oc-syntax-comment, #8b949e);
+    --gm-syntax-variable: var(--oc-syntax-variable, #e6edf3);
+    --gm-syntax-operator: var(--oc-syntax-operator, #ff7b72);
+  }
+}
+
+/* 根容器默认应用主题背景/前景/字体 */
+#root {
+  background: var(--gm-bg);
+  color: var(--gm-fg);
+  font-family: var(--gm-font);
+}
+
+/* 分支删除通知卡片：固定右下角悬浮卡，随主题配色 */
+.gm-notify {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1100;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 10px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  font-size: 12px;
+  color: var(--gm-fg);
+  max-width: 320px;
+}
+
+.gm-notify-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.gm-notify-link {
+  color: var(--gm-primary-text);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.gm-notify-link-hover {
+  text-decoration: underline;
+}
+
+/* ============ sidebar ============ */
+
+/**
+ * sidebar 组件样式（40px 图标栏）
+ * 主题色/字体/圆角统一走 --gm-* 语义变量
+ */
+
+/* 侧边栏容器 */
+.gm-sidebar {
+  width: 40px;
+  min-width: 40px;
+  background: var(--gm-muted-surface);
+  border-right: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  gap: 2px;
+}
+
+/* 侧边栏按钮 */
+.gm-sidebar-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--gm-radius);
+  color: var(--gm-muted);
+}
+
+/* 按钮悬停 */
+.gm-sidebar-btn-hover {
+  background: var(--gm-hover);
+}
+
+/* 按钮选中/激活 */
+.gm-sidebar-btn-active {
+  background: var(--gm-selection);
+}
+
+/* 按钮禁用 */
+.gm-sidebar-btn-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 图标 SVG */
+.gm-sidebar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============ branch-panel ============ */
+
+/**
+ * branch-panel 组件样式
+ * 主题色/字体/圆角统一走 --gm-* 语义变量
+ */
+
+/* 搜索框外层 */
+.gm-branch-search {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+
+/* 搜索框内层（含图标与输入） */
+.gm-branch-search-box {
+  display: flex;
+  align-items: center;
+  background: var(--gm-muted-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 0 6px;
+}
+
+/* 搜索图标 */
+.gm-branch-search-icon {
+  color: var(--gm-muted);
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+/* 搜索输入 */
+.gm-branch-search-input {
+  flex: 1;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  color: var(--gm-fg);
+  font-size: 12px;
+  outline: none;
+}
+
+/* 分支列表容器 */
+.gm-branch-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 分组块（含文件夹分组） */
+.gm-branch-group {
+  margin-bottom: 2px;
+}
+
+/* 分组标题行 */
+.gm-branch-group-header {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 分组箭头 */
+.gm-branch-group-arrow {
+  margin-right: 4px;
+  font-size: 8px;
+}
+
+/* 文件夹分组容器（带缩进） */
+.gm-branch-folder {
+  margin-left: 12px;
+}
+
+/* 文件夹分组标题行 */
+.gm-branch-folder-header {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 分支项 */
+.gm-branch-item {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px 3px 20px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* 分支项 - 选中态 */
+.gm-branch-item-selected {
+  background: var(--gm-selection);
+}
+
+/* 分支项 - 当前分支（HEAD）态 */
+.gm-branch-item-current {
+  background: var(--gm-muted-surface);
+}
+
+/* 分支图标 */
+.gm-branch-item-icon {
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+/* 收藏星标 */
+.gm-branch-item-star {
+  margin-right: 4px;
+  display: flex;
+  align-items: center;
+  width: 12px;
+  flex-shrink: 0;
+}
+
+/* 分支名 */
+.gm-branch-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gm-fg);
+}
+
+/* 当前分支名（加粗高亮） */
+.gm-branch-item-name-current {
+  font-weight: bold;
+  color: var(--gm-primary-text);
+}
+
+/* 未推送徽标 */
+.gm-branch-badge-unpushed {
+  font-size: 10px;
+  color: var(--gm-success-text);
+  margin-left: 4px;
+}
+
+/* 未拉取徽标 */
+.gm-branch-badge-unpulled {
+  font-size: 10px;
+  color: var(--gm-info-text);
+  margin-left: 4px;
+}
+
+/* ============ commit-list ============ */
+
+/**
+ * commit-list 组件样式
+ * 主题色/字体/圆角统一走 --gm-* 语义变量
+ */
+
+/* 工具栏 */
+.gm-commit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+  background: var(--gm-elevated);
+  flex-wrap: wrap;
+}
+
+/* 搜索输入框容器 */
+.gm-commit-search-box {
+  display: flex;
+  align-items: center;
+  background: var(--gm-muted-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 0 6px;
+  width: 280px;
+  max-width: 280px;
+  flex: 0 1 280px;
+  min-width: 120px;
+}
+
+/* 搜索前缀图标 */
+.gm-commit-search-icon {
+  color: var(--gm-muted);
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+/* 搜索输入 */
+.gm-commit-search-input {
+  flex: 1;
+  padding: 3px 0;
+  background: transparent;
+  border: none;
+  color: var(--gm-fg);
+  font-size: 12px;
+  outline: none;
+  min-width: 80px;
+}
+
+/* 过滤按钮（未激活）—— 对齐 SDK UI Kit trigger 的设计语言（raised 表面、同圆角/高度/内边距/悬停） */
+.gm-commit-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--oc-sdk-raised-bg, var(--gm-elevated));
+  border: 1px solid transparent;
+  border-radius: calc(var(--gm-radius) - 2px);
+  box-shadow: var(--oc-sdk-raised-lift, none);
+  color: var(--gm-elevated-fg);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: background 150ms ease-out;
+}
+.gm-commit-filter-btn:hover {
+  background: var(--oc-sdk-lit, var(--gm-hover));
+}
+
+/* 过滤按钮 - 激活态 */
+.gm-commit-filter-btn-active {
+  background: var(--gm-selection);
+  border-color: var(--gm-focus);
+  color: var(--gm-selection-fg);
+}
+
+/* 正则按钮（等宽字体） */
+.gm-commit-filter-btn-mono {
+  font-family: var(--gm-mono);
+}
+
+/* 大小写按钮（加粗） */
+.gm-commit-filter-btn-bold {
+  font-weight: bold;
+}
+
+/* 下拉过滤按钮（带 ▾ 文案，不换行） */
+.gm-commit-filter-btn-menu {
+  white-space: nowrap;
+}
+
+/* 下拉按钮里承载当前选中值的文案（分支/用户过滤） */
+.gm-filter-btn-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* 工具栏分隔线 */
+.gm-commit-toolbar-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--gm-border);
+  margin: 0 3px;
+}
+
+/* 工具栏图标按钮（ghost，无边框；高度对齐 Kit 控件统一 28px） */
+.gm-commit-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--gm-radius) - 2px);
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+.gm-commit-toolbar-btn:hover {
+  background: var(--oc-sdk-lit, var(--gm-hover));
+  color: var(--gm-fg);
+}
+
+/* 过滤标签容器 */
+.gm-commit-filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+/* 排序标签胶囊 */
+.gm-commit-sort-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  background: var(--gm-muted-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  font-size: 11px;
+}
+
+/* 排序标签文案 */
+.gm-commit-sort-tag-text {
+  color: var(--gm-warning-text);
+}
+
+/* 排序标签清除按钮 */
+.gm-commit-sort-tag-close {
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-size: 10px;
+}
+
+/* 提交列表容器 */
+.gm-commit-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  user-select: none;
+  outline: none;
+}
+
+/* 空态提示 */
+.gm-commit-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+/* 提交行 */
+.gm-commit-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 12px;
+  height: 28px;
+  background: transparent;
+}
+
+/* 提交行 - 悬停态 */
+.gm-commit-row-hover {
+  background: var(--gm-hover);
+}
+
+/* 提交行 - 选中态 */
+.gm-commit-row-selected {
+  background: var(--gm-selection);
+}
+
+/* 圆点指示器容器 */
+.gm-commit-dot {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* 圆点标记（主题强调色） */
+.gm-commit-dot-mark {
+  fill: var(--gm-primary);
+}
+
+/* 哈希列 */
+.gm-commit-col-hash {
+  font-family: var(--gm-mono);
+  color: var(--gm-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+/* 日期列 */
+.gm-commit-col-date {
+  margin-left: auto;
+  color: var(--gm-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 作者列 */
+.gm-commit-col-author {
+  margin-left: 12px;
+  color: var(--gm-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 作者列（日期列隐藏时接替右对齐） */
+.gm-commit-col-author-shift {
+  margin-left: auto;
+}
+
+/* 提交消息 */
+.gm-commit-msg {
+  flex: 1;
+  color: var(--gm-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0 4px;
+}
+
+/* 引用标签（基础） */
+.gm-commit-ref {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 2px;
+  font-size: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 引用标签 - 本地分支 */
+.gm-commit-ref-local {
+  background: var(--gm-muted-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-warning-text);
+}
+
+/* 引用标签 - 远程分支 */
+.gm-commit-ref-remote {
+  background: var(--gm-muted-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-info-text);
+}
+
+/* 引用标签 - 标签（tag） */
+.gm-commit-ref-tag {
+  background: var(--gm-muted-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-success-text);
+}
+
+/* ============ commit-detail ============ */
+
+/**
+ * commit-detail 组件样式
+ * 主题色/字体/圆角统一走 --gm-* 语义变量
+ */
+
+/* 标题栏 */
+.gm-detail-title {
+  padding: 4px 8px;
+  background: var(--gm-elevated);
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 12px;
+  color: var(--gm-fg);
+  flex-shrink: 0;
+}
+
+/* 内容区 */
+.gm-detail-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  font-size: 12px;
+}
+
+/* 空态提示 */
+.gm-detail-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--gm-muted);
+}
+
+/* 字段块 */
+.gm-detail-field {
+  margin-bottom: 8px;
+}
+
+/* 字段标签 */
+.gm-detail-label {
+  color: var(--gm-muted);
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+/* 字段值 */
+.gm-detail-value {
+  color: var(--gm-fg);
+  word-break: break-all;
+}
+
+/* 字段值（等宽字体，如哈希） */
+.gm-detail-value-mono {
+  font-family: var(--gm-mono);
+}
+
+/* 提交消息块 */
+.gm-detail-message-block {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--gm-border);
+}
+
+/* 提交消息文本 */
+.gm-detail-message {
+  color: var(--gm-fg);
+  white-space: pre-wrap;
+}
+
+/* ============ commit-graph ============ */
+
+/**
+ * commit-graph 组件样式
+ * 提交图线 SVG 生成器输出 var(--gm-*) 引用，此处补充语义类兜底与
+ * token → 变量的映射说明（当前生成器直接写 var(--gm-<token>)，无需额外规则）
+ */
+
+/* 单行图线 SVG */
+.gm-graph-row {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* 车道垂直线（stroke 由生成器按车道 token 写入 var(--gm-*)） */
+.gm-graph-line {
+  stroke-linecap: round;
+}
+
+/* 合并水平线：合并点走 --gm-warning */
+.gm-graph-merge-line {
+  stroke-linecap: round;
+}
+
+/* 提交节点圆点：HEAD/普通节点按车道 token，合并点走 --gm-warning */
+.gm-graph-node {
+  stroke: none;
+}
+
+/* ============ file-diff ============ */
+
+/**
+ * file-diff 组件样式
+ * 主题色/字体/圆角统一走 --gm-* 语义变量
+ */
+
+/* 标题栏 */
+.gm-file-diff-title {
+  padding: 4px 8px;
+  background: var(--gm-elevated);
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 12px;
+  color: var(--gm-fg);
+  flex-shrink: 0;
+}
+
+/* 标题计数 */
+.gm-file-diff-title-count {
+  color: var(--gm-muted);
+}
+
+/* 文件列表 + 预览 (上下分割) */
+.gm-file-diff-split {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 文件列表 */
+.gm-file-diff-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+/* 文件条目 */
+.gm-file-diff-item {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 12px;
+}
+
+/* 文件条目悬停 */
+.gm-file-diff-item-hover {
+  background: var(--gm-hover);
+}
+
+/* 文件条目选中 */
+.gm-file-diff-item-selected {
+  background: var(--gm-selection);
+}
+
+/* 状态标记 */
+.gm-file-diff-status {
+  width: 14px;
+  text-align: center;
+  margin-right: 6px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* 状态色 - 新增 (A) */
+.gm-file-diff-status-add {
+  color: var(--gm-success-text);
+}
+
+/* 状态色 - 删除 (D) */
+.gm-file-diff-status-del {
+  color: var(--gm-error-text);
+}
+
+/* 状态色 - 修改 (M) */
+.gm-file-diff-status-mod {
+  color: var(--gm-warning-text);
+}
+
+/* 状态色 - 重命名 (R) */
+.gm-file-diff-status-ren {
+  color: var(--gm-primary-text);
+}
+
+/* 文件路径 */
+.gm-file-diff-path {
+  flex: 1;
+  color: var(--gm-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 新增计数 */
+.gm-file-diff-additions {
+  margin-left: 8px;
+  font-size: 10px;
+  color: var(--gm-success-text);
+}
+
+/* 删除计数 */
+.gm-file-diff-deletions {
+  margin-left: 4px;
+  font-size: 10px;
+  color: var(--gm-error-text);
+}
+
+/* 预览容器 */
+.gm-file-diff-preview {
+  height: 120px;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gm-muted-surface);
+}
+
+/* 预览标题 */
+.gm-file-diff-preview-title {
+  padding: 4px 8px;
+  background: var(--gm-elevated);
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 11px;
+  color: var(--gm-fg);
+}
+
+/* 差异内容容器 */
+.gm-file-diff-content {
+  flex: 1;
+  overflow-y: auto;
+  font-family: var(--gm-mono);
+  font-size: 12px;
+}
+
+/* 差异行 */
+.gm-diff-line {
+  display: flex;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* 上下文行 */
+.gm-diff-line-context {
+  background: transparent;
+  color: var(--gm-fg);
+}
+
+/* 新增行 */
+.gm-diff-line-add {
+  background: var(--gm-success);
+  background: color-mix(in srgb, var(--gm-success) 12%, transparent);
+  color: var(--gm-success-text);
+}
+
+/* 删除行 */
+.gm-diff-line-delete {
+  background: color-mix(in srgb, var(--gm-error) 12%, transparent);
+  color: var(--gm-error-text);
+}
+
+/* 行号 */
+.gm-diff-line-num {
+  width: 36px;
+  text-align: right;
+  padding: 0 4px;
+  color: var(--gm-subtle);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* 行前缀 */
+.gm-diff-line-prefix {
+  width: 14px;
+  text-align: center;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* 行内容 */
+.gm-diff-line-content {
+  flex: 1;
+  padding: 0 4px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* 空态文本 */
+.gm-file-diff-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+/* 空态文本（内联变体） */
+.gm-file-diff-empty-inline {
+  padding: 8px;
+  color: var(--gm-muted);
+}
+
+/* ============ compare-view ============ */
+
+/**
+ * compare-view 组件样式
+ * 主题色/字体/圆角统一走 --gm-* 语义变量
+ */
+
+/* 提交列表容器 */
+.gm-compare-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* 空态文本 */
+.gm-compare-empty {
+  padding: 12px 8px;
+  color: var(--gm-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* 提交行 */
+.gm-compare-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 12px;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+/* 提交行悬停 */
+.gm-compare-row-hover {
+  background: var(--gm-hover);
+}
+
+/* 提交行选中 */
+.gm-compare-row-selected {
+  background: var(--gm-selection);
+}
+
+/* 提交 dot 标记 */
+.gm-compare-dot {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* 提交 hash */
+.gm-compare-hash {
+  font-family: var(--gm-mono);
+  color: var(--gm-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+/* 提交信息 */
+.gm-compare-msg {
+  flex: 1;
+  color: var(--gm-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0 4px;
+}
+
+/* 提交日期 */
+.gm-compare-date {
+  margin-left: auto;
+  color: var(--gm-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 提交作者 */
+.gm-compare-author {
+  margin-left: 12px;
+  color: var(--gm-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 遮罩层 */
+.gm-compare-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+/* 对话框主体 */
+.gm-compare-dialog {
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  width: 1080px;
+  max-width: 96vw;
+  height: 640px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 顶部工具栏 */
+.gm-compare-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+
+/* 图标容器 */
+.gm-compare-icon {
+  display: flex;
+  align-items: center;
+}
+
+/* 分支按钮 */
+.gm-compare-branch-btn {
+  padding: 2px 8px;
+  background: var(--gm-muted-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  color: var(--gm-fg);
+  font-size: 12px;
+  cursor: pointer;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 连接词 */
+.gm-compare-with {
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+/* 摘要 */
+.gm-compare-summary {
+  color: var(--gm-muted);
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+/* 占位符 */
+.gm-compare-spacer {
+  flex: 1;
+}
+
+/* 关闭按钮 */
+.gm-compare-close {
+  cursor: pointer;
+  color: var(--gm-muted);
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+/* 主体区域 */
+.gm-compare-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* 左右分栏 */
+.gm-compare-columns {
+  width: 56%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--gm-border);
+}
+
+/* 区域标题栏 */
+.gm-compare-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--gm-elevated);
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+
+/* 区域标题 */
+.gm-compare-section-title {
+  font-size: 11px;
+  color: var(--gm-fg);
+}
+
+/* 区域计数 */
+.gm-compare-section-count {
+  font-size: 11px;
+  color: var(--gm-muted);
+}
+
+/* 左侧列表 */
+.gm-compare-left-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+/* 右侧列表 */
+.gm-compare-right-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 详情面板 */
+.gm-compare-detail {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  font-size: 12px;
+}
+
+/* 详情空态 */
+.gm-compare-detail-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--gm-muted);
+}
+
+/* 详情头部 */
+.gm-compare-detail-head {
+  margin-bottom: 8px;
+}
+
+/* 提交信息 */
+.gm-compare-detail-msg {
+  color: var(--gm-fg);
+  font-size: 13px;
+  word-break: break-word;
+  margin-bottom: 6px;
+}
+
+/* 详情行 */
+.gm-compare-detail-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+/* 详情标签 */
+.gm-compare-detail-label {
+  color: var(--gm-muted);
+  flex-shrink: 0;
+  width: 48px;
+}
+
+/* 详情值 */
+.gm-compare-detail-value {
+  color: var(--gm-fg);
+  word-break: break-all;
+}
+
+/* 文件标题 */
+.gm-compare-file-title {
+  color: var(--gm-muted);
+  font-size: 11px;
+  margin: 8px 0 4px;
+  border-top: 1px solid var(--gm-border);
+  padding-top: 6px;
+}
+
+/* 空态提示 */
+.gm-compare-empty-hint {
+  color: var(--gm-muted);
+  font-size: 11px;
+}
+
+/* 文件行 */
+.gm-compare-file-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: var(--gm-radius);
+}
+
+/* 折叠箭头 */
+.gm-compare-caret {
+  color: var(--gm-muted);
+  width: 10px;
+  flex-shrink: 0;
+}
+
+/* 文件路径 */
+.gm-compare-file-path {
+  flex: 1;
+  color: var(--gm-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 新增计数 */
+.gm-compare-additions {
+  color: var(--gm-success-text);
+  flex-shrink: 0;
+}
+
+/* 删除计数 */
+.gm-compare-deletions {
+  color: var(--gm-error-text);
+  flex-shrink: 0;
+}
+
+/* 文件展开区 */
+.gm-compare-file-content {
+  display: none;
+  font-family: var(--gm-mono);
+  font-size: 11px;
+  background: var(--gm-muted-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  margin: 2px 0 6px 14px;
+  overflow-x: auto;
+}
+
+/* 文件展开区选中 */
+.gm-compare-file-content-active {
+  display: block;
+}
+
+/* 无差异文本 */
+.gm-compare-no-diff {
+  padding: 6px;
+  color: var(--gm-muted);
+}
+
+/* 父提交标题 */
+.gm-compare-parents-title {
+  color: var(--gm-muted);
+  font-size: 11px;
+  margin: 8px 0 2px;
+}
+
+/* 父提交内容 */
+.gm-compare-parents {
+  color: var(--gm-muted);
+  font-size: 11px;
+  word-break: break-all;
+  font-family: var(--gm-mono);
+}
+
+/* 错误文本 */
+.gm-compare-error {
+  color: var(--gm-error-text);
+  padding: 8px;
+  font-size: 12px;
+}
+
+/* 错误文本（列表内居中变体） */
+.gm-compare-error-center {
+  padding: 12px 8px;
+  color: var(--gm-error-text);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ============ dropdown-menu ============ */
+
+/**
+ * 通用下拉菜单主题样式（dropdown-menu）
+ * 主题色/字体/圆角统一走 --gm-* 语义变量；定位坐标等运行时值由组件内联
+ */
+
+/* 菜单容器：浮层面板 */
+.gm-dropdown-menu {
+  position: fixed;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 4px 0;
+  z-index: 1000;
+  min-width: 160px;
+  /* 长列表（如分支很多）防溢出：限制高度并在菜单内部滚动 */
+  max-height: 60vh;
+  overflow-y: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  color: var(--gm-elevated-fg);
+  font-family: var(--gm-font);
+}
+
+/* 行基础：可选项/分组标题共用内边距与布局 */
+.gm-dropdown-row {
+  padding: 6px 12px;
+}
+
+/* 分组标题：弱化样式、默认光标，不参与点击与悬停高亮 */
+.gm-dropdown-group {
+  font-size: 11px;
+  color: var(--gm-subtle);
+  cursor: default;
+}
+
+/* 分隔线：横线 */
+.gm-dropdown-sep {
+  height: 1px;
+  background: var(--gm-border);
+  margin: 4px 0;
+}
+
+/* 可选项：勾号槽 + 文案（flex 布局与 settings-menu 的开关项一致） */
+.gm-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gm-elevated-fg);
+  cursor: pointer;
+}
+
+/* 置灰不可点 */
+.gm-dropdown-item-disabled {
+  color: var(--gm-muted);
+  cursor: default;
+}
+
+/* 悬停高亮（仅未禁用的可选项响应） */
+.gm-dropdown-item-hover {
+  background: var(--gm-hover);
+}
+
+/* 勾号槽：固定宽度、不伸缩、成功色 */
+.gm-dropdown-check {
+  width: 12px;
+  flex: 0 0 12px;
+  color: var(--gm-success);
+}
+
+/* ============ settings-menu ============ */
+
+/**
+ * 显示设置菜单主题样式（settings-menu）
+ * 主题色/字体/圆角统一走 --gm-* 语义变量；定位坐标等运行时值由组件内联
+ */
+
+/* 菜单容器：浮层面板 */
+.gm-settings-menu {
+  position: fixed;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 4px 0;
+  z-index: 1000;
+  min-width: 160px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  color: var(--gm-elevated-fg);
+  font-family: var(--gm-font);
+}
+
+/* 标题：弱化样式 */
+.gm-settings-title {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--gm-subtle);
+}
+
+/* 分隔线：横线 */
+.gm-settings-sep {
+  height: 1px;
+  background: var(--gm-border);
+  margin: 4px 0;
+}
+
+/* 开关项：勾号槽 + 文案 */
+.gm-settings-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--gm-elevated-fg);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 悬停高亮（仅开关项，标题与分隔线不响应） */
+.gm-settings-item-hover {
+  background: var(--gm-hover);
+}
+
+/* 勾号槽：固定宽度、不伸缩、成功色 */
+.gm-settings-check {
+  width: 12px;
+  flex: 0 0 12px;
+  color: var(--gm-success);
+}
+
+/* ============ context-menu ============ */
+
+/**
+ * 右键菜单与 Reset 对话框主题样式（context-menu）
+ * 主题色/字体/圆角统一走 --gm-* 语义变量；定位坐标等运行时值由组件内联
+ */
+
+/* 菜单容器：浮层面板 */
+.gm-ctx-menu {
+  position: fixed;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 4px 0;
+  z-index: 1000;
+  min-width: 160px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  color: var(--gm-elevated-fg);
+  font-family: var(--gm-font);
+}
+
+/* 提交菜单稍宽（沿用历史 200px） */
+.gm-ctx-menu-wide {
+  min-width: 200px;
+}
+
+/* 菜单项：可点击操作行 */
+.gm-ctx-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--gm-elevated-fg);
+}
+
+/* 危险操作项（如删除/回滚/Reset） */
+.gm-ctx-item-danger {
+  color: var(--gm-error-text);
+}
+
+/* 置灰不可点 */
+.gm-ctx-item-disabled {
+  color: var(--gm-muted);
+  cursor: default;
+}
+
+/* 悬停高亮 */
+.gm-ctx-item-hover {
+  background: var(--gm-hover);
+}
+
+/* 分隔线：横线 */
+.gm-ctx-sep {
+  height: 1px;
+  background: var(--gm-border);
+  margin: 4px 0;
+}
+
+/* ---- Reset 对话框（复用对话框外观） ---- */
+
+/* 遮罩层 */
+.gm-ctx-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+/* 对话框面板 */
+.gm-ctx-panel {
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 16px;
+  width: 360px;
+  color: var(--gm-elevated-fg);
+  font-family: var(--gm-font);
+}
+
+/* 标题 */
+.gm-ctx-title {
+  font-size: 14px;
+  color: var(--gm-elevated-fg);
+  margin-bottom: 12px;
+}
+
+/* 说明文字（弱化） */
+.gm-ctx-desc {
+  font-size: 12px;
+  color: var(--gm-subtle);
+  margin-bottom: 12px;
+  word-break: break-all;
+}
+
+/* 单选模式组 */
+.gm-ctx-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* 单选模式行 */
+.gm-ctx-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--gm-elevated-fg);
+  cursor: pointer;
+}
+
+/* 按钮行 */
+.gm-ctx-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 按钮基础 */
+.gm-ctx-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--gm-border);
+  border-radius: 3px;
+  background: var(--gm-muted-surface);
+  color: var(--gm-elevated-fg);
+  cursor: pointer;
+  font-family: var(--gm-font);
+}
+
+/* 危险按钮（Reset 确认） */
+.gm-ctx-btn-danger {
+  background: var(--gm-error);
+  border-color: var(--gm-error);
+  color: var(--gm-primary-fg);
+}
+
+/* ============ file-context-menu ============ */
+
+/**
+ * 文件右键菜单主题样式（file-context-menu）
+ * 主题色/字体/圆角统一走 --gm-* 语义变量；定位坐标等运行时值由组件内联
+ */
+
+/* 菜单容器：浮层面板 */
+.gm-filectx-menu {
+  position: fixed;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 4px 0;
+  z-index: 1000;
+  min-width: 200px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  color: var(--gm-elevated-fg);
+  font-family: var(--gm-font);
+}
+
+/* 菜单项：可点击操作行 */
+.gm-filectx-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--gm-elevated-fg);
+}
+
+/* 危险操作项（如回滚更改） */
+.gm-filectx-item-danger {
+  color: var(--gm-error-text);
+}
+
+/* 分隔线：横线 */
+.gm-filectx-sep {
+  height: 1px;
+  background: var(--gm-border);
+  margin: 4px 0;
+}
+
+/* 悬停高亮 */
+.gm-filectx-item-hover {
+  background: var(--gm-hover);
+}
+
+/* ============ dialogs ============ */
+
+/**
+ * 弹窗（对话框）主题样式（dialogs）
+ * 主题色/字体/圆角统一走 --gm-* 语义变量；运行时状态（display 切换、缩进）由组件内联
+ */
+
+/* 遮罩层 */
+.gm-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+/* 遮罩层层级提升（确认/提示对话框叠在其他对话框之上） */
+.gm-dialog-overlay--top {
+  z-index: 1002;
+}
+
+/* 对话框面板 */
+.gm-dialog-panel {
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  padding: 16px;
+  color: var(--gm-elevated-fg);
+  font-family: var(--gm-font);
+}
+
+/* 面板宽度修饰（各对话框布局宽度） */
+.gm-dialog-panel--w320 { width: 320px; }
+.gm-dialog-panel--w360 { width: 360px; }
+.gm-dialog-panel--w380 { width: 380px; }
+.gm-dialog-panel--w420 { width: 420px; }
+
+/* 标题 */
+.gm-dialog-title {
+  font-size: 14px;
+  color: var(--gm-elevated-fg);
+  margin-bottom: 12px;
+}
+
+/* 说明文字（弱化、可换行） */
+.gm-dialog-desc {
+  font-size: 12px;
+  color: var(--gm-subtle);
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+
+/* 小号弱化说明 */
+.gm-dialog-note {
+  font-size: 11px;
+  color: var(--gm-subtle);
+  margin-bottom: 4px;
+}
+
+/* 起点说明等小号可换行说明 */
+.gm-dialog-desc--sm {
+  font-size: 11px;
+  color: var(--gm-subtle);
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+
+/* 字段标签 */
+.gm-dialog-label {
+  font-size: 11px;
+  color: var(--gm-subtle);
+  margin: 8px 0 4px;
+}
+
+/* Kit 控件挂载槽（dialogs 内部表单控件改用 SDK UI Kit，见 components/dialogs.ts） */
+.gm-dialog-slot {
+  display: block;
+}
+
+/* 槽位下边距修饰 */
+.gm-dialog-slot--mb8 { margin-bottom: 8px; }
+.gm-dialog-slot--mb12 { margin-bottom: 12px; }
+
+/* 文本/日期输入框（date 类型 Kit 不支持，保留自绘） */
+.gm-dialog-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  background: var(--oc-sdk-field-bg, var(--gm-muted-surface));
+  border: 0;
+  border-radius: calc(var(--gm-radius) - 2px);
+  box-shadow: inset 0 0 0 1px var(--oc-sdk-edge, var(--gm-border));
+  color: var(--gm-elevated-fg);
+  font-size: 13px;
+  box-sizing: border-box;
+  font-family: var(--gm-font);
+}
+.gm-dialog-input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--gm-focus);
+}
+
+/* 确认消息正文（可换行） */
+.gm-dialog-confirm-msg {
+  font-size: 12px;
+  color: var(--gm-elevated-fg);
+  margin-bottom: 16px;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* 单选模式组容器（reset 模式 radio，Kit 无 radio 原语，保留自绘） */
+.gm-dialog-modes {
+  margin-bottom: 12px;
+}
+
+/* 单选模式行（Reset 对话框） */
+.gm-dialog-mode-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--gm-elevated-fg);
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+/* 单选/复选框重置（reset 模式 radio 仍自绘，但视觉对齐 Kit checkbox：
+   appearance:none 画 14px 方框/圆点，选中填充 primary，与 mountCheckbox 一致） */
+.gm-dialog-check {
+  appearance: none;
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 1px solid var(--oc-sdk-edge, var(--gm-border));
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 150ms ease-out;
+}
+.gm-dialog-check[type="radio"] {
+  border-radius: 50%;
+}
+.gm-dialog-check[type="checkbox"] {
+  border-radius: 4px;
+}
+.gm-dialog-check:hover {
+  border-color: var(--gm-focus);
+}
+.gm-dialog-check:checked {
+  background: var(--gm-primary);
+  border-color: var(--gm-primary);
+  background-clip: content-box;
+}
+.gm-dialog-check[type="radio"]:checked {
+  box-shadow: inset 0 0 0 3px var(--gm-elevated);
+}
+
+/* 字段块（上标签下输入的容器） */
+.gm-dialog-field {
+  margin-bottom: 8px;
+}
+
+/* 字段块下边距修饰 */
+.gm-dialog-field--mb12 {
+  margin-bottom: 12px;
+}
+
+/* 按钮行 */
+.gm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 按钮行上边距修饰（路径树/提示对话框） */
+.gm-dialog-actions--top {
+  margin-top: 12px;
+}
+
+/* 路径树列表容器（运行时 height/overflow 由 CSS 承担） */
+.gm-dialog-list {
+  height: 240px;
+  overflow: auto;
+  background: var(--oc-sdk-field-bg, var(--gm-muted-surface));
+  border: 1px solid var(--oc-sdk-edge, var(--gm-border));
+  border-radius: calc(var(--gm-radius) - 2px);
+  padding: 4px 0;
+  box-sizing: border-box;
+}
+
+/* 路径树行（左缩进 paddingLeft 为运行时 depth 计算值，内联；内容行保持紧凑密度） */
+.gm-dialog-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--gm-elevated-fg);
+}
+
+/* 路径树展开/收起箭头 */
+.gm-dialog-toggle {
+  width: 12px;
+  flex: none;
+  display: inline-block;
+  text-align: center;
+  user-select: none;
+}
+
+/* 列表空态 */
+.gm-dialog-empty {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--gm-subtle);
+}
+
+/* 列表加载失败 */
+.gm-dialog-load-error {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--gm-error-text);
+}
+
+/* ============ console-panel ============ */
+
+/**
+ * console-panel 控制台面板样式
+ * 主题色/字体/圆角走 --gm-* 语义变量
+ */
+
+.gm-console-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--gm-muted);
+}
+
+.gm-console-header-spacer {
+  flex: 1;
+}
+
+.gm-console-clear-slot {
+  display: inline-flex;
+  align-items: center;
+}
+
+.gm-console-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.gm-console-list {
+  width: 320px;
+  min-width: 220px;
+  overflow-y: auto;
+  border-right: 1px solid var(--gm-border);
+}
+
+.gm-console-output {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 8px;
+  font-family: var(--gm-mono);
+  font-size: 11px;
+  color: var(--gm-fg);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.gm-console-empty {
+  padding: 12px 8px;
+  color: var(--gm-subtle);
+  font-size: 11px;
+}
+
+.gm-console-row {
+  padding: 4px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 11px;
+}
+
+.gm-console-row-selected {
+  background: var(--gm-selection);
+}
+
+.gm-console-row-fail .gm-console-cmd {
+  color: var(--gm-error-text);
+}
+
+.gm-console-cmd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gm-fg);
+}
+
+.gm-console-meta {
+  color: var(--gm-subtle);
+  margin-top: 2px;
+}
+
+/* ============ worktrees-panel ============ */
+
+/**
+ * worktrees-panel 工作区列表面板样式
+ * 主题色/字体/圆角走 --gm-* 语义变量
+ */
+
+.gm-wt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+
+.gm-wt-slot {
+  display: inline-flex;
+  align-items: center;
+}
+
+.gm-wt-count {
+  font-size: 11px;
+  color: var(--gm-muted);
+  margin-left: 4px;
+}
+
+.gm-wt-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.gm-wt-empty {
+  padding: 12px 8px;
+  color: var(--gm-subtle);
+  font-size: 11px;
+}
+
+.gm-wt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: 11px;
+}
+
+.gm-wt-badge {
+  flex-shrink: 0;
+  padding: 0 5px;
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.gm-wt-badge-main {
+  background: var(--gm-selection);
+  color: var(--gm-primary-text);
+}
+
+.gm-wt-badge-normal {
+  background: var(--gm-muted-surface);
+  color: var(--gm-warning-text);
+}
+
+.gm-wt-path {
+  flex: 1;
+  color: var(--gm-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-wt-tag-main {
+  color: var(--gm-primary-text);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.gm-wt-tag-lock {
+  color: var(--gm-warning-text);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.gm-wt-remove-slot {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.gm-wt-load-error {
+  padding: 12px 8px;
+  color: var(--gm-error-text);
+  font-size: 11px;
+}
+
+/* ============ main-chrome ============ */
+
+/**
+ * main.ts 面板框架 chrome 样式
+ * 布局几何 + 主题色走 --gm-* 语义变量
+ */
+
+.gm-main-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.gm-content-area {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 顶部细进度条 */
+.gm-progress {
+  height: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--gm-muted-surface);
+  position: relative;
+  transition: height 0.15s;
+}
+
+.gm-progress-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 30%;
+  background: var(--gm-primary);
+  opacity: 0;
+}
+
+/* A 区域：分支面板（220px） */
+.gm-pane-branch {
+  width: 220px;
+  min-width: 220px;
+  border-right: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gm-bg);
+}
+
+/* B 区域：提交列表（中间） */
+.gm-pane-commits {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--gm-border);
+}
+
+/* C 区域：右侧详情面板（300px） */
+.gm-pane-detail {
+  width: 300px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* C1：变更文件 */
+.gm-pane-filediff {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+/* C2：提交详情 */
+.gm-pane-commitdetail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 底部可折叠面板容器 */
+.gm-bottom-panel {
+  display: none;
+  height: 220px;
+  min-height: 120px;
+  border-top: 1px solid var(--gm-border);
+  overflow: hidden;
+}
+
+/* Tab 栏 */
+.gm-tabbar {
+  flex-shrink: 0;
+  border-top: 1px solid var(--gm-border);
+}
+
+.gm-tabbar-row {
+  display: flex;
+  background: var(--gm-muted-surface);
+  padding: 0;
+  align-items: center;
+}
+
+.gm-tab {
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  border-right: 1px solid var(--gm-border);
+}
+
+.gm-tab:last-child {
+  border-right: none;
+}
+
+.gm-tab-active {
+  color: var(--gm-fg);
+  background: var(--gm-bg);
+}
+
+/* ============ diff 行语法高亮 ============ */
+/* token 颜色走 --gm-syntax-* 变量（映射宿主 --oc-syntax-*）；plain 为不着色 */
+.gm-syntax-plain { color: inherit; }
+.gm-syntax-keyword { color: var(--gm-syntax-keyword); }
+.gm-syntax-string { color: var(--gm-syntax-string); }
+.gm-syntax-number { color: var(--gm-syntax-number); }
+.gm-syntax-function { color: var(--gm-syntax-function); }
+.gm-syntax-type { color: var(--gm-syntax-type); }
+.gm-syntax-comment { color: var(--gm-syntax-comment); }
+.gm-syntax-variable { color: var(--gm-syntax-variable); }
+.gm-syntax-operator { color: var(--gm-syntax-operator); }
+
+/* ============ 工具栏内联下拉（分支/用户过滤）对齐 ============ */
+/* 分支/用户过滤已退回自绘 dropdown-menu，与日期/路径共用 .gm-commit-filter-btn(-menu) 视觉 */

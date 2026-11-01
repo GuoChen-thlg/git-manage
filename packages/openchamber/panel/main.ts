@@ -15,7 +15,8 @@
  * └──────────────────────────────────────────────────────────┘
  */
 
-import { mountEmpty } from "@openchamber/sdk/ui";
+import { mountEmpty, applyHostReady, mountTabs } from "@openchamber/sdk/ui";
+import type { TabsHandle } from "@openchamber/sdk/ui";
 
 import { html } from './html';
 import { host } from './host';
@@ -102,13 +103,13 @@ async function render(): Promise<void> {
 
     // 主布局: 上下结构 (内容 + 底部Tab栏)
     const mainLayout = html`
-      <div style="display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden;"></div>
+      <div class="gm-main-layout"></div>
     `;
 
     // 顶部细进度条：Fetch 等耗时操作期间显示流动动画，空闲时高度为 0 不占位
     const progressBar = html`
-      <div data-progress style="height: 0; flex-shrink: 0; overflow: hidden; background: #2b2b2b; position: relative; transition: height 0.15s;">
-        <div data-progress-inner style="position: absolute; top: 0; left: 0; height: 2px; width: 30%; background: #589df6; opacity: 0;"></div>
+      <div data-progress class="gm-progress">
+        <div data-progress-inner class="gm-progress-inner"></div>
       </div>
     `;
     mainLayout.appendChild(progressBar);
@@ -118,7 +119,7 @@ async function render(): Promise<void> {
 
     // 内容区域: 左中右三栏
     const contentArea = html`
-      <div style="display: flex; flex: 1; width: 100%; overflow: hidden;"></div>
+      <div class="gm-content-area"></div>
     `;
     mainLayout.appendChild(contentArea);
 
@@ -130,7 +131,7 @@ async function render(): Promise<void> {
 
     // A 区域: 分支面板 (左侧 220px)
     const branchPanel = html`
-      <div style="width: 220px; min-width: 220px; border-right: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e;"></div>
+      <div class="gm-pane-branch"></div>
     `;
     // 会话级保留上次的显隐状态
     branchPanel.style.display = getState().branchPanelHidden ? 'none' : '';
@@ -151,7 +152,7 @@ async function render(): Promise<void> {
 
     // B 区域: 提交列表 (中间 - 占大部分空间)
     const commitListPanel = html`
-      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #333;"></div>
+      <div class="gm-pane-commits"></div>
     `;
     contentArea.appendChild(commitListPanel);
 
@@ -298,13 +299,13 @@ async function render(): Promise<void> {
 
     // C 区域: 右侧详情面板 (固定宽度 300px)
     const detailPanel = html`
-      <div style="width: 300px; min-width: 200px; display: flex; flex-direction: column; overflow: hidden;"></div>
+      <div class="gm-pane-detail"></div>
     `;
     contentArea.appendChild(detailPanel);
 
     // C1: 变更文件 (上半部分)
     const fileDiffPanel = html`
-      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid #333;"></div>
+      <div class="gm-pane-filediff"></div>
     `;
     detailPanel.appendChild(fileDiffPanel);
 
@@ -313,7 +314,7 @@ async function render(): Promise<void> {
 
     // C2: 提交详情 (下半部分)
     const commitDetailPanel = html`
-      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"></div>
+      <div class="gm-pane-commitdetail"></div>
     `;
     detailPanel.appendChild(commitDetailPanel);
 
@@ -325,7 +326,7 @@ async function render(): Promise<void> {
     // 底部区域：可折叠的面板容器 + Tab 栏
     // 三个页签共用同一容器，切换时重建对应面板
     const bottomPanel = html`
-      <div data-bottom-panel style="display: none; height: 220px; min-height: 120px; border-top: 1px solid #333; overflow: hidden;"></div>
+      <div data-bottom-panel class="gm-bottom-panel"></div>
     `;
     root.appendChild(bottomPanel);
 
@@ -335,15 +336,14 @@ async function render(): Promise<void> {
 
     /**
      * 切换到指定页签
+     * 由 Kit mountTabs 的 onChange 驱动（activeId + onChange）。
+     * Git 页签为收起入口：切到 Git 即隐藏底部面板；控制台/Worktrees 显示对应面板。
+     * 注：旧自绘页签支持“再次点击已激活页签收起”，Kit mountTabs 对激活页签点击
+     * 不触发 onChange，故该快捷收起不再保留，收起统一通过点击 Git 页签完成。
      * @param tab 页签名
      */
     const switchTab = (tab: 'git' | 'console' | 'worktrees'): void => {
-      if (activeTab === tab && tab !== 'git') {
-        // 再次点击已激活的可折叠页签：收起
-        activeTab = 'git';
-      } else {
-        activeTab = tab;
-      }
+      activeTab = tab;
       // 写回模块级，重建后仍停留在同一页签
       activeBottomTab = activeTab;
       bottomHandle?.dispose();
@@ -359,23 +359,21 @@ async function render(): Promise<void> {
         bottomPanel.style.display = 'block';
         bottomHandle = createWorktreesPanel(bottomPanel, service, getDir(), host);
       }
-      updateTabStyles();
+      // 由 activeId 驱动 Kit 页签激活态（替代旧的 class 切换）
+      tabsHandle?.update({ activeId: activeTab });
     };
 
-    // Tab 栏
-    const tabBar = createTabBar(switchTab);
-    root.appendChild(tabBar);
-
-    /**
-     * 同步页签的激活样式
-     */
-    function updateTabStyles(): void {
-      tabBar.querySelectorAll<HTMLElement>('[data-tab]').forEach((el) => {
-        const isActive = el.dataset.tab === activeTab && activeTab !== 'git';
-        el.style.color = isActive ? '#fff' : '#888';
-        el.style.background = isActive ? '#1e1e1e' : 'transparent';
-      });
-    }
+    // Tab 栏：底部三个页签改用 SDK UI Kit mountTabs（activeId + onChange 驱动）
+    const tabsHandle: TabsHandle = mountTabs(root, {
+      items: [
+        { id: 'git', label: 'Git' },
+        { id: 'console', label: t('main.tabConsole') },
+        { id: 'worktrees', label: 'Worktrees' },
+      ],
+      activeId: activeTab,
+      onChange: (id) => { switchTab(id as 'git' | 'console' | 'worktrees'); },
+    });
+    disposables.push(tabsHandle);
 
     disposables.push({
       dispose: () => { bottomHandle?.dispose(); },
@@ -437,33 +435,6 @@ function createProgressBar(element: HTMLElement): ProgressBar {
   };
 
   return { start, done };
-}
-
-/**
- * 底部 Tab 栏
- * 三个页签：Git（收起底部区域）、控制台、Worktrees
- * @param onSwitch 页签点击回调
- * @returns Tab 栏元素
- */
-function createTabBar(onSwitch: (tab: 'git' | 'console' | 'worktrees') => void): HTMLElement {
-  const bar = html`
-    <div style="flex-shrink: 0; border-top: 1px solid #333;">
-      <div style="display: flex; background: #2d2d2d; padding: 0; align-items: center;">
-        <div data-tab="git" style="padding: 4px 12px; font-size: 11px; color: #fff; background: #1e1e1e; border-right: 1px solid #333; cursor: pointer;">Git</div>
-        <div data-tab="console" style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer; border-right: 1px solid #333;">${t('main.tabConsole')}</div>
-        <div data-tab="worktrees" style="padding: 4px 12px; font-size: 11px; color: #888; cursor: pointer;">Worktrees</div>
-      </div>
-    </div>
-  `;
-
-  bar.addEventListener('click', (e) => {
-    const target = (e.target as HTMLElement).closest('[data-tab]') as HTMLElement | null;
-    if (!target) return;
-    const tab = target.dataset.tab as 'git' | 'console' | 'worktrees';
-    onSwitch(tab);
-  });
-
-  return bar;
 }
 
 /**
@@ -799,10 +770,36 @@ async function checkGitRepository(): Promise<boolean> {
   }
 }
 
+/**
+ * 首屏可见性兜底：面板在首个 ready 到达前隐藏，避免以默认配色先闪一下；
+ * 若宿主静默（1.5s 内无 ready），强制显示以保证面板可用。
+ */
+const FIRST_PAINT_FALLBACK_MS = 1500;
+let firstPaintDone = false;
+let firstPaintTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** 标记首屏已就绪：显示根节点并取消兜底计时器（幂等） */
+function revealPanel(): void {
+  if (firstPaintDone) return;
+  firstPaintDone = true;
+  if (firstPaintTimer !== null) {
+    clearTimeout(firstPaintTimer);
+    firstPaintTimer = null;
+  }
+  document.documentElement.style.visibility = 'visible';
+}
+
 async function init(): Promise<void> {
-  // 菜单文案语言跟随宿主设置
+  // 首屏隐藏，等首个 ready 注入主题后再显示；兜底计时器防宿主静默
+  document.documentElement.style.visibility = 'hidden';
+  firstPaintTimer = setTimeout(revealPanel, FIRST_PAINT_FALLBACK_MS);
+
+  // 语言与主题跟随宿主 ready 上下文；每次 ready 都重绘主题，
+  // 覆盖宿主主题切换后重推 ready 的场景（SDK 未文档化，需实测）
   host.onReady((context) => {
     setLocale(context.locale);
+    applyHostReady(context, document.documentElement);
+    revealPanel();
   });
   host.onDirectory((dir) => {
     console.debug(JSON.stringify({

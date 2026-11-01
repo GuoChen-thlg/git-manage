@@ -1,24 +1,169 @@
 /**
  * 弹窗组件
  * 各种对话框：新建分支、重命名、日期过滤等
+ *
+ * 结构约定（issue 决策）：
+ * - 对话框内部的**表单控件**（文本输入、按钮、复选框、加载、错误横幅）改用 SDK UI Kit：
+ *   mountTextField / mountButton / mountCheckbox / mountSpinner / mountBanner。
+ *   Kit 控件自带样式与类名（oc-sdk-*），不再套 gm-* 主题类或内联色。
+ * - 对话框的**容器壳**（遮罩/面板/标题/说明/列表/路径树）与 Kit 不覆盖的控件
+ *   （date 输入、reset 模式 radio）保留自绘并继续走 --gm-* 主题变量。
+ * - 每个 Kit handle 的 dispose 都要在对话框关闭时统一调用（close() 是唯一出口）。
  */
 
 import { html } from '../html';
 import { getState, setState, Branch } from '../state';
 import { ServiceClient } from '../service';
 import { t } from '../i18n';
+import {
+  mountBanner,
+  mountButton,
+  mountCheckbox,
+  mountSpinner,
+  mountTextField,
+  type BannerHandle,
+  type ButtonHandle,
+  type CheckboxHandle,
+  type SpinnerHandle,
+  type TextFieldHandle,
+} from '@openchamber/sdk/ui';
 import { classifyCreateBranchError, errorText, showOperationError } from './errors';
+
+/**
+ * 对话框内 Kit 控件句柄收集器
+ * 所有 mountXxx 返回的 handle 登记进来，close() 时统一 dispose，避免监听器泄漏
+ */
+class KitHandles {
+  /** 已登记的 handle（按登记逆序 dispose） */
+  private readonly items: Array<{ dispose: () => void }> = [];
+
+  /** 登记一个 Kit handle */
+  add(handle: { dispose: () => void }): void {
+    this.items.push(handle);
+  }
+
+  /** 一次性 dispose 全部 handle（幂等） */
+  disposeAll(): void {
+    while (this.items.length > 0) {
+      const handle = this.items.pop();
+      try {
+        handle?.dispose();
+      } catch {
+        // dispose 不应阻断关闭流程
+      }
+    }
+  }
+}
+
+/**
+ * 在容器内挂载 Kit 文本输入并登记 handle
+ * @param kit 句柄收集器
+ * @param container 挂载容器（保留 data-* 标记供测试/焦点定位）
+ * @param props 输入控件属性
+ * @returns Kit 文本输入句柄（可 update 联动 error/disabled 等）
+ */
+function mountField(
+  kit: KitHandles,
+  container: HTMLElement,
+  props: Parameters<typeof mountTextField>[1],
+): TextFieldHandle {
+  const handle = mountTextField(container, props);
+  kit.add(handle);
+  return handle;
+}
+
+/**
+ * 在容器内挂载 Kit 按钮并登记 handle
+ * @param kit 句柄收集器
+ * @param container 挂载容器
+ * @param props 按钮属性
+ * @returns Kit 按钮句柄（可 update 联动 disabled/loading）
+ */
+function mountBtn(
+  kit: KitHandles,
+  container: HTMLElement,
+  props: Parameters<typeof mountButton>[1],
+): ButtonHandle {
+  const handle = mountButton(container, props);
+  kit.add(handle);
+  return handle;
+}
+
+/**
+ * 在容器内挂载 Kit 复选框并登记 handle
+ * @param kit 句柄收集器
+ * @param container 挂载容器
+ * @param props 复选框属性
+ * @returns Kit 复选框句柄
+ */
+function mountCheck(
+  kit: KitHandles,
+  container: HTMLElement,
+  props: Parameters<typeof mountCheckbox>[1],
+): CheckboxHandle {
+  const handle = mountCheckbox(container, props);
+  kit.add(handle);
+  return handle;
+}
+
+/**
+ * 在容器内挂载 Kit 加载指示器并登记 handle
+ * @param kit 句柄收集器
+ * @param container 挂载容器
+ * @param props 加载指示器属性
+ * @returns Kit 加载句柄
+ */
+function mountLoading(
+  kit: KitHandles,
+  container: HTMLElement,
+  props: Parameters<typeof mountSpinner>[1],
+): SpinnerHandle {
+  const handle = mountSpinner(container, props);
+  kit.add(handle);
+  return handle;
+}
+
+/**
+ * 在容器内挂载 Kit 错误横幅并登记 handle
+ * @param kit 句柄收集器
+ * @param container 挂载容器
+ * @param props 横幅属性
+ * @returns Kit 横幅句柄
+ */
+function mountErrorBanner(
+  kit: KitHandles,
+  container: HTMLElement,
+  props: Parameters<typeof mountBanner>[1],
+): BannerHandle {
+  const handle = mountBanner(container, props);
+  kit.add(handle);
+  return handle;
+}
+
+/**
+ * 由挂载容器取出 Kit 渲染的输入节点（mountTextField 内部的 .oc-sdk-input）
+ * 用于对话框打开时聚焦/全选等 DOM 级行为（Kit 不暴露原始 input）
+ * @param container 挂载容器
+ * @returns 输入节点；找不到返回 null
+ */
+function kitInputOf(container: HTMLElement): HTMLInputElement | HTMLTextAreaElement | null {
+  return container.querySelector<HTMLElement>('.oc-sdk-input') as
+    | HTMLInputElement
+    | HTMLTextAreaElement
+    | null;
+}
 
 /** 显示重命名对话框 */
 export function showRenameDialog(branch: Branch, service: ServiceClient, directory: string): void {
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.renameBranch')}: ${branch.name}</div>
-        <input id="rename-input" type="text" value="${branch.name}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="rename-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="rename-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('dialog.renameBranch')}: ${branch.name}</div>
+        <div data-rename-input class="gm-dialog-slot gm-dialog-slot--mb12"></div>
+        <div class="gm-dialog-actions">
+          <div data-rename-cancel class="gm-dialog-slot"></div>
+          <div data-rename-ok class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -26,33 +171,52 @@ export function showRenameDialog(branch: Branch, service: ServiceClient, directo
 
   document.body.appendChild(overlay);
 
-  const input = overlay.querySelector('#rename-input') as HTMLInputElement;
-  input.focus();
-  input.select();
+  // 当前输入值（Kit 为单向受控，值由闭包持有，避免读 DOM）
+  let value = branch.name;
 
-  const close = () => overlay.remove();
-
-  overlay.querySelector('#rename-cancel')?.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
+  const inputHost = overlay.querySelector('[data-rename-input]') as HTMLElement;
+  mountField(kit, inputHost, {
+    value,
+    onChange: (next) => { value = next; },
   });
 
-  overlay.querySelector('#rename-ok')?.addEventListener('click', async () => {
-    const newName = input.value.trim();
-    if (!newName || newName === branch.name) {
+  const input = kitInputOf(inputHost);
+  input?.focus();
+  if (input instanceof HTMLInputElement) input.select();
+
+  const close = () => {
+    kit.disposeAll();
+    overlay.remove();
+  };
+
+  mountBtn(kit, overlay.querySelector('[data-rename-cancel]') as HTMLElement, {
+    label: t('dialog.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+  mountBtn(kit, overlay.querySelector('[data-rename-ok]') as HTMLElement, {
+    label: t('dialog.ok'),
+    onClick: async () => {
+      const newName = value.trim();
+      if (!newName || newName === branch.name) {
+        close();
+        return;
+      }
+      try {
+        await service.renameBranch(directory, branch.name, newName);
+        const branches = await service.getBranches(directory);
+        setState(s => { s.branches = branches; });
+      } catch (e) {
+        // 失败时保持对话框打开并提示，便于用户改名重试
+        showOperationError(e, 'dialog.renameFailed', '[dialog]', 'rename_branch_error');
+        return;
+      }
       close();
-      return;
-    }
-    try {
-      await service.renameBranch(directory, branch.name, newName);
-      const branches = await service.getBranches(directory);
-      setState(s => { s.branches = branches; });
-    } catch (e) {
-      // 失败时保持对话框打开并提示，便于用户改名重试
-      showOperationError(e, 'dialog.renameFailed', '[dialog]', 'rename_branch_error');
-      return;
-    }
-    close();
+    },
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
   });
 }
 
@@ -87,19 +251,17 @@ export function showCreateBranchDialog(options: CreateBranchDialogOptions): void
   const startText = startPointLabel
     ?? `${t('dialog.startPoint')}：${startPoint ? startPoint.slice(0, 8) : t('dialog.currentHead')}`;
 
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t(titleKey ?? 'dialog.createBranchTitle')}</div>
-        <div style="font-size: 11px; color: #888; margin-bottom: 8px; word-break: break-all;">${startText}</div>
-        <input id="new-branch-input" type="text" placeholder="${t('dialog.inputBranchName')}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 12px;" />
-        <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px; font-size: 12px; color: #ccc; cursor: pointer;">
-          <input id="new-branch-checkout" type="checkbox" checked style="margin: 0; cursor: pointer;" />
-          ${t('dialog.checkoutAfterCreate')}
-        </label>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="create-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="create-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.create')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t(titleKey ?? 'dialog.createBranchTitle')}</div>
+        <div class="gm-dialog-desc--sm">${startText}</div>
+        <div data-branch-input class="gm-dialog-slot gm-dialog-slot--mb12"></div>
+        <div data-branch-checkout class="gm-dialog-slot gm-dialog-slot--mb12"></div>
+        <div class="gm-dialog-actions">
+          <div data-create-cancel class="gm-dialog-slot"></div>
+          <div data-create-ok class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -107,21 +269,36 @@ export function showCreateBranchDialog(options: CreateBranchDialogOptions): void
 
   document.body.appendChild(overlay);
 
-  const input = overlay.querySelector('#new-branch-input') as HTMLInputElement;
-  input.focus();
+  let value = '';
+  // 对齐 IDEA 新建分支对话框的「检出分支」复选框，默认勾选
+  let checkout = true;
 
-  const close = () => overlay.remove();
+  const inputHost = overlay.querySelector('[data-branch-input]') as HTMLElement;
+  mountField(kit, inputHost, {
+    value: '',
+    placeholder: t('dialog.inputBranchName'),
+    onChange: (next) => { value = next; },
+  });
+  kitInputOf(inputHost)?.focus();
 
-  overlay.querySelector('#create-cancel')?.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
+  const checkoutHandle = mountCheck(kit, overlay.querySelector('[data-branch-checkout]') as HTMLElement, {
+    label: t('dialog.checkoutAfterCreate'),
+    checked: true,
+    onChange: (next) => {
+      checkout = next;
+      // 回写 Kit 复选框状态，保证 aria-checked 与后续点击取反正确
+      checkoutHandle.update({ checked: next });
+    },
   });
 
+  const close = () => {
+    kit.disposeAll();
+    overlay.remove();
+  };
+
   const doCreate = async () => {
-    const name = input.value.trim();
+    const name = value.trim();
     if (!name) return;
-    // 对齐 IDEA 新建分支对话框的「检出分支」复选框，默认勾选
-    const checkout = (overlay.querySelector('#new-branch-checkout') as HTMLInputElement)?.checked ?? true;
     void service.debugLog?.('create-branch-submit', { name, startPoint: startPoint ?? null, checkout, entry });
     try {
       // 勾选：创建并检出（git checkout -b）；不勾选：仅创建（git branch）
@@ -144,9 +321,22 @@ export function showCreateBranchDialog(options: CreateBranchDialogOptions): void
     close();
   };
 
-  overlay.querySelector('#create-ok')?.addEventListener('click', doCreate);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') doCreate();
+  mountBtn(kit, overlay.querySelector('[data-create-cancel]') as HTMLElement, {
+    label: t('dialog.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+  mountBtn(kit, overlay.querySelector('[data-create-ok]') as HTMLElement, {
+    label: t('dialog.create'),
+    onClick: () => { void doCreate(); },
+  });
+
+  kitInputOf(inputHost)?.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') void doCreate();
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
   });
 }
 
@@ -154,22 +344,23 @@ export function showCreateBranchDialog(options: CreateBranchDialogOptions): void
 export function showDateFilterDialog(): void {
   const state = getState();
 
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.dateFilter')}</div>
-        <div style="margin-bottom: 8px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('dialog.startDate')}</div>
-          <input id="date-from" type="date" value="${state.filterDateFrom}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('dialog.dateFilter')}</div>
+        <div class="gm-dialog-field">
+          <div class="gm-dialog-note">${t('dialog.startDate')}</div>
+          <input id="date-from" type="date" value="${state.filterDateFrom}" class="gm-dialog-input" />
         </div>
-        <div style="margin-bottom: 12px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('dialog.endDate')}</div>
-          <input id="date-to" type="date" value="${state.filterDateTo}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
+        <div class="gm-dialog-field gm-dialog-field--mb12">
+          <div class="gm-dialog-note">${t('dialog.endDate')}</div>
+          <input id="date-to" type="date" value="${state.filterDateTo}" class="gm-dialog-input" />
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="date-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="date-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.clear')}</button>
-          <button id="date-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+        <div class="gm-dialog-actions">
+          <div data-date-cancel class="gm-dialog-slot"></div>
+          <div data-date-clear class="gm-dialog-slot"></div>
+          <div data-date-ok class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -177,29 +368,43 @@ export function showDateFilterDialog(): void {
 
   document.body.appendChild(overlay);
 
-  const close = () => overlay.remove();
+  const close = () => {
+    kit.disposeAll();
+    overlay.remove();
+  };
 
-  overlay.querySelector('#date-cancel')?.addEventListener('click', close);
+  // date 类型输入 Kit 不支持（仅 text/password），保留自绘原生 input
+  mountBtn(kit, overlay.querySelector('[data-date-cancel]') as HTMLElement, {
+    label: t('dialog.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+  mountBtn(kit, overlay.querySelector('[data-date-clear]') as HTMLElement, {
+    label: t('dialog.clear'),
+    variant: 'secondary',
+    onClick: () => {
+      setState(s => {
+        s.filterDateFrom = '';
+        s.filterDateTo = '';
+      });
+      close();
+    },
+  });
+  mountBtn(kit, overlay.querySelector('[data-date-ok]') as HTMLElement, {
+    label: t('dialog.ok'),
+    onClick: () => {
+      const from = (overlay.querySelector('#date-from') as HTMLInputElement).value;
+      const to = (overlay.querySelector('#date-to') as HTMLInputElement).value;
+      setState(s => {
+        s.filterDateFrom = from;
+        s.filterDateTo = to;
+      });
+      close();
+    },
+  });
+
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
-  });
-
-  overlay.querySelector('#date-clear')?.addEventListener('click', () => {
-    setState(s => {
-      s.filterDateFrom = '';
-      s.filterDateTo = '';
-    });
-    close();
-  });
-
-  overlay.querySelector('#date-ok')?.addEventListener('click', () => {
-    const from = (overlay.querySelector('#date-from') as HTMLInputElement).value;
-    const to = (overlay.querySelector('#date-to') as HTMLInputElement).value;
-    setState(s => {
-      s.filterDateFrom = from;
-      s.filterDateTo = to;
-    });
-    close();
   });
 }
 
@@ -208,28 +413,29 @@ export function showResetDialog(hash: string, service: ServiceClient, directory:
   // 重置模式限定为 git reset 的三种模式字面量，与 service.reset 的 mode 参数联合类型对齐
   let selectedMode: 'soft' | 'mixed' | 'hard' = 'mixed';
 
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('dialog.resetTo', { hash })}</div>
-        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">${t('dialog.selectResetMode')}</div>
-        <div id="reset-modes" style="margin-bottom: 12px;">
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; padding: 4px 0; cursor: pointer;">
-            <input type="radio" name="reset-mode" value="soft" style="margin: 0;" />
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w360">
+        <div class="gm-dialog-title">${t('dialog.resetTo', { hash })}</div>
+        <div class="gm-dialog-desc">${t('dialog.selectResetMode')}</div>
+        <div id="reset-modes" class="gm-dialog-modes">
+          <label class="gm-dialog-mode-label">
+            <input type="radio" name="reset-mode" value="soft" class="gm-dialog-check" />
             ${t('dialog.resetSoft')}
           </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; padding: 4px 0; cursor: pointer;">
-            <input type="radio" name="reset-mode" value="mixed" checked style="margin: 0;" />
+          <label class="gm-dialog-mode-label">
+            <input type="radio" name="reset-mode" value="mixed" checked class="gm-dialog-check" />
             ${t('dialog.resetMixed')}
           </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; padding: 4px 0; cursor: pointer;">
-            <input type="radio" name="reset-mode" value="hard" style="margin: 0;" />
+          <label class="gm-dialog-mode-label">
+            <input type="radio" name="reset-mode" value="hard" class="gm-dialog-check" />
             ${t('dialog.resetHard')}
           </label>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="reset-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="reset-ok" style="padding: 4px 12px; background: #b71c1c; border: 1px solid #c62828; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.reset')}</button>
+        <div class="gm-dialog-actions">
+          <div data-reset-cancel class="gm-dialog-slot"></div>
+          <div data-reset-ok class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -237,13 +443,12 @@ export function showResetDialog(hash: string, service: ServiceClient, directory:
 
   document.body.appendChild(overlay);
 
-  const close = () => overlay.remove();
+  const close = () => {
+    kit.disposeAll();
+    overlay.remove();
+  };
 
-  overlay.querySelector('#reset-cancel')?.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
-  });
-
+  // 模式选择为 radio（Kit 无 radio 原语），保留自绘
   overlay.querySelector('#reset-modes')?.addEventListener('click', (e) => {
     const target = e.target as HTMLInputElement;
     if (target.name === 'reset-mode') {
@@ -252,17 +457,32 @@ export function showResetDialog(hash: string, service: ServiceClient, directory:
     }
   });
 
-  overlay.querySelector('#reset-ok')?.addEventListener('click', async () => {
-    try {
-      await service.reset(directory, hash, selectedMode);
-      const branches = await service.getBranches(directory);
-      setState(s => { s.branches = branches; });
-    } catch (e) {
-      // 失败时保持对话框打开并提示，用户可换模式重试
-      showOperationError(e, 'op.resetFailed', '[dialog]', 'reset_branch_error');
-      return;
-    }
-    close();
+  mountBtn(kit, overlay.querySelector('[data-reset-cancel]') as HTMLElement, {
+    label: t('dialog.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+  mountBtn(kit, overlay.querySelector('[data-reset-ok]') as HTMLElement, {
+    label: t('dialog.reset'),
+    variant: 'destructive',
+    onClick: () => {
+      void (async () => {
+        try {
+          await service.reset(directory, hash, selectedMode);
+          const branches = await service.getBranches(directory);
+          setState(s => { s.branches = branches; });
+        } catch (e) {
+          // 失败时保持对话框打开并提示，用户可换模式重试
+          showOperationError(e, 'op.resetFailed', '[dialog]', 'reset_branch_error');
+          return;
+        }
+        close();
+      })();
+    },
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
   });
 }
 
@@ -273,15 +493,16 @@ export function showResetDialog(hash: string, service: ServiceClient, directory:
  * @param onSubmit 提交查询的回调，入参为去除首尾空白后的查询串，返回是否跳转成功
  */
 export function showGotoDialog(onSubmit: (query: string) => boolean): void {
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('goto.title')}</div>
-        <input id="goto-input" type="text" placeholder="${t('goto.placeholder')}" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px;" />
-        <div id="goto-error" style="display: none; font-size: 11px; color: #f44336; margin-bottom: 8px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="goto-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="goto-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('goto.ok')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('goto.title')}</div>
+        <div data-goto-input class="gm-dialog-slot gm-dialog-slot--mb8"></div>
+        <div data-goto-error class="gm-dialog-slot gm-dialog-slot--mb8"></div>
+        <div class="gm-dialog-actions">
+          <div data-goto-cancel class="gm-dialog-slot"></div>
+          <div data-goto-ok class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -289,41 +510,76 @@ export function showGotoDialog(onSubmit: (query: string) => boolean): void {
 
   document.body.appendChild(overlay);
 
-  const input = overlay.querySelector('#goto-input') as HTMLInputElement;
-  const errorEl = overlay.querySelector('#goto-error') as HTMLElement;
-  input.focus();
+  const inputHost = overlay.querySelector('[data-goto-input]') as HTMLElement;
+  const errorHost = overlay.querySelector('[data-goto-error]') as HTMLElement;
 
-  const close = () => overlay.remove();
+  // 当前输入值与错误提示（Kit 单向受控 + Banner update 联动）
+  let value = '';
+  let errorText = '';
 
-  /** 隐藏"未找到"提示 */
-  const clearError = () => {
-    errorEl.textContent = '';
-    errorEl.style.display = 'none';
+  // 错误提示用 Kit Banner（tone=error），errorText 为空时移除节点、非空时重新挂载
+  let errorBanner: BannerHandle | null = null;
+  const renderError = (): void => {
+    if (!errorText) {
+      errorBanner?.dispose();
+      errorBanner = null;
+      errorHost.replaceChildren();
+      return;
+    }
+    if (errorBanner) {
+      errorBanner.update({ title: errorText });
+    } else {
+      errorBanner = mountErrorBanner(kit, errorHost, { tone: 'error', title: errorText });
+    }
+  };
+
+  mountField(kit, inputHost, {
+    value: '',
+    placeholder: t('goto.placeholder'),
+    onChange: (next) => {
+      value = next;
+      // 输入变化后清除上一次的失败提示
+      errorText = '';
+      renderError();
+    },
+  });
+
+  const input = kitInputOf(inputHost);
+  input?.focus();
+
+  const close = () => {
+    kit.disposeAll();
+    overlay.remove();
   };
 
   /** 确认跳转：空输入不提交，失败时显示提示且不关闭 */
   const submit = () => {
-    const query = input.value.trim();
+    const query = value.trim();
     if (!query) return;
     if (onSubmit(query)) {
       close();
       return;
     }
-    errorEl.textContent = t('goto.notFound');
-    errorEl.style.display = 'block';
+    errorText = t('goto.notFound');
+    renderError();
   };
 
-  overlay.querySelector('#goto-cancel')?.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
+  mountBtn(kit, overlay.querySelector('[data-goto-cancel]') as HTMLElement, {
+    label: t('dialog.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+  mountBtn(kit, overlay.querySelector('[data-goto-ok]') as HTMLElement, {
+    label: t('goto.ok'),
+    onClick: submit,
   });
 
-  // 输入变化后清除上一次的失败提示
-  input.addEventListener('input', clearError);
+  input?.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') submit();
+  });
 
-  overlay.querySelector('#goto-ok')?.addEventListener('click', submit);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') submit();
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
   });
 }
 
@@ -338,22 +594,23 @@ export function showGotoDialog(onSubmit: (query: string) => boolean): void {
 export function showDateRangeDialog(
   onApply: (range: { from: string; to: string }) => void,
 ): () => void {
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('filter.date')}</div>
-        <div style="margin-bottom: 8px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('filter.dateFrom')}</div>
-          <input id="daterange-from" type="date" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('filter.date')}</div>
+        <div class="gm-dialog-field">
+          <div class="gm-dialog-note">${t('filter.dateFrom')}</div>
+          <input id="daterange-from" type="date" class="gm-dialog-input" />
         </div>
-        <div style="margin-bottom: 12px;">
-          <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('filter.dateTo')}</div>
-          <input id="daterange-to" type="date" style="width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;" />
+        <div class="gm-dialog-field gm-dialog-field--mb12">
+          <div class="gm-dialog-note">${t('filter.dateTo')}</div>
+          <input id="daterange-to" type="date" class="gm-dialog-input" />
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="daterange-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('filter.ok')}</button>
-          <button id="daterange-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.clear')}</button>
-          <button id="daterange-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.cancel')}</button>
+        <div class="gm-dialog-actions">
+          <div data-daterange-ok class="gm-dialog-slot"></div>
+          <div data-daterange-clear class="gm-dialog-slot"></div>
+          <div data-daterange-cancel class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -368,6 +625,7 @@ export function showDateRangeDialog(
     if (closed) return;
     closed = true;
     document.removeEventListener('keydown', onKeydown);
+    kit.disposeAll();
     overlay.remove();
   };
 
@@ -377,29 +635,38 @@ export function showDateRangeDialog(
   };
   document.addEventListener('keydown', onKeydown);
 
-  overlay.querySelector('#daterange-cancel')?.addEventListener('click', close);
+  // date 类型输入 Kit 不支持，保留自绘原生 input
+  mountBtn(kit, overlay.querySelector('[data-daterange-ok]') as HTMLElement, {
+    label: t('filter.ok'),
+    onClick: () => {
+      const fromInput = overlay.querySelector('#daterange-from') as HTMLInputElement;
+      const toInput = overlay.querySelector('#daterange-to') as HTMLInputElement;
+      let from = fromInput.value;
+      let to = toInput.value;
+      if (from && to && from > to) {
+        console.debug(JSON.stringify({ prefix: '[dialog]', event: 'date_range_swap', from, to }));
+        [from, to] = [to, from];
+      }
+      onApply({ from, to });
+      close();
+    },
+  });
+  mountBtn(kit, overlay.querySelector('[data-daterange-clear]') as HTMLElement, {
+    label: t('filter.clear'),
+    variant: 'secondary',
+    onClick: () => {
+      onApply({ from: '', to: '' });
+      close();
+    },
+  });
+  mountBtn(kit, overlay.querySelector('[data-daterange-cancel]') as HTMLElement, {
+    label: t('filter.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
-  });
-
-  // 确定：起止倒置时交换（打日志），空值放行（该侧不限），回调后关闭
-  overlay.querySelector('#daterange-ok')?.addEventListener('click', () => {
-    const fromInput = overlay.querySelector('#daterange-from') as HTMLInputElement;
-    const toInput = overlay.querySelector('#daterange-to') as HTMLInputElement;
-    let from = fromInput.value;
-    let to = toInput.value;
-    if (from && to && from > to) {
-      console.debug(JSON.stringify({ prefix: '[dialog]', event: 'date_range_swap', from, to }));
-      [from, to] = [to, from];
-    }
-    onApply({ from, to });
-    close();
-  });
-
-  // 清除：回调空串区间（两侧都不限）
-  overlay.querySelector('#daterange-clear')?.addEventListener('click', () => {
-    onApply({ from: '', to: '' });
-    close();
   });
 
   return close;
@@ -437,17 +704,18 @@ export function showPathFilterDialog(
   selected: string[],
   onApply: (paths: string[]) => void,
 ): void {
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('filter.path')}</div>
-        <div style="font-size: 11px; color: #888; margin-bottom: 4px;">${t('filter.editPaths')}</div>
-        <textarea id="pathfilter-input" placeholder="${t('dialog.pathPlaceholder')}" style="width: 100%; height: 120px; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px; resize: vertical; font-family: inherit;">${selected.join('\n')}</textarea>
-        <div id="pathfilter-hint" style="display: none; font-size: 11px; color: #ffb300; margin-bottom: 8px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="pathfilter-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('filter.ok')}</button>
-          <button id="pathfilter-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.clear')}</button>
-          <button id="pathfilter-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.cancel')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div class="gm-dialog-title">${t('filter.path')}</div>
+        <div class="gm-dialog-note">${t('filter.editPaths')}</div>
+        <div data-pathfilter-input class="gm-dialog-slot"></div>
+        <div data-pathfilter-hint class="gm-dialog-slot"></div>
+        <div class="gm-dialog-actions">
+          <div data-pathfilter-ok class="gm-dialog-slot"></div>
+          <div data-pathfilter-clear class="gm-dialog-slot"></div>
+          <div data-pathfilter-cancel class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -462,6 +730,7 @@ export function showPathFilterDialog(
     if (closed) return;
     closed = true;
     document.removeEventListener('keydown', onKeydown);
+    kit.disposeAll();
     overlay.remove();
   };
 
@@ -471,47 +740,78 @@ export function showPathFilterDialog(
   };
   document.addEventListener('keydown', onKeydown);
 
-  const input = overlay.querySelector('#pathfilter-input') as HTMLTextAreaElement;
-  const hintEl = overlay.querySelector('#pathfilter-hint') as HTMLElement;
+  const inputHost = overlay.querySelector('[data-pathfilter-input]') as HTMLElement;
+  const hintHost = overlay.querySelector('[data-pathfilter-hint]') as HTMLElement;
 
-  /** 显示行内提示（如超限） */
-  const showHint = (message: string): void => {
-    hintEl.textContent = message;
-    hintEl.style.display = 'block';
+  // 当前输入值与超限提示
+  let value = selected.join('\n');
+  let hint = '';
+
+  // 行内提示用 Kit Banner（tone=warning），hint 为空时移除节点
+  let hintBanner: BannerHandle | null = null;
+  const renderHint = (): void => {
+    if (!hint) {
+      hintBanner?.dispose();
+      hintBanner = null;
+      hintHost.replaceChildren();
+      return;
+    }
+    if (hintBanner) {
+      hintBanner.update({ title: hint });
+    } else {
+      hintBanner = mountErrorBanner(kit, hintHost, { tone: 'warning', title: hint });
+    }
   };
 
-  /** 隐藏行内提示 */
-  const hideHint = (): void => {
-    hintEl.textContent = '';
-    hintEl.style.display = 'none';
-  };
+  mountField(kit, inputHost, {
+    value,
+    multiline: true,
+    rows: 6,
+    placeholder: t('dialog.pathPlaceholder'),
+    onChange: (next) => {
+      value = next;
+      // 输入变化后清除上一次的超限提示
+      hint = '';
+      renderHint();
+    },
+  });
 
-  // 输入变化后清除上一次的超限提示
-  input.addEventListener('input', hideHint);
-
-  overlay.querySelector('#pathfilter-cancel')?.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
+  mountBtn(kit, overlay.querySelector('[data-pathfilter-cancel]') as HTMLElement, {
+    label: t('filter.cancel'),
+    variant: 'secondary',
+    onClick: close,
   });
 
   // 确定：解析多行输入后回调；超过 100 项仅行内提示（不回调、不关闭）
-  overlay.querySelector('#pathfilter-ok')?.addEventListener('click', () => {
-    const paths = parsePathLines(input.value);
-    if (paths.length > MAX_SELECTABLE_PATHS) {
-      showHint(t('filter.maxPaths'));
-      console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_filter_overflow', count: paths.length }));
-      return;
-    }
-    console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_filter_apply', paths }));
-    onApply(paths);
-    close();
+  mountBtn(kit, overlay.querySelector('[data-pathfilter-ok]') as HTMLElement, {
+    label: t('filter.ok'),
+    onClick: () => {
+      const paths = parsePathLines(value);
+      if (paths.length > MAX_SELECTABLE_PATHS) {
+        hint = t('filter.maxPaths');
+        renderHint();
+        console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_filter_overflow', count: paths.length }));
+        return;
+      }
+      console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_filter_apply', paths }));
+      onApply(paths);
+      close();
+    },
   });
 
   // 清除：回调空数组（等价于取消路径过滤）
-  overlay.querySelector('#pathfilter-clear')?.addEventListener('click', () => {
-    console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_filter_clear' }));
-    onApply([]);
-    close();
+  mountBtn(kit, overlay.querySelector('[data-pathfilter-clear]') as HTMLElement, {
+    label: t('filter.clear'),
+    variant: 'secondary',
+    onClick: () => {
+      console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_filter_clear' }));
+      onApply([]);
+      close();
+    },
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
   });
 }
 
@@ -570,7 +870,7 @@ function buildPathTree(files: string[]): { roots: PathTreeNode[]; byPath: Map<st
 
 /**
  * 目录在前、同组按字母序（码元序）递归排序
- * @param nodes 待排序节点数组（就地修改）
+ * @param nodes ���排序节点数组（就地修改）
  */
 function sortPathNodes(nodes: PathTreeNode[]): void {
   nodes.sort((a, b) => {
@@ -681,6 +981,8 @@ function fillSiblingsAlongPath(
  *   再沿 A→X 路径逐层补齐兄弟（除下一跳外全部入集合），保证除 X 外全部保持勾选
  * 每次点击后集合大小 > 100（IDEA MAX_FOLDERS）→ 行内提示 filter.maxPaths 并回滚本次点击
  * 打开即调 listFiles 构建目录树；目录可展开/折叠（▸/▾），只渲染展开分支以控制大仓库 DOM
+ *
+ * 树本体（行、勾选框、展开箭头）保留自绘（Kit 无树/三态原语）；按钮与加载/提示态用 Kit。
  * @param service 服务客户端（用 listFiles 拉仓库已跟踪文件）
  * @param directory 仓库目录
  * @param selected 当前已选路径（预勾选/预派生；不在列表中的路径渲染到根层，保证不丢值）
@@ -692,16 +994,17 @@ export function showPathTreeDialog(
   selected: string[],
   onApply: (paths: string[]) => void,
 ): void {
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('filter.selectPaths')}</div>
-        <div id="pathtree-list" style="height: 240px; overflow: auto; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; padding: 4px 0; box-sizing: border-box;"></div>
-        <div id="pathtree-hint" style="display: none; font-size: 11px; color: #ffb300; margin-top: 6px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
-          <button id="pathtree-ok" disabled style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('filter.ok')}</button>
-          <button id="pathtree-clear" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.clear')}</button>
-          <button id="pathtree-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.cancel')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w360">
+        <div class="gm-dialog-title">${t('filter.selectPaths')}</div>
+        <div id="pathtree-list" class="gm-dialog-list"></div>
+        <div data-pathtree-hint class="gm-dialog-slot"></div>
+        <div class="gm-dialog-actions gm-dialog-actions--top">
+          <div data-pathtree-ok class="gm-dialog-slot"></div>
+          <div data-pathtree-clear class="gm-dialog-slot"></div>
+          <div data-pathtree-cancel class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -720,16 +1023,34 @@ export function showPathTreeDialog(
   let loaded = false;
   let failed = false;
   let closed = false;
+  /** 当前行内提示文案（超限回滚时） */
+  let hint = '';
 
   const listEl = overlay.querySelector('#pathtree-list') as HTMLElement;
-  const hintEl = overlay.querySelector('#pathtree-hint') as HTMLElement;
-  const okBtn = overlay.querySelector('#pathtree-ok') as HTMLButtonElement;
+  const hintHost = overlay.querySelector('[data-pathtree-hint]') as HTMLElement;
+
+  // 行内提示用 Kit Banner（tone=warning）
+  let hintBanner: BannerHandle | null = null;
+  const renderHint = (): void => {
+    if (!hint) {
+      hintBanner?.dispose();
+      hintBanner = null;
+      hintHost.replaceChildren();
+      return;
+    }
+    if (hintBanner) {
+      hintBanner.update({ title: hint });
+    } else {
+      hintBanner = mountErrorBanner(kit, hintHost, { tone: 'warning', title: hint });
+    }
+  };
 
   /** 关闭对话框并注销 Escape 监听（幂等：重复调用无副作用） */
   const close = (): void => {
     if (closed) return;
     closed = true;
     document.removeEventListener('keydown', onKeydown);
+    kit.disposeAll();
     overlay.remove();
   };
 
@@ -741,14 +1062,20 @@ export function showPathTreeDialog(
 
   /** 显示行内提示（超限回滚时） */
   const showHint = (message: string): void => {
-    hintEl.textContent = message;
-    hintEl.style.display = 'block';
+    hint = message;
+    renderHint();
   };
 
   /** 隐藏行内提示 */
   const hideHint = (): void => {
-    hintEl.textContent = '';
-    hintEl.style.display = 'none';
+    hint = '';
+    renderHint();
+  };
+
+  // 确定按钮（Kit）：初始禁用（数据未到 / 空列表），随渲染更新 disabled
+  let okHandle: ButtonHandle | null = null;
+  const updateOkDisabled = (disabled: boolean): void => {
+    okHandle?.update({ disabled });
   };
 
   /** 点击勾选区：按 IDEA 规则增删集合，超 100 行内提示并回滚本次点击 */
@@ -791,14 +1118,14 @@ export function showPathTreeDialog(
     const isExpanded = expanded.has(node.path);
 
     const row = document.createElement('div');
-    row.className = 'pathtree-row';
+    row.className = 'pathtree-row gm-dialog-row';
     row.dataset.path = node.path;
     row.dataset.depth = String(depth);
-    row.style.cssText = `display: flex; align-items: center; gap: 6px; padding: 2px 6px 2px ${6 + depth * 14}px; cursor: pointer; font-size: 12px; color: #ccc;`;
+    // 左缩进随层级运行时计算（主题/布局在 .gm-dialog-row，仅缩进内联）
+    row.style.paddingLeft = `${6 + depth * 14}px`;
 
     const toggle = document.createElement('span');
-    toggle.className = 'pathtree-toggle';
-    toggle.style.cssText = 'width: 12px; flex: none; display: inline-block; text-align: center; user-select: none;';
+    toggle.className = 'pathtree-toggle gm-dialog-toggle';
     toggle.textContent = expandable ? (isExpanded ? '▾' : '▸') : '';
     row.appendChild(toggle);
 
@@ -835,14 +1162,16 @@ export function showPathTreeDialog(
     if (closed) return;
     listEl.innerHTML = '';
     if (failed) {
+      clearSpinner();
       const error = document.createElement('div');
       error.id = 'pathtree-error';
-      error.style.cssText = 'padding: 8px; font-size: 12px; color: #f44336;';
+      error.className = 'gm-dialog-load-error';
       error.textContent = t('filter.loadPathsFailed');
       listEl.appendChild(error);
       return;
     }
-    if (!loaded) return; // 加载中：容器留空
+    if (!loaded) return; // 加载中：容器留空（spinner 在外侧槽位）
+    clearSpinner();
 
     // 根层 = 树根 + 孤儿路径（选中但不在列表中的值），同一规则排序
     const nodes: PathTreeNode[] = [...roots];
@@ -854,36 +1183,59 @@ export function showPathTreeDialog(
     if (nodes.length === 0) {
       const empty = document.createElement('div');
       empty.id = 'pathtree-empty';
-      empty.style.cssText = 'padding: 8px; font-size: 12px; color: #888;';
+      empty.className = 'gm-dialog-empty';
       empty.textContent = t('filter.noPaths');
       listEl.appendChild(empty);
-      okBtn.disabled = true;
+      updateOkDisabled(true);
       return;
     }
-    okBtn.disabled = false;
+    updateOkDisabled(false);
     const states = computeCheckStates(nodes, selectedSet);
     for (const node of nodes) renderNode(node, 0, states, listEl);
   };
 
-  overlay.querySelector('#pathtree-cancel')?.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
-  });
-
-  // 确定：回调当前集合（≤100）后关闭
-  okBtn.addEventListener('click', () => {
-    const paths = [...selectedSet];
-    console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_tree_apply', count: paths.length }));
-    onApply(paths);
-    close();
+  okHandle = mountBtn(kit, overlay.querySelector('[data-pathtree-ok]') as HTMLElement, {
+    label: t('filter.ok'),
+    disabled: true,
+    onClick: () => {
+      const paths = [...selectedSet];
+      console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_tree_apply', count: paths.length }));
+      onApply(paths);
+      close();
+    },
   });
 
   // 清除：集合清空并回调空数组后关闭
-  overlay.querySelector('#pathtree-clear')?.addEventListener('click', () => {
-    selectedSet.clear();
-    console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_tree_clear' }));
-    onApply([]);
-    close();
+  mountBtn(kit, overlay.querySelector('[data-pathtree-clear]') as HTMLElement, {
+    label: t('filter.clear'),
+    variant: 'secondary',
+    onClick: () => {
+      selectedSet.clear();
+      console.debug(JSON.stringify({ prefix: '[dialog]', event: 'path_tree_clear' }));
+      onApply([]);
+      close();
+    },
+  });
+
+  mountBtn(kit, overlay.querySelector('[data-pathtree-cancel]') as HTMLElement, {
+    label: t('filter.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+
+  // 加载中占位（Kit Spinner）：数据到达前 listEl 留空是既有行为契约，
+  // spinner 挂在列表容器之外的独立槽位，失败/加载完成后由 render 移除
+  const spinnerHost = document.createElement('div');
+  spinnerHost.className = 'gm-dialog-slot';
+  listEl.parentElement?.insertBefore(spinnerHost, listEl);
+  const spinnerHandle = mountLoading(kit, spinnerHost, { size: 'sm' });
+  const clearSpinner = (): void => {
+    spinnerHandle.dispose();
+    spinnerHost.remove();
+  };
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
   });
 
   render(); // 初始占位（加载中留空），数据到达后重渲染
@@ -946,14 +1298,15 @@ export function showDeleteBranchDialog(
   branchName: string,
   onConfirm: (force: boolean) => Promise<void>,
 ): void {
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 320px;">
-        <div id="delete-branch-message" style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('branch.forceDelete', { name: branchName })}</div>
-        <div id="delete-branch-error" style="display: none; font-size: 11px; color: #f44336; margin-bottom: 8px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="delete-branch-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('filter.cancel')}</button>
-          <button id="delete-branch-ok" style="padding: 4px 12px; background: #b71c1c; border: 1px solid #c62828; border-radius: 3px; color: #fff; cursor: pointer;">${t('branch.forceDeleteButton')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w320">
+        <div id="delete-branch-message" class="gm-dialog-title">${t('branch.forceDelete', { name: branchName })}</div>
+        <div data-delete-branch-error class="gm-dialog-slot gm-dialog-slot--mb8"></div>
+        <div class="gm-dialog-actions">
+          <div data-delete-branch-cancel class="gm-dialog-slot"></div>
+          <div data-delete-branch-ok class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -964,15 +1317,32 @@ export function showDeleteBranchDialog(
   /** 确认进行中（防重复提交：按钮禁用 + 哨兵） */
   let pending = false;
   let closed = false;
+  /** 就地错误文案（Kit Banner 承载） */
+  let errorText = '';
 
-  const errorEl = overlay.querySelector('#delete-branch-error') as HTMLElement;
-  const okBtn = overlay.querySelector('#delete-branch-ok') as HTMLButtonElement;
+  const errorHost = overlay.querySelector('[data-delete-branch-error]') as HTMLElement;
+
+  let errorBanner: BannerHandle | null = null;
+  const renderError = (): void => {
+    if (!errorText) {
+      errorBanner?.dispose();
+      errorBanner = null;
+      errorHost.replaceChildren();
+      return;
+    }
+    if (errorBanner) {
+      errorBanner.update({ title: errorText });
+    } else {
+      errorBanner = mountErrorBanner(kit, errorHost, { tone: 'error', title: errorText });
+    }
+  };
 
   /** 关闭对话框并注销 Escape 监听（幂等：重复调用无副作用） */
   const close = (): void => {
     if (closed) return;
     closed = true;
     document.removeEventListener('keydown', onKeydown);
+    kit.disposeAll();
     overlay.remove();
   };
 
@@ -984,21 +1354,24 @@ export function showDeleteBranchDialog(
 
   /** 错误区就地显示 */
   const showError = (message: string): void => {
-    errorEl.textContent = message;
-    errorEl.style.display = 'block';
+    errorText = message;
+    renderError();
   };
 
   /** 隐藏错误提示 */
   const hideError = (): void => {
-    errorEl.textContent = '';
-    errorEl.style.display = 'none';
+    errorText = '';
+    renderError();
   };
+
+  // 确认按钮（Kit）：pending 期间 disabled + loading 防重复提交
+  let okHandle: ButtonHandle | null = null;
 
   /** 确认强制删除：先禁用按钮防重复；成功关闭，失败按 code 就地呈现且保持打开 */
   const submit = async (): Promise<void> => {
     if (pending) return;
     pending = true;
-    okBtn.disabled = true;
+    okHandle?.update({ disabled: true, loading: true });
     hideError();
     console.debug(JSON.stringify({ prefix: '[dialog]', event: 'branch_delete_confirm', branch: branchName, force: true }));
     try {
@@ -1023,15 +1396,24 @@ export function showDeleteBranchDialog(
       }));
     } finally {
       pending = false;
-      if (!closed) okBtn.disabled = false;
+      if (!closed) okHandle?.update({ disabled: false, loading: false });
     }
   };
 
-  overlay.querySelector('#delete-branch-cancel')?.addEventListener('click', close);
+  mountBtn(kit, overlay.querySelector('[data-delete-branch-cancel]') as HTMLElement, {
+    label: t('filter.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+  okHandle = mountBtn(kit, overlay.querySelector('[data-delete-branch-ok]') as HTMLElement, {
+    label: t('branch.forceDeleteButton'),
+    variant: 'destructive',
+    onClick: () => { void submit(); },
+  });
+
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
   });
-  okBtn.addEventListener('click', () => { void submit(); });
 }
 
 /**
@@ -1044,15 +1426,16 @@ export function showRewordCommitDialog(
   currentMessage: string,
   onConfirm: (message: string) => Promise<void>,
 ): void {
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 420px;">
-        <div style="font-size: 14px; color: #ccc; margin-bottom: 12px;">${t('commit.rewordTitle')}</div>
-        <textarea id="reword-input" style="width: 100%; height: 96px; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box; margin-bottom: 8px; resize: vertical; font-family: inherit;"></textarea>
-        <div id="reword-error" style="display: none; font-size: 11px; color: #f44336; margin-bottom: 8px;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="reword-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="reword-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+    <div class="gm-dialog-overlay">
+      <div class="gm-dialog-panel gm-dialog-panel--w420">
+        <div class="gm-dialog-title">${t('commit.rewordTitle')}</div>
+        <div data-reword-input class="gm-dialog-slot"></div>
+        <div data-reword-error class="gm-dialog-slot gm-dialog-slot--mb8"></div>
+        <div class="gm-dialog-actions">
+          <div data-reword-cancel class="gm-dialog-slot"></div>
+          <div data-reword-ok class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -1061,18 +1444,46 @@ export function showRewordCommitDialog(
   document.body.appendChild(overlay);
 
   let closed = false;
-  const input = overlay.querySelector('#reword-input') as HTMLTextAreaElement;
-  const errorEl = overlay.querySelector('#reword-error') as HTMLElement;
-  const okBtn = overlay.querySelector('#reword-ok') as HTMLButtonElement;
-  input.value = currentMessage;
-  input.focus();
-  input.setSelectionRange(input.value.length, input.value.length);
+  let value = currentMessage;
+  let errorText = '';
+
+  const inputHost = overlay.querySelector('[data-reword-input]') as HTMLElement;
+  const errorHost = overlay.querySelector('[data-reword-error]') as HTMLElement;
+
+  let errorBanner: BannerHandle | null = null;
+  const renderError = (): void => {
+    if (!errorText) {
+      errorBanner?.dispose();
+      errorBanner = null;
+      errorHost.replaceChildren();
+      return;
+    }
+    if (errorBanner) {
+      errorBanner.update({ title: errorText });
+    } else {
+      errorBanner = mountErrorBanner(kit, errorHost, { tone: 'error', title: errorText });
+    }
+  };
+
+  mountField(kit, inputHost, {
+    value: currentMessage,
+    multiline: true,
+    rows: 6,
+    onChange: (next) => { value = next; },
+  });
+
+  const input = kitInputOf(inputHost);
+  input?.focus();
+  if (input instanceof HTMLTextAreaElement) {
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
 
   /** 关闭对话框并注销 Escape 监听（幂等） */
   const close = (): void => {
     if (closed) return;
     closed = true;
     document.removeEventListener('keydown', onKeydown);
+    kit.disposeAll();
     overlay.remove();
   };
 
@@ -1082,34 +1493,45 @@ export function showRewordCommitDialog(
   };
   document.addEventListener('keydown', onKeydown);
 
-  overlay.querySelector('#reword-cancel')?.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
+  let pending = false;
+  let okHandle: ButtonHandle | null = null;
+
+  okHandle = mountBtn(kit, overlay.querySelector('[data-reword-ok]') as HTMLElement, {
+    label: t('dialog.ok'),
+    onClick: () => {
+      if (pending) return;
+      const next = value.trim();
+      if (!next) {
+        errorText = t('commit.rewordEmpty');
+        renderError();
+        return;
+      }
+      pending = true;
+      okHandle?.update({ disabled: true });
+      errorText = '';
+      renderError();
+      void onConfirm(next)
+        .then(() => { close(); })
+        .catch((e: unknown) => {
+          // 失败就地展示，保持对话框打开便于修改后重试
+          errorText = e instanceof Error ? e.message : String(e);
+          renderError();
+        })
+        .finally(() => {
+          pending = false;
+          if (!closed) okHandle?.update({ disabled: false });
+        });
+    },
   });
 
-  let pending = false;
-  okBtn.addEventListener('click', () => {
-    if (pending) return;
-    const next = input.value.trim();
-    if (!next) {
-      errorEl.textContent = t('commit.rewordEmpty');
-      errorEl.style.display = 'block';
-      return;
-    }
-    pending = true;
-    okBtn.disabled = true;
-    errorEl.style.display = 'none';
-    void onConfirm(next)
-      .then(() => { close(); })
-      .catch((e: unknown) => {
-        // 失败就地展示，保持对话框打开便于修改后重试
-        errorEl.textContent = e instanceof Error ? e.message : String(e);
-        errorEl.style.display = 'block';
-      })
-      .finally(() => {
-        pending = false;
-        if (!closed) okBtn.disabled = false;
-      });
+  mountBtn(kit, overlay.querySelector('[data-reword-cancel]') as HTMLElement, {
+    label: t('dialog.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
   });
 }
 
@@ -1126,13 +1548,14 @@ export function showConfirmDialog(
   onConfirm: () => void | Promise<void>,
   danger = false,
 ): void {
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1002;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 360px;">
-        <div id="confirm-message" style="font-size: 12px; color: #ccc; margin-bottom: 16px; word-break: break-word; white-space: pre-wrap;"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button id="confirm-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="confirm-ok" style="padding: 4px 12px; background: ${danger ? '#b71c1c' : '#0d47a1'}; border: 1px solid ${danger ? '#c62828' : '#1565c0'}; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+    <div class="gm-dialog-overlay gm-dialog-overlay--top">
+      <div class="gm-dialog-panel gm-dialog-panel--w360">
+        <div id="confirm-message" class="gm-dialog-confirm-msg"></div>
+        <div class="gm-dialog-actions">
+          <div data-confirm-cancel class="gm-dialog-slot"></div>
+          <div data-confirm-ok class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -1142,13 +1565,26 @@ export function showConfirmDialog(
   (overlay.querySelector('#confirm-message') as HTMLElement).textContent = message;
   document.body.appendChild(overlay);
 
-  const close = (): void => { overlay.remove(); };
-  overlay.querySelector('#confirm-cancel')?.addEventListener('click', close);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-  overlay.querySelector('#confirm-ok')?.addEventListener('click', () => {
-    close();
-    void onConfirm();
+  const close = (): void => {
+    kit.disposeAll();
+    overlay.remove();
+  };
+
+  mountBtn(kit, overlay.querySelector('[data-confirm-cancel]') as HTMLElement, {
+    label: t('dialog.cancel'),
+    variant: 'secondary',
+    onClick: close,
   });
+  mountBtn(kit, overlay.querySelector('[data-confirm-ok]') as HTMLElement, {
+    label: t('dialog.ok'),
+    variant: danger ? 'destructive' : 'default',
+    onClick: () => {
+      close();
+      void onConfirm();
+    },
+  });
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 }
 
 /** 输入对话框的字段定义 */
@@ -1173,14 +1609,15 @@ export function showPromptDialog(
   fields: PromptField[],
   onConfirm: (values: string[]) => void | Promise<void>,
 ): void {
+  const kit = new KitHandles();
   const overlay = html`
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1002;">
-      <div style="background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 16px; width: 380px;">
-        <div id="prompt-title" style="font-size: 14px; color: #ccc; margin-bottom: 12px;"></div>
+    <div class="gm-dialog-overlay gm-dialog-overlay--top">
+      <div class="gm-dialog-panel gm-dialog-panel--w380">
+        <div id="prompt-title" class="gm-dialog-title"></div>
         <div id="prompt-fields"></div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
-          <button id="prompt-cancel" style="padding: 4px 12px; background: #333; border: 1px solid #444; border-radius: 3px; color: #ccc; cursor: pointer;">${t('dialog.cancel')}</button>
-          <button id="prompt-ok" style="padding: 4px 12px; background: #0d47a1; border: 1px solid #1565c0; border-radius: 3px; color: #fff; cursor: pointer;">${t('dialog.ok')}</button>
+        <div class="gm-dialog-actions gm-dialog-actions--top">
+          <div data-prompt-cancel class="gm-dialog-slot"></div>
+          <div data-prompt-ok class="gm-dialog-slot"></div>
         </div>
       </div>
     </div>
@@ -1188,36 +1625,50 @@ export function showPromptDialog(
   (overlay.querySelector('#prompt-title') as HTMLElement).textContent = title;
 
   const fieldsEl = overlay.querySelector('#prompt-fields') as HTMLElement;
-  const inputs: HTMLInputElement[] = [];
+  // 各字段当前值（Kit 单向受控，值由闭包持有）
+  const values: string[] = fields.map(f => f.value ?? '');
   for (const [index, field] of fields.entries()) {
     const label = document.createElement('div');
-    label.style.cssText = 'font-size: 11px; color: #888; margin: 8px 0 4px;';
+    label.className = 'gm-dialog-label';
     label.textContent = field.label;
     fieldsEl.appendChild(label);
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.dataset.promptIndex = String(index);
-    input.value = field.value ?? '';
-    input.placeholder = field.placeholder ?? '';
-    input.style.cssText = 'width: 100%; padding: 6px 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 3px; color: #ccc; font-size: 12px; box-sizing: border-box;';
-    fieldsEl.appendChild(input);
-    inputs.push(input);
+    const host = document.createElement('div');
+    host.className = 'gm-dialog-slot';
+    host.dataset.promptIndex = String(index);
+    fieldsEl.appendChild(host);
+
+    mountField(kit, host, {
+      value: field.value ?? '',
+      placeholder: field.placeholder ?? '',
+      onChange: (next) => { values[index] = next; },
+    });
   }
 
   document.body.appendChild(overlay);
-  inputs[0]?.focus();
+  kitInputOf(fieldsEl)?.focus();
 
-  const close = (): void => { overlay.remove(); };
+  const close = (): void => {
+    kit.disposeAll();
+    overlay.remove();
+  };
   const submit = (): void => {
-    const values = inputs.map(i => i.value.trim());
+    const next = values.map(v => v.trim());
     close();
-    void onConfirm(values);
+    void onConfirm(next);
   };
 
-  overlay.querySelector('#prompt-cancel')?.addEventListener('click', close);
+  mountBtn(kit, overlay.querySelector('[data-prompt-cancel]') as HTMLElement, {
+    label: t('dialog.cancel'),
+    variant: 'secondary',
+    onClick: close,
+  });
+  mountBtn(kit, overlay.querySelector('[data-prompt-ok]') as HTMLElement, {
+    label: t('dialog.ok'),
+    onClick: submit,
+  });
+
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-  overlay.querySelector('#prompt-ok')?.addEventListener('click', submit);
   overlay.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') submit();
   });

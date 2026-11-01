@@ -111,26 +111,16 @@ export function showFileContextMenu(
   ];
 
   const menu = html`
-    <div id="git-file-context-menu" style="
-      position: fixed;
+    <div id="git-file-context-menu" class="gm-filectx-menu" style="
       left: ${e.clientX}px;
       top: ${e.clientY}px;
-      background: #2d2d2d;
-      border: 1px solid #444;
-      border-radius: 4px;
-      padding: 4px 0;
-      z-index: 1000;
-      min-width: 200px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     "></div>
   `;
 
   for (const item of items) {
     if ("type" in item && item.type === "separator") {
       const sep = document.createElement("div");
-      sep.style.height = "1px";
-      sep.style.background = "#444";
-      sep.style.margin = "4px 0";
+      sep.className = "gm-filectx-sep";
       menu.appendChild(sep);
       continue;
     }
@@ -138,10 +128,9 @@ export function showFileContextMenu(
     const menuItem = item as MenuItem;
     const el = document.createElement("div");
     el.textContent = menuItem.label;
-    el.style.padding = "6px 12px";
-    el.style.cursor = "pointer";
-    el.style.fontSize = "12px";
-    el.style.color = menuItem.danger ? "#f44336" : "#ccc";
+    el.className = menuItem.danger
+      ? "gm-filectx-item gm-filectx-item-danger"
+      : "gm-filectx-item";
 
     menu.appendChild(el);
   }
@@ -149,14 +138,14 @@ export function showFileContextMenu(
   menu.addEventListener('mouseenter', (ev) => {
     const target = (ev.target as HTMLElement).closest('div');
     if (target && target.parentElement === menu) {
-      target.style.background = "#3a3a3a";
+      target.classList.add('gm-filectx-item-hover');
     }
   }, true);
 
   menu.addEventListener('mouseleave', (ev) => {
     const target = (ev.target as HTMLElement).closest('div');
     if (target && target.parentElement === menu) {
-      target.style.background = "transparent";
+      target.classList.remove('gm-filectx-item-hover');
     }
   }, true);
 

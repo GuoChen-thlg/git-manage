@@ -8,6 +8,7 @@ import { host } from '../host';
 import { getState, setState, createInitialState, Branch, CommitInfo, FileDiff } from '../state';
 import { setLocale, t } from '../i18n';
 import { ServiceClient, DeleteBranchResult } from '../service';
+import { expectThemedClass, expectNoHardcodedHex } from './theme-helpers';
 
 // 宿主模块打桩：避免真实 connectHost 握手，并在用例中断言 toast 调用
 vi.mock('../host', () => ({
@@ -134,22 +135,6 @@ async function flush(rounds = 10): Promise<void> {
 }
 
 /**
- * 断言样式颜色值（兼容 3/6 位 hex，jsdom 可能把 hex 规范化为 rgb 字符串）
- * @param actual 实际样式值
- * @param hex 期望的十六进制颜色
- */
-function expectStyleColor(actual: string, hex: string): void {
-  // 3 位 hex 展开为 6 位
-  const full = hex.length === 4
-    ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
-    : hex;
-  const r = parseInt(full.slice(1, 3), 16);
-  const g = parseInt(full.slice(3, 5), 16);
-  const b = parseInt(full.slice(5, 7), 16);
-  expect([hex, full, `rgb(${r}, ${g}, ${b})`]).toContain(actual);
-}
-
-/**
  * 获取当前菜单元素
  * @returns 菜单元素
  */
@@ -157,6 +142,33 @@ function getMenu(): HTMLElement {
   const menu = document.getElementById('git-context-menu');
   expect(menu).toBeTruthy();
   return menu as HTMLElement;
+}
+
+/**
+ * 判断菜单直属子元素是否为分隔线（主题化后按语义类识别）
+ * @param el 菜单子元素
+ * @returns 是否为分隔线
+ */
+function isSep(el: HTMLElement): boolean {
+  return el.classList.contains('gm-ctx-sep');
+}
+
+/**
+ * 收集菜单直属分隔线
+ * @param menu 菜单元素
+ * @returns 分隔线元素数组
+ */
+function getSeps(menu: HTMLElement): HTMLElement[] {
+  return (Array.from(menu.children) as HTMLElement[]).filter(isSep);
+}
+
+/**
+ * 收集菜单直属非分隔线（可选项）元素
+ * @param menu 菜单元素
+ * @returns 可选项元素数组
+ */
+function getItems(menu: HTMLElement): HTMLElement[] {
+  return (Array.from(menu.children) as HTMLElement[]).filter(el => !isSep(el));
 }
 
 describe('context-menu', () => {
@@ -194,11 +206,78 @@ describe('context-menu', () => {
 
   /**
    * 点击扩展自身确认对话框的「确定」按钮
-   * 原生 confirm 在沙箱中不可用，组件改用 showConfirmDialog
+   * 原生 confirm 在沙箱中不可用，组件改用 showConfirmDialog（按钮为 SDK UI Kit）
    */
   function clickConfirmOk(): void {
-    const ok = [...document.querySelectorAll('button')].find(b => b.id === 'confirm-ok') as HTMLElement | undefined;
+    const ok = document.querySelector('[data-confirm-ok] .oc-sdk-btn') as HTMLElement | undefined;
     if (ok) ok.click();
+  }
+
+  /** 确认对话框确定按钮（Kit mountButton） */
+  function confirmOkButton(): HTMLElement | null {
+    return document.querySelector('[data-confirm-ok] .oc-sdk-btn') as HTMLElement | null;
+  }
+
+  /** 确认对话框取消按钮（Kit mountButton） */
+  function confirmCancelButton(): HTMLElement | null {
+    return document.querySelector('[data-confirm-cancel] .oc-sdk-btn') as HTMLElement | null;
+  }
+
+  /** 重命名对话框输入框（Kit mountTextField，槽位 [data-rename-input]） */
+  function renameInput(): HTMLInputElement {
+    return document.querySelector('[data-rename-input] .oc-sdk-input') as HTMLInputElement;
+  }
+
+  /** 新建分支对话框输入框（Kit mountTextField，槽位 [data-branch-input]） */
+  function branchInput(): HTMLInputElement {
+    return document.querySelector('[data-branch-input] .oc-sdk-input') as HTMLInputElement;
+  }
+
+  /** 新建分支对话框输入值并派发 input 事件（Kit 受控输入需 dispatch 才触发 onChange） */
+  function typeBranch(value: string): void {
+    const input = branchInput();
+    input.value = value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /** 新建分支对话框「创建后检出」复选框（Kit mountCheckbox） */
+  function branchCheckoutCheck(): HTMLElement | null {
+    return document.querySelector('[data-branch-checkout] .oc-sdk-check') as HTMLElement | null;
+  }
+
+  /** 点击新建分支对话框确定按钮（Kit mountButton） */
+  function clickCreateOk(): void {
+    (document.querySelector('[data-create-ok] .oc-sdk-btn') as HTMLElement).click();
+  }
+
+  /** 点击新建分支对话框取消按钮（Kit mountButton） */
+  function clickCreateCancel(): void {
+    (document.querySelector('[data-create-cancel] .oc-sdk-btn') as HTMLElement).click();
+  }
+
+  /** 新建分支对话框输入框节点（用于 focus/keydown 断言） */
+  function branchInputNode(): HTMLInputElement {
+    return branchInput();
+  }
+
+  /** 重置对话框确定按钮（右键菜单自带的 showResetDialog 为自绘 gm-ctx-btn，非 Kit） */
+  function resetOkButton(): HTMLElement | null {
+    return document.getElementById('reset-ok');
+  }
+
+  /** 重置对话框取消按钮（右键菜单自带 showResetDialog 自绘） */
+  function resetCancelButton(): HTMLElement | null {
+    return document.getElementById('reset-cancel');
+  }
+
+  /** 强制删除对话框确定按钮（Kit mountButton，destructive） */
+  function deleteBranchOkButton(): HTMLButtonElement | null {
+    return document.querySelector('[data-delete-branch-ok] .oc-sdk-btn') as HTMLButtonElement | null;
+  }
+
+  /** 强制删除对话框取消按钮（Kit mountButton） */
+  function deleteBranchCancelButton(): HTMLElement | null {
+    return document.querySelector('[data-delete-branch-cancel] .oc-sdk-btn') as HTMLElement | null;
   }
 
   /**
@@ -233,12 +312,13 @@ describe('context-menu', () => {
       trigger.dispatchEvent(createContextMenuEvent());
 
       const menu = getMenu();
-      expect(menu.style.position).toBe('fixed');
       expect(menu.style.left).toBe('10px');
       expect(menu.style.top).toBe('10px');
+      expectThemedClass(menu, 'gm-ctx-menu');
+      expectNoHardcodedHex(menu);
 
       const labels = (Array.from(menu.children) as HTMLElement[])
-        .filter(el => el.style.height !== '1px')
+        .filter(el => !isSep(el))
         .map(el => el.textContent);
       expect(labels).toEqual([
         '签出分支',
@@ -251,12 +331,12 @@ describe('context-menu', () => {
         '删除分支',
       ]);
       // 3 条分隔线
-      const separators = (Array.from(menu.children) as HTMLElement[]).filter(el => el.style.height === '1px');
+      const separators = getSeps(menu);
       expect(separators).toHaveLength(3);
-      expectStyleColor(separators[0].style.background, '#444');
+      expectThemedClass(separators[0], 'gm-ctx-sep');
     });
 
-    it('删除分支项应显示为危险红色，普通项与分隔线为默认样式', () => {
+    it('删除分支项应显示为危险项，普通项与分隔线为默认样式（均由语义类表达）', () => {
       const service = createMockService();
       showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
 
@@ -265,23 +345,21 @@ describe('context-menu', () => {
       const normalItem = findMenuItem(menu, '签出分支');
 
       expect(dangerItem).toBeTruthy();
-      expectStyleColor(dangerItem!.style.color, '#f44336');
+      expect(dangerItem!.classList.contains('gm-ctx-item-danger')).toBe(true);
       expect(normalItem).toBeTruthy();
-      expectStyleColor(normalItem!.style.color, '#ccc');
-      expect(normalItem!.style.cursor).toBe('pointer');
+      expectThemedClass(normalItem!, 'gm-ctx-item');
     });
 
-    it('悬停菜单项应显示高亮，移出后恢复透明', () => {
+    it('悬停菜单项应显示高亮，移出后恢复（class 切换）', () => {
       const service = createMockService();
       showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
 
       const item = findMenuItem(getMenu(), '签出分支')!;
       item.dispatchEvent(new MouseEvent('mouseenter'));
-      expect(item.style.background).not.toBe('');
-      expect(item.style.background).not.toBe('transparent');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(true);
 
       item.dispatchEvent(new MouseEvent('mouseleave'));
-      expect(item.style.background).toBe('transparent');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(false);
     });
 
     it('点击签出分支应调用 checkoutBranch 并刷新分支列表后关闭菜单', async () => {
@@ -372,7 +450,7 @@ describe('context-menu', () => {
       // 对齐 IDEA：无原生 confirm、无自定义确认对话框，点菜单即直接删除
       expect(confirmMock).not.toHaveBeenCalled();
       expect(service.deleteBranch).toHaveBeenCalledWith(DIRECTORY, 'dev');
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(deleteBranchOkButton()).toBeNull();
       expect(document.getElementById('delete-branch-message')).toBeNull();
       expect(document.getElementById('git-context-menu')).toBeNull();
     });
@@ -418,7 +496,7 @@ describe('context-menu', () => {
       const item = findMenuItem(getMenu(), '删除分支');
       expect(item).toBeTruthy();
       // 对齐 IDEA：含当前分支时动作置灰，点击不执行
-      expect(item!.style.color).toBe('rgb(102, 102, 102)');
+      expect(item!.classList.contains('gm-ctx-item-disabled')).toBe(true);
       item!.click();
       await flush();
       expect(service.deleteBranch).not.toHaveBeenCalled();
@@ -451,18 +529,17 @@ describe('context-menu', () => {
       showContextMenu(createContextMenuEvent(), currentBranch, service, DIRECTORY);
 
       const item = findMenuItem(getMenu(), '删除分支')!;
-      expect(item.style.cursor).toBe('default');
-      expectStyleColor(item.style.color, '#666');
+      expect(item.classList.contains('gm-ctx-item-disabled')).toBe(true);
 
       // 悬停不高亮（跳过禁用项）
       item.dispatchEvent(new MouseEvent('mouseenter'));
-      expect(item.style.background).toBe('');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(false);
 
       // 点击不执行动作、不打开对话框、不关闭菜单（回归：委托处理曾漏检 disabled）
       item.click();
       await flush();
       expect(service.deleteBranch).not.toHaveBeenCalled();
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(deleteBranchOkButton()).toBeNull();
       expect(document.getElementById('git-context-menu')).toBeTruthy();
     });
 
@@ -479,9 +556,9 @@ describe('context-menu', () => {
       // 打开即强制模式：正文与按钮直接是 force 文案，且仅弹一次
       expect(document.getElementById('delete-branch-message')!.textContent)
         .toBe('分支 dev 尚未合并到当前分支，强制删除将丢失其上的提交。');
-      expect(document.getElementById('delete-branch-ok')!.textContent).toBe('强制删除');
-      expect(document.querySelectorAll('#delete-branch-ok')).toHaveLength(1);
-      expect((document.getElementById('delete-branch-ok') as HTMLButtonElement).disabled).toBe(false);
+      expect(deleteBranchOkButton()!.textContent).toBe('强制删除');
+      expect(document.querySelectorAll('[data-delete-branch-ok] .oc-sdk-btn')).toHaveLength(1);
+      expect(deleteBranchOkButton()!.disabled).toBe(false);
       // 直接删除只发起了 1 次，未自动重发；尚未成功也未发通知
       expect(service.deleteBranch).toHaveBeenCalledTimes(1);
       expect(document.getElementById(NOTIFY_ID)).toBeNull();
@@ -496,13 +573,13 @@ describe('context-menu', () => {
 
       findMenuItem(getMenu(), '删除分支')!.click();
       await flush();
-      document.getElementById('delete-branch-ok')!.click();
+      deleteBranchOkButton()!.click();
       await flush();
 
       expect(service.deleteBranch).toHaveBeenNthCalledWith(1, DIRECTORY, 'dev');
       expect(service.deleteBranch).toHaveBeenNthCalledWith(2, DIRECTORY, 'dev', true);
       // 对话框关闭，通知照发（与直接删除成功同一条链路）
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(deleteBranchOkButton()).toBeNull();
       expect(document.getElementById(NOTIFY_ID)!.textContent).toContain('已删除的分支: dev');
       expect(getState().branches).toEqual([
         { name: 'feature', isCurrent: false, isRemote: false },
@@ -518,12 +595,12 @@ describe('context-menu', () => {
 
       findMenuItem(getMenu(), '删除分支')!.click();
       await flush();
-      document.getElementById('delete-branch-cancel')!.click();
+      deleteBranchCancelButton()!.click();
       await flush();
 
       // 取消后不再删除：仅剩最初的直接删除调用，且不发通知
       expect(service.deleteBranch).toHaveBeenCalledTimes(1);
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(deleteBranchOkButton()).toBeNull();
       expect(document.getElementById(NOTIFY_ID)).toBeNull();
     });
 
@@ -605,7 +682,7 @@ describe('context-menu', () => {
       const request = vi.mocked(host.toast).mock.calls[0][0];
       expect(request.kind).toBe('error');
       expect(String(request.message)).toBe('分支 dev 不存在');
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(deleteBranchOkButton()).toBeNull();
       expect(document.getElementById(NOTIFY_ID)).toBeNull();
 
       // 失败输出 [context-menu] JSON 日志
@@ -631,7 +708,7 @@ describe('context-menu', () => {
       const request = vi.mocked(host.toast).mock.calls[0][0];
       expect(request.kind).toBe('error');
       expect(String(request.message)).toBe("删除分支失败: error: cannot delete branch 'dev'");
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(deleteBranchOkButton()).toBeNull();
     });
 
     it('deleteBranch reject 非 JSON（网络层等）时应按 deleteFailed 前缀原样透出', async () => {
@@ -646,7 +723,7 @@ describe('context-menu', () => {
       const request = vi.mocked(host.toast).mock.calls[0][0];
       expect(request.kind).toBe('error');
       expect(String(request.message)).toBe('删除分支失败: 网络连接中断');
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(deleteBranchOkButton()).toBeNull();
     });
 
     it('删除成功但刷新分支列表失败时通知照发，仅记日志且不显示错误', async () => {
@@ -698,7 +775,7 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), '重命名分支')!.click();
       await flush();
 
-      const input = document.getElementById('rename-input') as HTMLInputElement;
+      const input = renameInput();
       expect(input).toBeTruthy();
       expect(input.value).toBe('dev');
       // 菜单已关闭
@@ -711,7 +788,7 @@ describe('context-menu', () => {
       vi.runAllTimers();
 
       const menu = getMenu();
-      const separator = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px')!;
+      const separator = getSeps(menu)[0];
       separator.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       expect(document.getElementById('git-context-menu')).toBeTruthy();
@@ -757,9 +834,7 @@ describe('context-menu', () => {
       expect(menu.style.left).toBe('10px');
       expect(menu.style.top).toBe('10px');
 
-      const labels = (Array.from(menu.children) as HTMLElement[])
-        .filter(el => el.style.height !== '1px')
-        .map(el => el.textContent);
+      const labels = getItems(menu).map(el => el.textContent);
       // 顺序对齐 IDEA 提交右键菜单：复制 → Cherry-pick/比较 → Reset/Revert
       // → 撤销/编辑/删除 → 推送至此 → 分支/标签
       expect(labels).toEqual([
@@ -775,7 +850,7 @@ describe('context-menu', () => {
         '新建分支',
         '新建标签',
       ]);
-      const separators = (Array.from(menu.children) as HTMLElement[]).filter(el => el.style.height === '1px');
+      const separators = getSeps(menu);
       expect(separators).toHaveLength(5);
     });
 
@@ -844,7 +919,7 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), '将当前分支重置到此处')!.click();
       await flush();
 
-      const okButton = document.getElementById('reset-ok');
+      const okButton = resetOkButton();
       expect(okButton).toBeTruthy();
 
       okButton!.click();
@@ -852,7 +927,7 @@ describe('context-menu', () => {
 
       expect(service.reset).toHaveBeenCalledWith(DIRECTORY, 'abc123', 'soft');
       // 对话框已关闭
-      expect(document.getElementById('reset-ok')).toBeNull();
+      expect(resetOkButton()).toBeNull();
     });
 
     it('点击新建分支应打开对话框并创建分支后刷新列表', async () => {
@@ -862,18 +937,18 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), '新建分支')!.click();
       await flush();
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
+      const input = branchInputNode();
       expect(input).toBeTruthy();
 
-      input.value = 'feature/x';
-      document.getElementById('create-ok')!.click();
+      typeBranch('feature/x');
+      clickCreateOk();
       await flush();
 
       expect(service.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature/x', 'abc123');
       expect(getState().branches).toEqual([
         { name: 'feature', isCurrent: false, isRemote: false },
       ]);
-      expect(document.getElementById('new-branch-input')).toBeNull();
+      expect(branchInputNode()).toBeNull();
     });
 
     it('点击分隔线不应关闭单提交菜单', () => {
@@ -882,7 +957,7 @@ describe('context-menu', () => {
       vi.runAllTimers();
 
       const menu = getMenu();
-      const separator = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px')!;
+      const separator = getSeps(menu)[0];
       separator.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       expect(document.getElementById('git-context-menu')).toBeTruthy();
@@ -908,9 +983,7 @@ describe('context-menu', () => {
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, batchHashes);
 
       const menu = getMenu();
-      const labels = (Array.from(menu.children) as HTMLElement[])
-        .filter(el => el.style.height !== '1px')
-        .map(el => el.textContent);
+      const labels = getItems(menu).map(el => el.textContent);
       expect(labels).toEqual([
         '已选中 3 个提交',
         '复制哈希列表',
@@ -918,12 +991,11 @@ describe('context-menu', () => {
         'Revert 全部 (3)',
       ]);
       // 仅 1 条分隔线
-      expect((Array.from(menu.children) as HTMLElement[]).filter(el => el.style.height === '1px')).toHaveLength(1);
+      expect(getSeps(menu)).toHaveLength(1);
 
       // 首项为禁用态
       const disabledItem = findMenuItem(menu, '已选中 3 个提交')!;
-      expect(disabledItem.style.cursor).toBe('default');
-      expectStyleColor(disabledItem.style.color, '#666');
+      expect(disabledItem.classList.contains('gm-ctx-item-disabled')).toBe(true);
     });
 
     it('点击复制哈希列表应按换行拼接写入剪贴板', async () => {
@@ -943,7 +1015,7 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), 'Cherry-pick 全部 (3)')!.click();
       await flush();
       // 确认对话框应已渲染
-      expect(document.getElementById('confirm-ok')).toBeTruthy();
+      expect(confirmOkButton()).toBeTruthy();
       clickConfirmOk();
       await flush();
 
@@ -961,7 +1033,7 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), 'Cherry-pick 全部 (3)')!.click();
       await flush();
       // 点击取消
-      const cancel = [...document.querySelectorAll('button')].find(b => b.id === 'confirm-cancel') as HTMLElement | undefined;
+      const cancel = confirmCancelButton();
       expect(cancel).toBeTruthy();
       cancel?.click();
       await flush();
@@ -998,50 +1070,38 @@ describe('context-menu', () => {
       const service = createMockService();
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY, ['h1']);
 
-      const labels = (Array.from(getMenu().children) as HTMLElement[])
-        .filter(el => el.style.height !== '1px')
-        .map(el => el.textContent);
+      const labels = getItems(getMenu()).map(el => el.textContent);
       expect(labels).toContain('复制提交哈希');
       expect(labels).not.toContain('已选中 1 个提交');
     });
   });
 
-  describe('内联样式细节', () => {
-    it('分支菜单容器、菜单项与分隔线应应用完整内联样式', () => {
+  describe('主题化样式细节', () => {
+    it('分支菜单容器、菜单项与分隔线应应用语义类，不含硬编码色值', () => {
       const service = createMockService();
       showContextMenu(createContextMenuEvent(), branch, service, DIRECTORY);
 
       const menu = getMenu();
-      expectStyleColor(menu.style.background, '#2d2d2d');
-      expect(menu.style.border).toMatch(/^1px solid/);
-      expect(menu.style.borderRadius).toBe('4px');
-      expect(menu.style.padding).toMatch(/^4px 0(px)?$/);
-      expect(menu.style.zIndex).toBe('1000');
-      expect(menu.style.minWidth).toBe('160px');
-      expect(menu.style.boxShadow).toContain('0 2px 8px');
+      expectThemedClass(menu, 'gm-ctx-menu');
+      expectNoHardcodedHex(menu);
 
       const item = findMenuItem(menu, '签出分支')!;
-      expect(item.style.padding).toBe('6px 12px');
-      expect(item.style.fontSize).toBe('12px');
+      expectThemedClass(item, 'gm-ctx-item');
 
-      const sep = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px') as HTMLElement;
-      expect(sep.style.margin).toMatch(/^4px 0(px)?$/);
+      const sep = getSeps(menu)[0];
+      expectThemedClass(sep, 'gm-ctx-sep');
     });
 
-    it('单提交菜单的菜单项与分隔线应应用默认样式', () => {
+    it('单提交菜单的菜单项与分隔线应应用语义类', () => {
       const service = createMockService();
       showCommitContextMenu(createContextMenuEvent(), createCommit(), service, DIRECTORY);
 
       const menu = getMenu();
       const item = findMenuItem(menu, '复制提交哈希')!;
-      expect(item.style.padding).toBe('6px 12px');
-      expect(item.style.fontSize).toBe('12px');
-      expect(item.style.cursor).toBe('pointer');
-      expectStyleColor(item.style.color, '#ccc');
+      expectThemedClass(item, 'gm-ctx-item');
 
-      const sep = (Array.from(menu.children) as HTMLElement[]).find(el => el.style.height === '1px') as HTMLElement;
-      expectStyleColor(sep.style.background, '#444');
-      expect(sep.style.margin).toMatch(/^4px 0(px)?$/);
+      const sep = getSeps(menu)[0];
+      expectThemedClass(sep, 'gm-ctx-sep');
     });
   });
 
@@ -1297,10 +1357,10 @@ describe('context-menu', () => {
 
       const menu = getMenu();
       menu.dispatchEvent(new MouseEvent('mouseenter'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-ctx-item-hover')).toBe(false);
 
       menu.dispatchEvent(new MouseEvent('mouseleave'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-ctx-item-hover')).toBe(false);
     });
 
     it('单提交菜单悬停与移出仅作用于菜单项，容器自身无响应', () => {
@@ -1310,16 +1370,16 @@ describe('context-menu', () => {
       const menu = getMenu();
       // 容器自身：高亮与恢复都不应生效
       menu.dispatchEvent(new MouseEvent('mouseenter'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-ctx-item-hover')).toBe(false);
       menu.dispatchEvent(new MouseEvent('mouseleave'));
-      expectStyleColor(menu.style.background, '#2d2d2d');
+      expect(menu.classList.contains('gm-ctx-item-hover')).toBe(false);
 
-      // 菜单项：精确高亮色与恢复
+      // 菜单项：精确高亮类与恢复
       const item = findMenuItem(menu, '复制提交哈希')!;
       item.dispatchEvent(new MouseEvent('mouseenter'));
-      expectStyleColor(item.style.background, '#3a3a3a');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(true);
       item.dispatchEvent(new MouseEvent('mouseleave'));
-      expect(item.style.background).toBe('transparent');
+      expect(item.classList.contains('gm-ctx-item-hover')).toBe(false);
     });
 
     it('点击分支菜单项内的嵌套元素不应执行动作或关闭菜单', async () => {
@@ -1398,9 +1458,9 @@ describe('context-menu', () => {
 
     it('点击取消按钮应关闭重置对话框', async () => {
       const overlay = await openResetDialog(createMockService());
-      expect(document.getElementById('reset-cancel')).toBeTruthy();
+      expect(resetCancelButton()).toBeTruthy();
 
-      document.getElementById('reset-cancel')!.click();
+      resetCancelButton()!.click();
 
       expect(overlay.isConnected).toBe(false);
     });
@@ -1412,10 +1472,10 @@ describe('context-menu', () => {
         .find(el => el.textContent === t('reset.title'));
       expect(title).toBeTruthy();
       title!.click();
-      expect(document.getElementById('reset-ok')).toBeTruthy();
+      expect(resetOkButton()).toBeTruthy();
 
       overlay.click();
-      expect(document.getElementById('reset-ok')).toBeNull();
+      expect(resetOkButton()).toBeNull();
     });
 
     it('执行重置失败时应提示用户并保持对话框打开', async () => {
@@ -1428,7 +1488,7 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), '将当前分支重置到此处')!.click();
       await flush();
 
-      document.getElementById('reset-ok')!.click();
+      resetOkButton()!.click();
       await flush();
 
       // 回归：此前只写 console 并关闭对话框，用户点确定后看不到任何失败提示
@@ -1436,33 +1496,32 @@ describe('context-menu', () => {
         kind: 'error',
         message: expect.stringContaining('重置失败'),
       }));
-      expect(document.getElementById('reset-ok')).not.toBeNull();
+      expect(resetOkButton()).not.toBeNull();
     });
 
     it('打开创建分支对话框应自动聚焦名称输入框', async () => {
       await openCreateDialog(createMockService());
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
+      const input = branchInputNode();
       expect(input).toBeTruthy();
       expect(document.activeElement).toBe(input);
     });
 
     it('创建分支对话框应提供默认勾选的「创建后检出」复选框', async () => {
       await openCreateDialog(createMockService());
-      const checkbox = document.getElementById('new-branch-checkout') as HTMLInputElement;
+      const checkbox = branchCheckoutCheck();
       // 回归：右键入口是独立对话框，此前漏加该复选框
       expect(checkbox).toBeTruthy();
-      expect(checkbox.type).toBe('checkbox');
-      expect(checkbox.checked).toBe(true);
+      expect(checkbox!.getAttribute('role')).toBe('checkbox');
+      expect(checkbox!.getAttribute('aria-checked')).toBe('true');
     });
 
     it('右键创建分支取消勾选检出时只创建分支不切换', async () => {
       const service = createMockService();
       await openCreateDialog(service);
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = 'from-commit-nocheckout';
-      (document.getElementById('new-branch-checkout') as HTMLInputElement).checked = false;
-      (document.getElementById('create-ok') as HTMLElement).click();
+      typeBranch('from-commit-nocheckout');
+      branchCheckoutCheck()!.click(); // 切换为不勾选（Kit 复选框点击切换）
+      clickCreateOk();
       await flush();
 
       // 不勾选走 git branch，不切走当前工作区
@@ -1472,9 +1531,9 @@ describe('context-menu', () => {
 
     it('点击取消按钮应关闭创建分支对话框', async () => {
       const overlay = await openCreateDialog(createMockService());
-      expect(document.getElementById('create-cancel')).toBeTruthy();
+      expect(document.querySelector('[data-create-cancel] .oc-sdk-btn')).toBeTruthy();
 
-      document.getElementById('create-cancel')!.click();
+      clickCreateCancel();
 
       expect(overlay.isConnected).toBe(false);
     });
@@ -1486,30 +1545,29 @@ describe('context-menu', () => {
         .find(el => el.textContent === '从提交创建分支');
       expect(title).toBeTruthy();
       title!.click();
-      expect(document.getElementById('new-branch-input')).toBeTruthy();
+      expect(branchInputNode()).toBeTruthy();
 
       overlay.click();
-      expect(document.getElementById('new-branch-input')).toBeNull();
+      expect(branchInputNode()).toBeNull();
     });
 
     it('分支名为空或纯空白时点创建不应调用服务', async () => {
       const service = createMockService();
       await openCreateDialog(service);
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      const okButton = document.getElementById('create-ok')!;
+      const okButton = document.querySelector('[data-create-ok] .oc-sdk-btn') as HTMLElement;
 
-      input.value = '   ';
+      typeBranch('   ');
       okButton.click();
       await flush();
       expect(service.checkoutNewBranch).not.toHaveBeenCalled();
-      expect(document.getElementById('new-branch-input')).toBeTruthy();
+      expect(branchInputNode()).toBeTruthy();
 
-      input.value = '';
+      typeBranch('');
       okButton.click();
       await flush();
       expect(service.checkoutNewBranch).not.toHaveBeenCalled();
-      expect(document.getElementById('new-branch-input')).toBeTruthy();
+      expect(branchInputNode()).toBeTruthy();
     });
 
     it('创建分支失败时应打印错误日志', async () => {
@@ -1521,9 +1579,8 @@ describe('context-menu', () => {
       findMenuItem(getMenu(), '新建分支')!.click();
       await flush();
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = 'feature/fail';
-      document.getElementById('create-ok')!.click();
+      typeBranch('feature/fail');
+      clickCreateOk();
       await flush();
 
       // 失败必须让用户可见：结构化日志 + error toast
@@ -1533,27 +1590,26 @@ describe('context-menu', () => {
       expect(log).toBeTruthy();
       expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error' }));
       // 失败时保持对话框打开，便于改名重试（与侧栏入口共用同一实现）
-      expect(document.getElementById('new-branch-input')).not.toBeNull();
+      expect(branchInputNode()).not.toBeNull();
     });
 
     it('回车键可创建分支，其它按键不触发', async () => {
       const service = createMockService();
       await openCreateDialog(service);
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = 'feature/enter';
+      typeBranch('feature/enter');
 
       // 非 Enter 按键：不创建、对话框保持打开
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      branchInputNode().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       await flush();
       expect(service.checkoutNewBranch).not.toHaveBeenCalled();
-      expect(document.getElementById('new-branch-input')).toBeTruthy();
+      expect(branchInputNode()).toBeTruthy();
 
       // Enter 按键：创建分支并关闭对话框
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      branchInputNode().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       await flush();
       expect(service.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature/enter', 'abc123');
-      expect(document.getElementById('new-branch-input')).toBeNull();
+      expect(branchInputNode()).toBeNull();
     });
   });
 
@@ -1567,9 +1623,8 @@ describe('context-menu', () => {
     findMenuItem(getMenu(), '新建分支')!.click();
     await flush();
 
-    const input = document.getElementById('new-branch-input') as HTMLInputElement;
-    input.value = 'dr';
-    (document.getElementById('create-ok') as HTMLElement).click();
+    typeBranch('dr');
+    clickCreateOk();
     await flush();
 
     // 错误信息含多行文件清单，toast 应给出可读原因而非原文堆叠
@@ -1587,9 +1642,8 @@ describe('context-menu', () => {
     findMenuItem(getMenu(), '新建分支')!.click();
     await flush();
 
-    const input = document.getElementById('new-branch-input') as HTMLInputElement;
-    input.value = 'dr';
-    (document.getElementById('create-ok') as HTMLElement).click();
+    typeBranch('dr');
+    clickCreateOk();
     await flush();
 
     const toastArg = toastMock.mock.calls.at(-1)?.[0] as { message: string } | undefined;

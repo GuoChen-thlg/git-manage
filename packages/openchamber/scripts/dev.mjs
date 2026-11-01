@@ -26,13 +26,17 @@ function log(msg) {
 }
 
 /**
- * 把面板 HTML 复制到产物目录（HTML 不参与打包，需单独同步）
+ * 把面板静态资源（HTML/CSS）复制到产物目录（静态资源不参与打包，需单独同步）
  */
 async function copyPanelHtml() {
   await fs.mkdir(path.join(DIST, 'panel'), { recursive: true });
   await fs.copyFile(
     path.join(PKG_ROOT, 'panel/index.html'),
     path.join(DIST, 'panel/index.html'),
+  );
+  await fs.copyFile(
+    path.join(PKG_ROOT, 'panel/styles.css'),
+    path.join(DIST, 'panel/styles.css'),
   );
 }
 
@@ -76,18 +80,22 @@ async function main() {
   log('启动服务监听（service/main.ts → dist/service/main.js）');
   const service = watch('service/main.ts', 'dist/service/main.js', ['--format=cjs', '--platform=node', '--target=node20']);
 
-  // HTML 变化不频繁，用轮询同步（避免额外依赖）
+  // 静态资源（HTML/CSS）变化不频繁，用轮询同步（避免额外依赖）
   let htmlMtime = 0;
+  let cssMtime = 0;
   try {
     htmlMtime = (await fs.stat(path.join(PKG_ROOT, 'panel/index.html'))).mtimeMs;
+    cssMtime = (await fs.stat(path.join(PKG_ROOT, 'panel/styles.css'))).mtimeMs;
   } catch { /* 首次读取失败时下方逻辑会在变化后补上 */ }
   const timer = setInterval(async () => {
     try {
-      const stat = await fs.stat(path.join(PKG_ROOT, 'panel/index.html'));
-      if (stat.mtimeMs !== htmlMtime) {
-        htmlMtime = stat.mtimeMs;
+      const htmlStat = await fs.stat(path.join(PKG_ROOT, 'panel/index.html'));
+      const cssStat = await fs.stat(path.join(PKG_ROOT, 'panel/styles.css'));
+      if (htmlStat.mtimeMs !== htmlMtime || cssStat.mtimeMs !== cssMtime) {
+        htmlMtime = htmlStat.mtimeMs;
+        cssMtime = cssStat.mtimeMs;
         await copyPanelHtml();
-        log('已同步 panel/index.html');
+        log('已同步 panel/index.html 与 panel/styles.css');
       }
     } catch { /* 文件暂时不可读时忽略，下一轮重试 */ }
   }, 1000);

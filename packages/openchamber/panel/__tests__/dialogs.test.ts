@@ -19,6 +19,7 @@ import { setState, createInitialState, getState } from '../state';
 import type { Branch } from '../state';
 import type { ServiceClient } from '../service';
 import { setLocale } from '../i18n';
+import { expectThemedClass, expectNoHardcodedHex } from './theme-helpers';
 
 /** 宿主 toast 断言句柄 */
 const { toastMock } = vi.hoisted(() => ({ toastMock: vi.fn().mockResolvedValue(undefined) }));
@@ -76,6 +77,51 @@ function clickOverlay(overlay: HTMLElement): void {
   overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 }
 
+// ===== SDK UI Kit 控件交互辅助 =====
+// 对话框内部表单控件已改用 SDK UI Kit（oc-sdk-*）。Kit 输入为受控组件（值由闭包持有），
+// 模拟用户输入需在赋 .value 后派发 input 事件才会触发 onChange。
+
+/** 在 Kit 文本输入中打字并派发 input 事件 */
+function typeInto(input: HTMLInputElement | HTMLTextAreaElement, value: string): void {
+  input.value = value;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/** 取槽位内的 Kit 输入节点 */
+function kitInput(slot: string): HTMLInputElement {
+  return document.querySelector(`[data-${slot}] .oc-sdk-input`) as HTMLInputElement;
+}
+
+/** 取槽位内的 Kit 多行输入节点 */
+function kitTextarea(slot: string): HTMLTextAreaElement {
+  return document.querySelector(`[data-${slot}] textarea.oc-sdk-input`) as HTMLTextAreaElement;
+}
+
+/** 取槽位内的 Kit 按钮节点 */
+function kitBtn(slot: string): HTMLButtonElement {
+  return document.querySelector(`[data-${slot}] .oc-sdk-btn`) as HTMLButtonElement;
+}
+
+/** 取槽位内的 Kit 复选框节点 */
+function kitCheck(slot: string): HTMLElement {
+  return document.querySelector(`[data-${slot}] .oc-sdk-check`) as HTMLElement;
+}
+
+/** Kit 复选框是否勾选（读 aria-checked） */
+function kitCheckState(slot: string): boolean {
+  return kitCheck(slot).getAttribute('aria-checked') === 'true';
+}
+
+/** 取槽位内的 Kit 错误/提示横幅文本（无横幅时为 null） */
+function kitBannerText(slot: string): string | null {
+  return document.querySelector(`[data-${slot}] .oc-sdk-banner-title`)?.textContent ?? null;
+}
+
+/** 取 Kit 横幅 tone（无横幅时为 null） */
+function kitBannerTone(slot: string): string | null {
+  return document.querySelector(`[data-${slot}] .oc-sdk-banner`)?.getAttribute('data-tone') ?? null;
+}
+
 describe('dialogs', () => {
   let mock: ReturnType<typeof createServiceMock>;
   let service: ServiceClient;
@@ -109,23 +155,28 @@ describe('dialogs', () => {
       const overlay = getOverlay();
       expect(overlay.textContent).toContain(`重命名分支: ${branch.name}`);
 
-      const input = overlay.querySelector('#rename-input') as HTMLInputElement;
+      // 主题视觉走语义类与 --gm-* 变量，不含硬编码色值
+      expectThemedClass(overlay.firstElementChild as HTMLElement, 'gm-dialog-panel');
+      expectNoHardcodedHex(overlay);
+
+      // 输入框为 SDK UI Kit mountTextField，预填旧分支名
+      const input = kitInput('rename-input');
       expect(input).toBeTruthy();
       expect(input.value).toBe('old-name');
-      expect(overlay.querySelector('#rename-ok')).toBeTruthy();
-      expect(overlay.querySelector('#rename-cancel')).toBeTruthy();
+      expect(input.classList.contains('oc-sdk-input')).toBe(true);
+      expect(kitBtn('rename-ok')).toBeTruthy();
+      expect(kitBtn('rename-cancel')).toBeTruthy();
     });
 
     it('输入新名称点确定应该调用 renameBranch/getBranches 并更新分支列表后关闭', async () => {
       showRenameDialog(branch, service, DIRECTORY);
 
-      const input = document.getElementById('rename-input') as HTMLInputElement;
-      input.value = 'renamed-branch';
-      (document.getElementById('rename-ok') as HTMLElement).click();
+      typeInto(kitInput('rename-input'), 'renamed-branch');
+      kitBtn('rename-ok').click();
 
       // service 调用为异步，等待对话框关闭（关闭发生在全部 await 之后）
       await vi.waitFor(() => {
-        expect(document.getElementById('rename-input')).toBeNull();
+        expect(kitInput('rename-input')).toBeNull();
       });
 
       expect(mock.renameBranch).toHaveBeenCalledWith(DIRECTORY, 'old-name', 'renamed-branch');
@@ -137,9 +188,9 @@ describe('dialogs', () => {
       showRenameDialog(branch, service, DIRECTORY);
 
       // 输入框预填值即旧名，不做修改直接确定
-      (document.getElementById('rename-ok') as HTMLElement).click();
+      kitBtn('rename-ok').click();
       await vi.waitFor(() => {
-        expect(document.getElementById('rename-input')).toBeNull();
+        expect(kitInput('rename-input')).toBeNull();
       });
 
       expect(mock.renameBranch).not.toHaveBeenCalled();
@@ -149,11 +200,10 @@ describe('dialogs', () => {
     it('名称为空时点确定应该不调用 service 且直接关闭', async () => {
       showRenameDialog(branch, service, DIRECTORY);
 
-      const input = document.getElementById('rename-input') as HTMLInputElement;
-      input.value = '   ';
-      (document.getElementById('rename-ok') as HTMLElement).click();
+      typeInto(kitInput('rename-input'), '   ');
+      kitBtn('rename-ok').click();
       await vi.waitFor(() => {
-        expect(document.getElementById('rename-input')).toBeNull();
+        expect(kitInput('rename-input')).toBeNull();
       });
 
       expect(mock.renameBranch).not.toHaveBeenCalled();
@@ -162,9 +212,9 @@ describe('dialogs', () => {
     it('点取消应该关闭对话框且不调用 service', () => {
       showRenameDialog(branch, service, DIRECTORY);
 
-      (document.getElementById('rename-cancel') as HTMLElement).click();
+      kitBtn('rename-cancel').click();
 
-      expect(document.getElementById('rename-input')).toBeNull();
+      expect(kitInput('rename-input')).toBeNull();
       expect(mock.renameBranch).not.toHaveBeenCalled();
     });
 
@@ -174,18 +224,18 @@ describe('dialogs', () => {
 
       // 点击内层面板：不关闭
       clickOverlay(overlay.firstElementChild as HTMLElement);
-      expect(document.getElementById('rename-input')).toBeTruthy();
+      expect(kitInput('rename-input')).toBeTruthy();
 
       // 点击遮罩层：关闭
       clickOverlay(overlay);
-      expect(document.getElementById('rename-input')).toBeNull();
+      expect(kitInput('rename-input')).toBeNull();
       expect(mock.renameBranch).not.toHaveBeenCalled();
     });
 
     it('打开后输入框应该获得焦点且文本被全选', () => {
       showRenameDialog(branch, service, DIRECTORY);
 
-      const input = document.getElementById('rename-input') as HTMLInputElement;
+      const input = kitInput('rename-input');
       expect(document.activeElement).toBe(input);
       expect(input.selectionStart).toBe(0);
       expect(input.selectionEnd).toBe(branch.name.length);
@@ -197,9 +247,8 @@ describe('dialogs', () => {
       toastMock.mockClear();
 
       showRenameDialog(branch, service, DIRECTORY);
-      const input = document.getElementById('rename-input') as HTMLInputElement;
-      input.value = 'renamed-branch';
-      (document.getElementById('rename-ok') as HTMLElement).click();
+      typeInto(kitInput('rename-input'), 'renamed-branch');
+      kitBtn('rename-ok').click();
 
       // 回归：此前只写 console 并关闭对话框，用户看不到任何失败提示
       await vi.waitFor(() => {
@@ -209,7 +258,7 @@ describe('dialogs', () => {
         }));
       });
       // 对话框保持打开，便于改名重试
-      expect(document.getElementById('rename-input')).not.toBeNull();
+      expect(kitInput('rename-input')).not.toBeNull();
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('rename_branch_error'));
       // 失败时不刷新分支列表
       expect(mock.getBranches).not.toHaveBeenCalled();
@@ -223,20 +272,19 @@ describe('dialogs', () => {
 
       const overlay = getOverlay();
       expect(overlay.textContent).toContain('新建分支');
-      expect(overlay.querySelector('#new-branch-input')).toBeTruthy();
-      expect(overlay.querySelector('#create-ok')).toBeTruthy();
-      expect(overlay.querySelector('#create-cancel')).toBeTruthy();
+      expect(kitInput('branch-input')).toBeTruthy();
+      expect(kitBtn('create-ok')).toBeTruthy();
+      expect(kitBtn('create-cancel')).toBeTruthy();
     });
 
     it('输入名称点创建应该调用 createNewBranch/getBranches 并更新分支列表后关闭', async () => {
       showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = 'feature-x';
-      (document.getElementById('create-ok') as HTMLElement).click();
+      typeInto(kitInput('branch-input'), 'feature-x');
+      kitBtn('create-ok').click();
 
       await vi.waitFor(() => {
-        expect(document.getElementById('new-branch-input')).toBeNull();
+        expect(kitInput('branch-input')).toBeNull();
       });
 
       // 默认勾选「创建后检出」
@@ -249,13 +297,14 @@ describe('dialogs', () => {
     it('取消勾选检出时点创建应只创建分支不切换', async () => {
       showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = 'feature-nocheckout';
-      (document.getElementById('new-branch-checkout') as HTMLInputElement).checked = false;
-      (document.getElementById('create-ok') as HTMLElement).click();
+      typeInto(kitInput('branch-input'), 'feature-nocheckout');
+      // Kit 复选框点击切换（默认勾选 → 点击取消勾选）
+      kitCheck('branch-checkout').click();
+      expect(kitCheckState('branch-checkout')).toBe(false);
+      kitBtn('create-ok').click();
 
       await vi.waitFor(() => {
-        expect(document.getElementById('new-branch-input')).toBeNull();
+        expect(kitInput('branch-input')).toBeNull();
       });
 
       // 不勾选走 git branch，不改变当前工作区
@@ -266,12 +315,11 @@ describe('dialogs', () => {
     it('在输入框按回车应该触发创建', async () => {
       showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = 'feature-enter';
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      typeInto(kitInput('branch-input'), 'feature-enter');
+      kitInput('branch-input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 
       await vi.waitFor(() => {
-        expect(document.getElementById('new-branch-input')).toBeNull();
+        expect(kitInput('branch-input')).toBeNull();
       });
 
       expect(mock.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'feature-enter', undefined);
@@ -288,12 +336,11 @@ describe('dialogs', () => {
 
       expect(getOverlay().textContent).toContain('起点：a0043467');
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = 'from-commit';
-      (document.getElementById('create-ok') as HTMLElement).click();
+      typeInto(kitInput('branch-input'), 'from-commit');
+      kitBtn('create-ok').click();
 
       await vi.waitFor(() => {
-        expect(document.getElementById('new-branch-input')).toBeNull();
+        expect(kitInput('branch-input')).toBeNull();
       });
 
       expect(mock.checkoutNewBranch).toHaveBeenCalledWith(DIRECTORY, 'from-commit', 'a004346789abcdef');
@@ -302,30 +349,28 @@ describe('dialogs', () => {
     it('名称为空时点创建不调用 service（源码行为：对话框保持打开）', () => {
       showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = '   ';
-      (document.getElementById('create-ok') as HTMLElement).click();
+      typeInto(kitInput('branch-input'), '   ');
+      kitBtn('create-ok').click();
 
       expect(mock.createNewBranch).not.toHaveBeenCalled();
       expect(mock.getBranches).not.toHaveBeenCalled();
       // 源码中空名直接 return，未调用 close()，对话框仍留在 DOM
-      expect(document.getElementById('new-branch-input')).toBeTruthy();
+      expect(kitInput('branch-input')).toBeTruthy();
     });
 
     it('点取消应该关闭对话框且不调用 service', () => {
       showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
-      (document.getElementById('create-cancel') as HTMLElement).click();
+      kitBtn('create-cancel').click();
 
-      expect(document.getElementById('new-branch-input')).toBeNull();
+      expect(kitInput('branch-input')).toBeNull();
       expect(mock.createNewBranch).not.toHaveBeenCalled();
     });
 
     it('打开后输入框应该获得焦点', () => {
       showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      expect(document.activeElement).toBe(input);
+      expect(document.activeElement).toBe(kitInput('branch-input'));
     });
 
     it('点对话框内部不关闭，点遮罩层才关闭', () => {
@@ -334,23 +379,22 @@ describe('dialogs', () => {
 
       // 点击内层面板：不关闭
       clickOverlay(overlay.firstElementChild as HTMLElement);
-      expect(document.getElementById('new-branch-input')).toBeTruthy();
+      expect(kitInput('branch-input')).toBeTruthy();
 
       // 点击遮罩层：关闭
       clickOverlay(overlay);
-      expect(document.getElementById('new-branch-input')).toBeNull();
+      expect(kitInput('branch-input')).toBeNull();
       expect(mock.createNewBranch).not.toHaveBeenCalled();
     });
 
     it('非回车键的按键输入不应该触发创建', () => {
       showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
 
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = 'feature-x';
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+      typeInto(kitInput('branch-input'), 'feature-x');
+      kitInput('branch-input').dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
 
       expect(mock.createNewBranch).not.toHaveBeenCalled();
-      expect(document.getElementById('new-branch-input')).toBeTruthy();
+      expect(kitInput('branch-input')).toBeTruthy();
     });
 
     it('创建失败时应提示用户并保持对话框打开', async () => {
@@ -360,9 +404,8 @@ describe('dialogs', () => {
       toastMock.mockClear();
 
       showCreateBranchDialog({ service, directory: DIRECTORY, entry: 'test' });
-      const input = document.getElementById('new-branch-input') as HTMLInputElement;
-      input.value = 'feature-x';
-      (document.getElementById('create-ok') as HTMLElement).click();
+      typeInto(kitInput('branch-input'), 'feature-x');
+      kitBtn('create-ok').click();
 
       // 回归：此前只写 console 并关闭对话框，用户看不到任何失败提示
       await vi.waitFor(() => {
@@ -372,7 +415,7 @@ describe('dialogs', () => {
           message: expect.stringContaining('创建失败'),
         }));
       });
-      expect(document.getElementById('new-branch-input')).not.toBeNull();
+      expect(kitInput('branch-input')).not.toBeNull();
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('create_branch_error'));
       expect(mock.getBranches).not.toHaveBeenCalled();
       expect(getState().branches).toEqual([]);
@@ -391,15 +434,16 @@ describe('dialogs', () => {
       const overlay = getOverlay();
       expect(overlay.textContent).toContain('按日期过滤');
 
+      // date 类型输入 Kit 不支持，保留自绘原生 input（预填当前过滤值）
       const from = overlay.querySelector('#date-from') as HTMLInputElement;
       const to = overlay.querySelector('#date-to') as HTMLInputElement;
       expect(from).toBeTruthy();
       expect(to).toBeTruthy();
       expect(from.value).toBe('2026-01-01');
       expect(to.value).toBe('2026-01-31');
-      expect(overlay.querySelector('#date-ok')).toBeTruthy();
-      expect(overlay.querySelector('#date-clear')).toBeTruthy();
-      expect(overlay.querySelector('#date-cancel')).toBeTruthy();
+      expect(kitBtn('date-ok')).toBeTruthy();
+      expect(kitBtn('date-clear')).toBeTruthy();
+      expect(kitBtn('date-cancel')).toBeTruthy();
     });
 
     it('设置日期点确定应该写入 filterDateFrom/filterDateTo 并关闭', () => {
@@ -409,7 +453,7 @@ describe('dialogs', () => {
       const to = document.getElementById('date-to') as HTMLInputElement;
       from.value = '2026-02-01';
       to.value = '2026-02-28';
-      (document.getElementById('date-ok') as HTMLElement).click();
+      kitBtn('date-ok').click();
 
       expect(getState().filterDateFrom).toBe('2026-02-01');
       expect(getState().filterDateTo).toBe('2026-02-28');
@@ -423,7 +467,7 @@ describe('dialogs', () => {
       });
 
       showDateFilterDialog();
-      (document.getElementById('date-clear') as HTMLElement).click();
+      kitBtn('date-clear').click();
 
       expect(getState().filterDateFrom).toBe('');
       expect(getState().filterDateTo).toBe('');
@@ -437,7 +481,7 @@ describe('dialogs', () => {
       });
 
       showDateFilterDialog();
-      (document.getElementById('date-cancel') as HTMLElement).click();
+      kitBtn('date-cancel').click();
 
       expect(getState().filterDateFrom).toBe('2026-01-01');
       expect(getState().filterDateTo).toBe('2026-01-31');
@@ -468,6 +512,7 @@ describe('dialogs', () => {
       expect(overlay.textContent).toContain(`重置分支到 ${hash}`);
       expect(overlay.querySelector('#reset-modes')).toBeTruthy();
 
+      // 模式 radio 保留自绘（Kit 无 radio 原语）
       const radios = overlay.querySelectorAll('input[name="reset-mode"]');
       expect(radios.length).toBe(3);
 
@@ -478,17 +523,19 @@ describe('dialogs', () => {
       expect(soft.checked).toBe(false);
       expect(hard.checked).toBe(false);
 
-      expect(overlay.querySelector('#reset-ok')).toBeTruthy();
-      expect(overlay.querySelector('#reset-cancel')).toBeTruthy();
+      // 按钮为 Kit（确定为 destructive）
+      expect(kitBtn('reset-ok')).toBeTruthy();
+      expect(kitBtn('reset-ok').dataset.variant).toBe('destructive');
+      expect(kitBtn('reset-cancel')).toBeTruthy();
     });
 
     it('保持默认 mixed 点重置应该调用 reset(dir, hash, mixed) 并更新分支列表后关闭', async () => {
       showResetDialog(hash, service, DIRECTORY);
 
-      (document.getElementById('reset-ok') as HTMLElement).click();
+      kitBtn('reset-ok').click();
 
       await vi.waitFor(() => {
-        expect(document.getElementById('reset-ok')).toBeNull();
+        expect(kitBtn('reset-ok')).toBeNull();
       });
 
       expect(mock.reset).toHaveBeenCalledWith(DIRECTORY, hash, 'mixed');
@@ -503,10 +550,10 @@ describe('dialogs', () => {
       hard.click();
       expect(hard.checked).toBe(true);
 
-      (document.getElementById('reset-ok') as HTMLElement).click();
+      kitBtn('reset-ok').click();
 
       await vi.waitFor(() => {
-        expect(document.getElementById('reset-ok')).toBeNull();
+        expect(kitBtn('reset-ok')).toBeNull();
       });
 
       expect(mock.reset).toHaveBeenCalledWith(DIRECTORY, hash, 'hard');
@@ -515,9 +562,9 @@ describe('dialogs', () => {
     it('点取消应该关闭对话框且不调用 service', () => {
       showResetDialog(hash, service, DIRECTORY);
 
-      (document.getElementById('reset-cancel') as HTMLElement).click();
+      kitBtn('reset-cancel').click();
 
-      expect(document.getElementById('reset-ok')).toBeNull();
+      expect(kitBtn('reset-ok')).toBeNull();
       expect(mock.reset).not.toHaveBeenCalled();
       expect(mock.getBranches).not.toHaveBeenCalled();
     });
@@ -528,11 +575,11 @@ describe('dialogs', () => {
 
       // 点击内层面板：不关闭
       clickOverlay(overlay.firstElementChild as HTMLElement);
-      expect(document.getElementById('reset-ok')).toBeTruthy();
+      expect(kitBtn('reset-ok')).toBeTruthy();
 
       // 点击遮罩层：关闭
       clickOverlay(overlay);
-      expect(document.getElementById('reset-ok')).toBeNull();
+      expect(kitBtn('reset-ok')).toBeNull();
       expect(mock.reset).not.toHaveBeenCalled();
     });
 
@@ -541,10 +588,10 @@ describe('dialogs', () => {
 
       // 源码只在 target.name === 'reset-mode' 时更新模式，点容器应忽略
       (document.getElementById('reset-modes') as HTMLElement).click();
-      (document.getElementById('reset-ok') as HTMLElement).click();
+      kitBtn('reset-ok').click();
 
       await vi.waitFor(() => {
-        expect(document.getElementById('reset-ok')).toBeNull();
+        expect(kitBtn('reset-ok')).toBeNull();
       });
 
       expect(mock.reset).toHaveBeenCalledWith(DIRECTORY, hash, 'mixed');
@@ -556,7 +603,7 @@ describe('dialogs', () => {
       toastMock.mockClear();
 
       showResetDialog(hash, service, DIRECTORY);
-      (document.getElementById('reset-ok') as HTMLElement).click();
+      kitBtn('reset-ok').click();
 
       // 回归：此前只写 console 并关闭对话框，用户看不到任何失败提示
       await vi.waitFor(() => {
@@ -565,7 +612,7 @@ describe('dialogs', () => {
           message: expect.stringContaining('重置失败'),
         }));
       });
-      expect(document.getElementById('reset-ok')).not.toBeNull();
+      expect(kitBtn('reset-ok')).not.toBeNull();
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('reset_branch_error'));
       // 失败时不刷新分支列表
       expect(mock.getBranches).not.toHaveBeenCalled();
@@ -580,11 +627,11 @@ describe('dialogs', () => {
       const overlay = getOverlay();
       expect(overlay.textContent).toContain('跳转到引用');
 
-      const input = overlay.querySelector('#goto-input') as HTMLInputElement;
+      const input = kitInput('goto-input');
       expect(input).toBeTruthy();
       expect(input.placeholder).toBe('输入哈希或分支名');
-      expect(overlay.querySelector('#goto-ok')?.textContent).toBe('跳转');
-      expect(overlay.querySelector('#goto-cancel')).toBeTruthy();
+      expect(kitBtn('goto-ok').textContent).toBe('跳转');
+      expect(kitBtn('goto-cancel')).toBeTruthy();
       expect(document.activeElement).toBe(input);
     });
 
@@ -592,68 +639,64 @@ describe('dialogs', () => {
       const onSubmit = vi.fn().mockReturnValue(true);
       showGotoDialog(onSubmit);
 
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = '  abc123  ';
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      typeInto(kitInput('goto-input'), '  abc123  ');
+      kitBtn('goto-ok').click();
 
       expect(onSubmit).toHaveBeenCalledWith('abc123');
-      expect(document.getElementById('goto-input')).toBeNull();
+      expect(kitInput('goto-input')).toBeNull();
     });
 
     it('在输入框按回车应等价于点击跳转按钮', () => {
       const onSubmit = vi.fn().mockReturnValue(true);
       showGotoDialog(onSubmit);
 
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'main';
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      typeInto(kitInput('goto-input'), 'main');
+      kitInput('goto-input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 
       expect(onSubmit).toHaveBeenCalledWith('main');
-      expect(document.getElementById('goto-input')).toBeNull();
+      expect(kitInput('goto-input')).toBeNull();
     });
 
     it('onSubmit 返回 false 时应显示未找到提示且不关闭、输入值保持', () => {
       const onSubmit = vi.fn().mockReturnValue(false);
       showGotoDialog(onSubmit);
 
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'not-exist';
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      typeInto(kitInput('goto-input'), 'not-exist');
+      kitBtn('goto-ok').click();
 
-      const error = document.getElementById('goto-error') as HTMLElement;
-      expect(error.style.display).toBe('block');
-      expect(error.textContent).toBe('未找到匹配项');
+      // 错误提示为 Kit Banner（tone=error）
+      expect(kitBannerTone('goto-error')).toBe('error');
+      expect(kitBannerText('goto-error')).toBe('未找到匹配项');
       // 对话框不关闭且输入保持
-      expect(document.getElementById('goto-input')).toBeTruthy();
-      expect((document.getElementById('goto-input') as HTMLInputElement).value).toBe('not-exist');
+      expect(kitInput('goto-input')).toBeTruthy();
+      expect(kitInput('goto-input').value).toBe('not-exist');
     });
 
     it('空输入点跳转不应调用 onSubmit 且对话框保持打开', () => {
       const onSubmit = vi.fn();
       showGotoDialog(onSubmit);
 
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      const okButton = document.getElementById('goto-ok') as HTMLElement;
+      const okButton = kitBtn('goto-ok');
 
-      input.value = '';
+      typeInto(kitInput('goto-input'), '');
       okButton.click();
-      input.value = '   ';
+      typeInto(kitInput('goto-input'), '   ');
       okButton.click();
 
       expect(onSubmit).not.toHaveBeenCalled();
-      expect(document.getElementById('goto-input')).toBeTruthy();
+      expect(kitInput('goto-input')).toBeTruthy();
     });
 
     it('点取消或遮罩应关闭对话框且不调用 onSubmit', () => {
       const onSubmit = vi.fn();
       showGotoDialog(onSubmit);
 
-      (document.getElementById('goto-cancel') as HTMLElement).click();
-      expect(document.getElementById('goto-input')).toBeNull();
+      kitBtn('goto-cancel').click();
+      expect(kitInput('goto-input')).toBeNull();
 
       showGotoDialog(onSubmit);
       clickOverlay(getOverlay());
-      expect(document.getElementById('goto-input')).toBeNull();
+      expect(kitInput('goto-input')).toBeNull();
       expect(onSubmit).not.toHaveBeenCalled();
     });
 
@@ -661,14 +704,12 @@ describe('dialogs', () => {
       const onSubmit = vi.fn().mockReturnValue(false);
       showGotoDialog(onSubmit);
 
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'missing';
-      (document.getElementById('goto-ok') as HTMLElement).click();
-      expect((document.getElementById('goto-error') as HTMLElement).style.display).toBe('block');
+      typeInto(kitInput('goto-input'), 'missing');
+      kitBtn('goto-ok').click();
+      expect(kitBannerText('goto-error')).toBe('未找到匹配项');
 
-      input.value = 'other';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      expect((document.getElementById('goto-error') as HTMLElement).style.display).toBe('none');
+      typeInto(kitInput('goto-input'), 'other');
+      expect(kitBannerText('goto-error')).toBeNull(); // 横幅已移除
     });
 
     it('英文 locale 下应渲染英文标题、占位符、按钮与未找到提示文案', () => {
@@ -679,80 +720,71 @@ describe('dialogs', () => {
       const overlay = getOverlay();
       expect(overlay.textContent).toContain('Go to Reference');
 
-      const input = overlay.querySelector('#goto-input') as HTMLInputElement;
+      const input = kitInput('goto-input');
       expect(input.placeholder).toBe('Enter hash or branch name');
-      expect(overlay.querySelector('#goto-ok')?.textContent).toBe('Go');
+      expect(kitBtn('goto-ok').textContent).toBe('Go');
 
-      input.value = 'missing';
-      (overlay.querySelector('#goto-ok') as HTMLElement).click();
-      expect((overlay.querySelector('#goto-error') as HTMLElement).textContent)
-        .toBe('No matches found');
+      typeInto(input, 'missing');
+      kitBtn('goto-ok').click();
+      expect(kitBannerText('goto-error')).toBe('No matches found');
     });
 
     it('提交失败后输入变化应把未找到提示的文案一并清空（不只隐藏）', () => {
       const onSubmit = vi.fn().mockReturnValue(false);
       showGotoDialog(onSubmit);
 
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'missing';
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      typeInto(kitInput('goto-input'), 'missing');
+      kitBtn('goto-ok').click();
 
-      const error = document.getElementById('goto-error') as HTMLElement;
-      expect(error.style.display).toBe('block');
-      expect(error.textContent).toBe('未找到匹配项');
+      expect(kitBannerText('goto-error')).toBe('未找到匹配项');
 
-      input.value = 'other';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
+      typeInto(kitInput('goto-input'), 'other');
 
-      // clearError 必须同时清空文案与隐藏，残留文案属于缺陷
-      expect(error.style.display).toBe('none');
-      expect(error.textContent).toBe('');
+      // clearError 必须同时清空文案与隐藏（横幅节点整体移除），残留文案属于缺陷
+      expect(kitBannerText('goto-error')).toBeNull();
     });
 
     it('失败提示存在时修改输入按回车应再次提交，成功后关闭', () => {
       const onSubmit = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true);
       showGotoDialog(onSubmit);
 
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'missing';
-      (document.getElementById('goto-ok') as HTMLElement).click();
-      expect((document.getElementById('goto-error') as HTMLElement).style.display).toBe('block');
+      typeInto(kitInput('goto-input'), 'missing');
+      kitBtn('goto-ok').click();
+      expect(kitBannerText('goto-error')).toBe('未找到匹配项');
       expect(onSubmit).toHaveBeenCalledTimes(1);
 
-      input.value = '  v1.2.3  ';
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      typeInto(kitInput('goto-input'), '  v1.2.3  ');
+      kitInput('goto-input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 
       expect(onSubmit).toHaveBeenCalledTimes(2);
       expect(onSubmit).toHaveBeenLastCalledWith('v1.2.3');
-      expect(document.getElementById('goto-input')).toBeNull();
+      expect(kitInput('goto-input')).toBeNull();
     });
 
     it('非回车按键不应触发提交且不显示未找到提示', () => {
       const onSubmit = vi.fn();
       showGotoDialog(onSubmit);
 
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'main';
+      typeInto(kitInput('goto-input'), 'main');
       for (const key of ['a', 'Escape', 'Enter ']) {
-        input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+        kitInput('goto-input').dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
       }
 
       expect(onSubmit).not.toHaveBeenCalled();
-      expect(document.getElementById('goto-input')).toBeTruthy();
-      expect((document.getElementById('goto-error') as HTMLElement).style.display).toBe('none');
+      expect(kitInput('goto-input')).toBeTruthy();
+      expect(kitBannerText('goto-error')).toBeNull();
     });
 
     it('空输入时按回车不应调用 onSubmit 且对话框保持打开', () => {
       const onSubmit = vi.fn();
       showGotoDialog(onSubmit);
 
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = '   ';
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      typeInto(kitInput('goto-input'), '   ');
+      kitInput('goto-input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 
       expect(onSubmit).not.toHaveBeenCalled();
-      expect(document.getElementById('goto-input')).toBeTruthy();
-      expect((document.getElementById('goto-error') as HTMLElement).style.display).toBe('none');
+      expect(kitInput('goto-input')).toBeTruthy();
+      expect(kitBannerText('goto-error')).toBeNull();
     });
 
     it('点击对话框内容区或输入框不关闭，只有点击遮罩层才关闭', () => {
@@ -761,15 +793,15 @@ describe('dialogs', () => {
 
       // 内容区面板本体：事件冒泡到遮罩层但 target 不是遮罩层 → 不关闭
       clickOverlay(getOverlay().firstElementChild as HTMLElement);
-      expect(document.getElementById('goto-input')).toBeTruthy();
+      expect(kitInput('goto-input')).toBeTruthy();
 
       // 输入框点击同样不关闭
-      (document.getElementById('goto-input') as HTMLElement).click();
-      expect(document.getElementById('goto-input')).toBeTruthy();
+      kitInput('goto-input').click();
+      expect(kitInput('goto-input')).toBeTruthy();
 
       // 点击遮罩层：关闭
       clickOverlay(getOverlay());
-      expect(document.getElementById('goto-input')).toBeNull();
+      expect(kitInput('goto-input')).toBeNull();
       expect(onSubmit).not.toHaveBeenCalled();
     });
   });
@@ -779,6 +811,7 @@ describe('dialogs', () => {
       showDateRangeDialog(vi.fn());
 
       const overlay = getOverlay();
+      // date 类型输入 Kit 不支持，保留自绘原生 input
       const from = overlay.querySelector('#daterange-from') as HTMLInputElement;
       const to = overlay.querySelector('#daterange-to') as HTMLInputElement;
       expect(from).toBeTruthy();
@@ -787,9 +820,9 @@ describe('dialogs', () => {
       expect(to.type).toBe('date');
       expect(overlay.textContent).toContain('开始日期'); // filter.dateFrom（zh-CN）
       expect(overlay.textContent).toContain('结束日期'); // filter.dateTo（zh-CN）
-      expect(overlay.querySelector('#daterange-ok')!.textContent).toBe('确定');
-      expect(overlay.querySelector('#daterange-clear')!.textContent).toBe('清除');
-      expect(overlay.querySelector('#daterange-cancel')!.textContent).toBe('取消');
+      expect(kitBtn('daterange-ok').textContent).toBe('确定');
+      expect(kitBtn('daterange-clear').textContent).toBe('清除');
+      expect(kitBtn('daterange-cancel').textContent).toBe('取消');
 
       // 标题渲染 filter.date（zh-CN），与下方"开始日期/结束日期"标签区分
       const panel = overlay.firstElementChild as HTMLElement;
@@ -802,7 +835,7 @@ describe('dialogs', () => {
 
       (document.getElementById('daterange-from') as HTMLInputElement).value = '2026-01-10';
       (document.getElementById('daterange-to') as HTMLInputElement).value = '2026-01-20';
-      (document.getElementById('daterange-ok') as HTMLElement).click();
+      kitBtn('daterange-ok').click();
 
       expect(onApply).toHaveBeenCalledTimes(1);
       expect(onApply).toHaveBeenCalledWith({ from: '2026-01-10', to: '2026-01-20' });
@@ -816,7 +849,7 @@ describe('dialogs', () => {
 
       (document.getElementById('daterange-from') as HTMLInputElement).value = '2026-02-01';
       (document.getElementById('daterange-to') as HTMLInputElement).value = '2026-01-01';
-      (document.getElementById('daterange-ok') as HTMLElement).click();
+      kitBtn('daterange-ok').click();
 
       expect(onApply).toHaveBeenCalledWith({ from: '2026-01-01', to: '2026-02-01' });
       const swapLog = debugSpy.mock.calls
@@ -832,7 +865,7 @@ describe('dialogs', () => {
       const onApply = vi.fn();
       showDateRangeDialog(onApply);
 
-      (document.getElementById('daterange-clear') as HTMLElement).click();
+      kitBtn('daterange-clear').click();
 
       expect(onApply).toHaveBeenCalledTimes(1);
       expect(onApply).toHaveBeenCalledWith({ from: '', to: '' });
@@ -844,7 +877,7 @@ describe('dialogs', () => {
 
       // 取消按钮
       showDateRangeDialog(onApply);
-      (document.getElementById('daterange-cancel') as HTMLElement).click();
+      kitBtn('daterange-cancel').click();
       expect(document.getElementById('daterange-from')).toBeNull();
 
       // Escape 键
@@ -892,7 +925,7 @@ describe('dialogs', () => {
       showDateRangeDialog(onApply);
 
       (document.getElementById('daterange-from') as HTMLInputElement).value = '2026-04-01';
-      (document.getElementById('daterange-ok') as HTMLElement).click();
+      kitBtn('daterange-ok').click();
 
       // 单侧日期无从比较，不应触发交换
       expect(onApply).toHaveBeenCalledWith({ from: '2026-04-01', to: '' });
@@ -906,7 +939,7 @@ describe('dialogs', () => {
 
       (document.getElementById('daterange-from') as HTMLInputElement).value = '2026-05-05';
       (document.getElementById('daterange-to') as HTMLInputElement).value = '2026-05-05';
-      (document.getElementById('daterange-ok') as HTMLElement).click();
+      kitBtn('daterange-ok').click();
 
       expect(onApply).toHaveBeenCalledWith({ from: '2026-05-05', to: '2026-05-05' });
       expect(swapLogs(debugSpy.mock.calls)).toEqual([]);
@@ -930,13 +963,14 @@ describe('dialogs', () => {
       showPathFilterDialog([], vi.fn());
 
       const overlay = getOverlay();
-      const input = overlay.querySelector('#pathfilter-input') as HTMLTextAreaElement;
+      // 多行输入为 Kit mountTextField（multiline）
+      const input = kitTextarea('pathfilter-input');
       expect(input.tagName).toBe('TEXTAREA');
       expect(input.placeholder).toBe('src/ 或 packages/core');
       expect(overlay.textContent).toContain('路径'); // filter.path（zh-CN）
-      expect(overlay.querySelector('#pathfilter-ok')!.textContent).toBe('确定');
-      expect(overlay.querySelector('#pathfilter-clear')!.textContent).toBe('清除');
-      expect(overlay.querySelector('#pathfilter-cancel')!.textContent).toBe('取消');
+      expect(kitBtn('pathfilter-ok').textContent).toBe('确定');
+      expect(kitBtn('pathfilter-clear').textContent).toBe('清除');
+      expect(kitBtn('pathfilter-cancel').textContent).toBe('取消');
 
       // 标题与编辑标签分别渲染 filter.path / filter.editPaths（zh-CN）
       const panel = overlay.firstElementChild as HTMLElement;
@@ -947,7 +981,7 @@ describe('dialogs', () => {
     it('应以 selected 预填多行内容（每行一个路径）', () => {
       showPathFilterDialog(['src/', 'packages/core'], vi.fn());
 
-      const input = document.getElementById('pathfilter-input') as HTMLTextAreaElement;
+      const input = kitTextarea('pathfilter-input');
       expect(input.value).toBe('src/\npackages/core');
     });
 
@@ -956,13 +990,12 @@ describe('dialogs', () => {
       const debugSpy = vi.spyOn(console, 'debug');
       showPathFilterDialog([], onApply);
 
-      const input = document.getElementById('pathfilter-input') as HTMLTextAreaElement;
-      input.value = '  src/  \n\n\tpackages/core\t\nsrc/\n   ';
-      (document.getElementById('pathfilter-ok') as HTMLElement).click();
+      typeInto(kitTextarea('pathfilter-input'), '  src/  \n\n\tpackages/core\t\nsrc/\n   ');
+      kitBtn('pathfilter-ok').click();
 
       expect(onApply).toHaveBeenCalledTimes(1);
       expect(onApply).toHaveBeenCalledWith(['src/', 'packages/core']);
-      expect(document.getElementById('pathfilter-input')).toBeNull(); // 回调后关闭
+      expect(kitTextarea('pathfilter-input')).toBeNull(); // 回调后关闭
 
       // 确定应输出 [dialog] 结构化日志
       const applyLog = debugSpy.mock.calls
@@ -977,12 +1010,11 @@ describe('dialogs', () => {
       const onApply = vi.fn();
       showPathFilterDialog(['src/'], onApply);
 
-      const input = document.getElementById('pathfilter-input') as HTMLTextAreaElement;
-      input.value = ' \n\n   ';
-      (document.getElementById('pathfilter-ok') as HTMLElement).click();
+      typeInto(kitTextarea('pathfilter-input'), ' \n\n   ');
+      kitBtn('pathfilter-ok').click();
 
       expect(onApply).toHaveBeenCalledWith([]);
-      expect(document.getElementById('pathfilter-input')).toBeNull();
+      expect(kitTextarea('pathfilter-input')).toBeNull();
     });
 
     it('解析结果超过 100 项应显示行内提示且不回调、对话框保持打开', () => {
@@ -990,15 +1022,14 @@ describe('dialogs', () => {
       const debugSpy = vi.spyOn(console, 'debug');
       showPathFilterDialog([], onApply);
 
-      const input = document.getElementById('pathfilter-input') as HTMLTextAreaElement;
-      input.value = Array.from({ length: 101 }, (_, i) => `path/${i}`).join('\n');
-      (document.getElementById('pathfilter-ok') as HTMLElement).click();
+      typeInto(kitTextarea('pathfilter-input'), Array.from({ length: 101 }, (_, i) => `path/${i}`).join('\n'));
+      kitBtn('pathfilter-ok').click();
 
-      const hint = document.getElementById('pathfilter-hint') as HTMLElement;
-      expect(hint.style.display).toBe('block');
-      expect(hint.textContent).toBe('最多可选 100 项'); // filter.maxPaths（zh-CN）
+      // 超限提示为 Kit Banner（tone=warning）
+      expect(kitBannerTone('pathfilter-hint')).toBe('warning');
+      expect(kitBannerText('pathfilter-hint')).toBe('最多可选 100 项'); // filter.maxPaths（zh-CN）
       expect(onApply).not.toHaveBeenCalled();
-      expect(document.getElementById('pathfilter-input')).toBeTruthy(); // 保持打开
+      expect(kitTextarea('pathfilter-input')).toBeTruthy(); // 保持打开
 
       // 超限应输出 [dialog] 结构化日志
       const overflowLog = debugSpy.mock.calls
@@ -1008,12 +1039,10 @@ describe('dialogs', () => {
         .find(p => p.event === 'path_filter_overflow');
       expect(overflowLog).toMatchObject({ prefix: '[dialog]', event: 'path_filter_overflow' });
 
-      // 修改输入后提示应清除（文案一并清空，不只隐藏），缩减到 100 项内可正常确定
-      input.value = 'src/';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      expect(hint.style.display).toBe('none');
-      expect(hint.textContent).toBe('');
-      (document.getElementById('pathfilter-ok') as HTMLElement).click();
+      // 修改输入后提示应清除（横幅整体移除），缩减到 100 项内可正常确定
+      typeInto(kitTextarea('pathfilter-input'), 'src/');
+      expect(kitBannerText('pathfilter-hint')).toBeNull();
+      kitBtn('pathfilter-ok').click();
       expect(onApply).toHaveBeenCalledWith(['src/']);
     });
 
@@ -1022,11 +1051,11 @@ describe('dialogs', () => {
       const debugSpy = vi.spyOn(console, 'debug');
       showPathFilterDialog(['src/'], onApply);
 
-      (document.getElementById('pathfilter-clear') as HTMLElement).click();
+      kitBtn('pathfilter-clear').click();
 
       expect(onApply).toHaveBeenCalledTimes(1);
       expect(onApply).toHaveBeenCalledWith([]);
-      expect(document.getElementById('pathfilter-input')).toBeNull();
+      expect(kitTextarea('pathfilter-input')).toBeNull();
 
       // 清除应输出 [dialog] 结构化日志
       const clearLog = debugSpy.mock.calls
@@ -1042,18 +1071,18 @@ describe('dialogs', () => {
 
       // 取消按钮
       showPathFilterDialog(['src/'], onApply);
-      (document.getElementById('pathfilter-cancel') as HTMLElement).click();
-      expect(document.getElementById('pathfilter-input')).toBeNull();
+      kitBtn('pathfilter-cancel').click();
+      expect(kitTextarea('pathfilter-input')).toBeNull();
 
       // Escape 键
       showPathFilterDialog(['src/'], onApply);
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      expect(document.getElementById('pathfilter-input')).toBeNull();
+      expect(kitTextarea('pathfilter-input')).toBeNull();
 
       // 点击遮罩层
       showPathFilterDialog(['src/'], onApply);
       clickOverlay(getOverlay());
-      expect(document.getElementById('pathfilter-input')).toBeNull();
+      expect(kitTextarea('pathfilter-input')).toBeNull();
 
       expect(onApply).not.toHaveBeenCalled();
     });
@@ -1063,15 +1092,14 @@ describe('dialogs', () => {
       showPathFilterDialog([], onApply);
 
       const hundred = Array.from({ length: 100 }, (_, i) => `path/${i}`);
-      const input = document.getElementById('pathfilter-input') as HTMLTextAreaElement;
-      input.value = hundred.join('\n');
+      typeInto(kitTextarea('pathfilter-input'), hundred.join('\n'));
       // 恰好 100 项（未超上限）：点确定前不应出现超限提示
-      expect((document.getElementById('pathfilter-hint') as HTMLElement).style.display).toBe('none');
-      (document.getElementById('pathfilter-ok') as HTMLElement).click();
+      expect(kitBannerText('pathfilter-hint')).toBeNull();
+      kitBtn('pathfilter-ok').click();
 
       expect(onApply).toHaveBeenCalledTimes(1);
       expect(onApply).toHaveBeenCalledWith(hundred);
-      expect(document.getElementById('pathfilter-input')).toBeNull(); // 正常回调后对话框关闭
+      expect(kitTextarea('pathfilter-input')).toBeNull(); // 正常回调后对话框关闭
     });
 
     it('非 Escape 键不关闭，close 幂等且注销的事件名为 keydown', () => {
@@ -1079,13 +1107,13 @@ describe('dialogs', () => {
       showPathFilterDialog([], vi.fn());
 
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
-      expect(document.getElementById('pathfilter-input')).toBeTruthy(); // 非 Escape 不关闭
+      expect(kitTextarea('pathfilter-input')).toBeTruthy(); // 非 Escape 不关闭
 
-      const cancel = document.getElementById('pathfilter-cancel') as HTMLElement;
+      const cancel = kitBtn('pathfilter-cancel');
       cancel.click();
       cancel.click(); // 幂等：关闭后残留按钮再次触发 close 不应重复注销
 
-      expect(document.getElementById('pathfilter-input')).toBeNull();
+      expect(kitTextarea('pathfilter-input')).toBeNull();
       expect(removeSpy.mock.calls.filter(c => c[0] === 'keydown')).toHaveLength(1);
       expect(removeSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
     });
@@ -1176,14 +1204,16 @@ describe('dialogs', () => {
       expect(rowByPath('package.json').querySelector('.pathtree-toggle')!.textContent).toBe('');
 
       // 按钮文案渲染 filter.ok / filter.clear / filter.cancel（zh-CN）
-      expect(document.getElementById('pathtree-ok')!.textContent).toBe('确定');
-      expect(document.getElementById('pathtree-clear')!.textContent).toBe('清除');
-      expect(document.getElementById('pathtree-cancel')!.textContent).toBe('取消');
+      expect(kitBtn('pathtree-ok').textContent).toBe('确定');
+      expect(kitBtn('pathtree-clear').textContent).toBe('清除');
+      expect(kitBtn('pathtree-cancel').textContent).toBe('取消');
 
       // 层级缩进与箭头列宽是行样式契约：根 6px、子层 6+14=20px、箭头列固定 12px
       expect(rowByPath('docs').style.paddingLeft).toBe('6px');
       expect(rowByPath('docs/readme.md').style.paddingLeft).toBe('20px');
-      expect(rowByPath('docs').querySelector<HTMLElement>('.pathtree-toggle')!.style.width).toBe('12px');
+      // 展开箭头宽度由 .gm-dialog-toggle 类承担，行带主题类
+      expectThemedClass(rowByPath('docs').querySelector<HTMLElement>('.pathtree-toggle')!, 'gm-dialog-toggle');
+      expectThemedClass(rowByPath('docs'), 'gm-dialog-row');
 
       // 行必须渲染路径名标签
       expect(rowByPath('package.json').textContent).toContain('package.json');
@@ -1218,10 +1248,10 @@ describe('dialogs', () => {
       clickNode('package.json');
       expect(isChecked('package.json')).toBe(true);
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply).toHaveBeenCalledTimes(1);
       expect(onApply).toHaveBeenCalledWith(['package.json']);
-      expect(document.getElementById('pathtree-ok')).toBeNull(); // 回调后关闭
+      expect(kitBtn('pathtree-ok')).toBeNull(); // 回调后关闭
 
       // 重新打开并预勾选同文件，再次点击 → 取消勾选
       const onApply2 = vi.fn();
@@ -1230,7 +1260,7 @@ describe('dialogs', () => {
       clickNode('package.json');
       expect(isChecked('package.json')).toBe(false);
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply2).toHaveBeenCalledWith([]);
     });
 
@@ -1250,7 +1280,7 @@ describe('dialogs', () => {
       toggleExpand('src/util');
       expect(isChecked('src/util/format.ts')).toBe(true);
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply).toHaveBeenCalledWith(['src']);
     });
 
@@ -1271,7 +1301,7 @@ describe('dialogs', () => {
       expect(isHalf('src/util')).toBe(true); // 仅剩一个子项勾中 → 半选
       expect(isChecked('src')).toBe(false); // src 已从集合移除
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply).toHaveBeenCalledWith(['src/index.ts', 'src/util/format.ts']);
     });
 
@@ -1284,14 +1314,13 @@ describe('dialogs', () => {
       showPathTreeDialog(service, DIRECTORY, hundred, onApply);
       await waitForTree();
 
-      const okBtn = document.getElementById('pathtree-ok') as HTMLButtonElement;
+      const okBtn = kitBtn('pathtree-ok');
       expect(okBtn.disabled).toBe(false);
 
       clickNode('src/extra.ts'); // 100 + 1 → 超限
 
-      const hint = document.getElementById('pathtree-hint') as HTMLElement;
-      expect(hint.style.display).toBe('block');
-      expect(hint.textContent).toBe('最多可选 100 项'); // filter.maxPaths（zh-CN）
+      expect(kitBannerTone('pathtree-hint')).toBe('warning');
+      expect(kitBannerText('pathtree-hint')).toBe('最多可选 100 项'); // filter.maxPaths（zh-CN）
       expect(isChecked('src/extra.ts')).toBe(false); // 本次点击已回滚
 
       // 超限回滚应输出 [dialog] 结构化日志
@@ -1316,7 +1345,7 @@ describe('dialogs', () => {
       expect(isChecked('src/index.ts')).toBe(true); // 派生勾选
       expect(isChecked('docs')).toBe(false);
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply).toHaveBeenCalledWith(['src']);
     });
 
@@ -1328,7 +1357,7 @@ describe('dialogs', () => {
       expect(rowPaths()).toContain('untracked/new.txt'); // 找不到节点 → 渲染到根层
       expect(isChecked('untracked/new.txt')).toBe(true);
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply).toHaveBeenCalledWith(['src', 'untracked/new.txt']);
     });
 
@@ -1336,18 +1365,17 @@ describe('dialogs', () => {
       const onApply = vi.fn();
       await openTree(onApply, ['src']);
 
-      const okBtn = document.getElementById('pathtree-ok') as HTMLElement; // 关闭前持有引用
-      (document.getElementById('pathtree-clear') as HTMLElement).click();
+      const okBtn = kitBtn('pathtree-ok'); // 关闭前持有引用
+      kitBtn('pathtree-clear').click();
 
       expect(onApply).toHaveBeenCalledTimes(1);
       expect(onApply).toHaveBeenCalledWith([]);
       expect(document.getElementById('pathtree-list')).toBeNull();
       expect(document.body.firstElementChild).toBeNull();
 
-      // 关闭前挂载的确定监听仍在：集合已清空，再触发应回调空数组而非旧值
+      // 关闭时 Kit handle 统一 dispose（移除监听防泄漏）：残留按钮再点击不应触发旧回调
       okBtn.click();
-      expect(onApply).toHaveBeenCalledTimes(2);
-      expect(onApply).toHaveBeenLastCalledWith([]);
+      expect(onApply).toHaveBeenCalledTimes(1);
     });
 
     it('点取消、Escape 或遮罩层应关闭且不回调', () => {
@@ -1355,18 +1383,18 @@ describe('dialogs', () => {
 
       // 取消按钮
       showPathTreeDialog(service, DIRECTORY, [], onApply);
-      (document.getElementById('pathtree-cancel') as HTMLElement).click();
-      expect(document.getElementById('pathtree-cancel')).toBeNull();
+      kitBtn('pathtree-cancel').click();
+      expect(kitBtn('pathtree-cancel')).toBeNull();
 
       // Escape 键
       showPathTreeDialog(service, DIRECTORY, [], onApply);
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      expect(document.getElementById('pathtree-cancel')).toBeNull();
+      expect(kitBtn('pathtree-cancel')).toBeNull();
 
       // 点击遮罩层
       showPathTreeDialog(service, DIRECTORY, [], onApply);
       clickOverlay(getOverlay());
-      expect(document.getElementById('pathtree-cancel')).toBeNull();
+      expect(kitBtn('pathtree-cancel')).toBeNull();
 
       expect(onApply).not.toHaveBeenCalled();
     });
@@ -1379,9 +1407,9 @@ describe('dialogs', () => {
         expect(document.getElementById('pathtree-empty')?.textContent).toBe('无可选路径');
       });
       expect(rows().length).toBe(0);
-      expect((document.getElementById('pathtree-ok') as HTMLButtonElement).disabled).toBe(true);
+      expect(kitBtn('pathtree-ok').disabled).toBe(true);
       // 占位文案保留内联字号（可读性契约）
-      expect((document.getElementById('pathtree-empty') as HTMLElement).style.fontSize).toBe('12px');
+      expect((document.getElementById('pathtree-empty') as HTMLElement).classList.contains('gm-dialog-empty')).toBe(true);
     });
 
     it('拉取失败应在容器内显示错误文案并输出 [dialog] 结构化错误日志', async () => {
@@ -1400,19 +1428,19 @@ describe('dialogs', () => {
         .map(l => JSON.parse(l) as Record<string, unknown>)
         .find(p => p.event === 'list_files_error');
       expect(log).toMatchObject({ prefix: '[dialog]', event: 'list_files_error' });
-      expect((document.getElementById('pathtree-ok') as HTMLButtonElement).disabled).toBe(true);
+      expect(kitBtn('pathtree-ok').disabled).toBe(true);
       // 错误文案保留内联字号（可见性契约）
-      expect((document.getElementById('pathtree-error') as HTMLElement).style.fontSize).toBe('12px');
+      expect((document.getElementById('pathtree-error') as HTMLElement).classList.contains('gm-dialog-load-error')).toBe(true);
     });
 
     it('确定与清除后对话框都应关闭', async () => {
       await openTree(vi.fn());
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(document.getElementById('pathtree-list')).toBeNull();
       expect(document.body.firstElementChild).toBeNull();
 
       await openTree(vi.fn());
-      (document.getElementById('pathtree-clear') as HTMLElement).click();
+      kitBtn('pathtree-clear').click();
       expect(document.getElementById('pathtree-list')).toBeNull();
       expect(document.body.firstElementChild).toBeNull();
     });
@@ -1505,7 +1533,7 @@ describe('dialogs', () => {
       expect(isChecked('ghost/a')).toBe(false);
       expect(isChecked('ghost')).toBe(false);
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply).toHaveBeenCalledWith([]);
     });
 
@@ -1527,7 +1555,7 @@ describe('dialogs', () => {
       expect(isChecked('ghost/x')).toBe(false);
       expect(isHalf('ghost')).toBe(true); // 子项一勾一未勾 → 半选
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply).toHaveBeenCalledWith(['ghost/keep.txt']);
     });
 
@@ -1540,7 +1568,7 @@ describe('dialogs', () => {
       clickNode('ghost//x'); // 出集合后祖先列表只含 'ghost'（跳过空段）→ 不被 'ghost/' 派生覆盖
       expect(isChecked('ghost//x')).toBe(false);
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply).toHaveBeenCalledWith(['ghost/']);
     });
 
@@ -1551,7 +1579,7 @@ describe('dialogs', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
       expect(document.getElementById('pathtree-list')).toBeTruthy(); // 非 Escape 不关闭
 
-      const cancel = document.getElementById('pathtree-cancel') as HTMLElement;
+      const cancel = kitBtn('pathtree-cancel');
       cancel.click();
       cancel.click(); // 幂等：关闭后残留按钮再次触发 close 不应重复注销
 
@@ -1568,11 +1596,10 @@ describe('dialogs', () => {
       await waitForTree();
 
       clickNode('src/extra.ts'); // 99 + 1 = 100，未超限
-      const hint = document.getElementById('pathtree-hint') as HTMLElement;
       expect(isChecked('src/extra.ts')).toBe(true);
-      expect(hint.style.display).toBe('none');
+      expect(kitBannerText('pathtree-hint')).toBeNull(); // 未超限无提示
 
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
       expect(onApply).toHaveBeenCalledWith([...files99, 'src/extra.ts']);
     });
 
@@ -1583,12 +1610,10 @@ describe('dialogs', () => {
       await waitForTree();
 
       clickNode('src/extra.ts'); // 超限 → 显示提示并回滚
-      const hint = document.getElementById('pathtree-hint') as HTMLElement;
-      expect(hint.style.display).toBe('block');
+      expect(kitBannerText('pathtree-hint')).toBe('最多可选 100 项');
 
-      clickNode('src/f000.ts'); // 取消一个已勾项（99 ≤ 100）→ 提示应隐藏且文案清空
-      expect(hint.style.display).toBe('none');
-      expect(hint.textContent).toBe('');
+      clickNode('src/f000.ts'); // 取消一个已勾项（99 ≤ 100）→ 提示应隐藏（横幅整体移除）
+      expect(kitBannerText('pathtree-hint')).toBeNull();
     });
 
     it('列表含空值元素时应容错跳过而非进入错误态', async () => {
@@ -1618,7 +1643,7 @@ describe('dialogs', () => {
       const listEl = document.getElementById('pathtree-list') as HTMLElement;
       const docsRow = rowByPath('docs');
 
-      (document.getElementById('pathtree-cancel') as HTMLElement).click();
+      kitBtn('pathtree-cancel').click();
       docsRow.click(); // 关闭后残留行仍绑监听，但不应再触发重渲染
 
       expect(listEl.contains(docsRow)).toBe(true);
@@ -1630,7 +1655,7 @@ describe('dialogs', () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       showPathTreeDialog(service, DIRECTORY, [], vi.fn());
-      (document.getElementById('pathtree-cancel') as HTMLElement).click(); // 先关闭
+      kitBtn('pathtree-cancel').click(); // 先关闭
 
       rejectFiles(new Error('关闭后才失败'));
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -1643,10 +1668,10 @@ describe('dialogs', () => {
       const debugSpy = vi.spyOn(console, 'debug');
 
       await openTree(vi.fn(), ['src']);
-      (document.getElementById('pathtree-ok') as HTMLElement).click();
+      kitBtn('pathtree-ok').click();
 
       await openTree(vi.fn());
-      (document.getElementById('pathtree-clear') as HTMLElement).click();
+      kitBtn('pathtree-clear').click();
 
       const events = debugSpy.mock.calls
         .map(c => String(c[0]))
@@ -1680,19 +1705,19 @@ describe('dialogs', () => {
   });
 
   describe('showDeleteBranchDialog', () => {
-    /** 获取强制删除按钮 */
+    /** 获取强制删除按钮（Kit mountButton，destructive） */
     function okButton(): HTMLButtonElement {
-      return document.getElementById('delete-branch-ok') as HTMLButtonElement;
+      return kitBtn('delete-branch-ok');
     }
 
-    /** 获取对话框正文元素 */
+    /** 获取对话框正文元素（保留自绘） */
     function messageEl(): HTMLElement {
       return document.getElementById('delete-branch-message') as HTMLElement;
     }
 
-    /** 获取错误提示元素 */
-    function errorEl(): HTMLElement {
-      return document.getElementById('delete-branch-error') as HTMLElement;
+    /** 获取错误提示文本（Kit mountBanner tone=error），无错误时为 null */
+    function errorText(): string | null {
+      return kitBannerText('delete-branch-error');
     }
 
     /**
@@ -1711,15 +1736,15 @@ describe('dialogs', () => {
       const overlay = getOverlay();
       expect(messageEl().textContent).toBe('分支 dev 尚未合并到当前分支，强制删除将丢失其上的提交。');
       expect(okButton().textContent).toBe('强制删除');
-      expect(overlay.querySelector('#delete-branch-cancel')).toBeTruthy();
-      // 错误区初始隐藏
-      expect(errorEl().style.display).toBe('none');
+      expect(kitBtn('delete-branch-cancel')).toBeTruthy();
+      // 错误提示（Banner）初始不显示
+      expect(errorText()).toBeNull();
 
       // 点击内容区不关闭，点击遮罩层才关闭
       clickOverlay(overlay.firstElementChild as HTMLElement);
-      expect(document.getElementById('delete-branch-ok')).toBeTruthy();
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeTruthy();
       clickOverlay(overlay);
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeNull();
     });
 
     it('点强制删除应调用 onConfirm(true) 一次，等待期间按钮禁用防重复提交', async () => {
@@ -1737,7 +1762,7 @@ describe('dialogs', () => {
 
       resolveConfirm();
       await vi.waitFor(() => {
-        expect(document.getElementById('delete-branch-ok')).toBeNull();
+        expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeNull();
       });
     });
 
@@ -1747,7 +1772,7 @@ describe('dialogs', () => {
 
       okButton().click();
       await vi.waitFor(() => {
-        expect(document.getElementById('delete-branch-ok')).toBeNull();
+        expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeNull();
       });
 
       expect(onConfirm).toHaveBeenCalledWith(true);
@@ -1761,15 +1786,14 @@ describe('dialogs', () => {
       showDeleteBranchDialog('dev', onConfirm);
 
       okButton().click();
-      await vi.waitFor(() => expect(errorEl().style.display).toBe('block'));
+      await vi.waitFor(() => expect(errorText()).toBe("删除分支失败: error: cannot delete branch 'dev'"));
 
-      expect(errorEl().textContent).toBe("删除分支失败: error: cannot delete branch 'dev'");
-      expect(document.getElementById('delete-branch-ok')).toBeTruthy(); // 保持打开
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeTruthy(); // 保持打开
       expect(okButton().disabled).toBe(false); // 可重试
 
       // 再次点击可重新执行，成功后关闭
       okButton().click();
-      await vi.waitFor(() => expect(document.getElementById('delete-branch-ok')).toBeNull());
+      await vi.waitFor(() => expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeNull());
       expect(onConfirm).toHaveBeenCalledTimes(2);
     });
 
@@ -1781,11 +1805,10 @@ describe('dialogs', () => {
 
       okButton().click();
       await vi.waitFor(() => {
-        expect(errorEl().style.display).toBe('block');
+        expect(errorText()).toBe('分支 dev 不存在');
       });
 
-      expect(errorEl().textContent).toBe('分支 dev 不存在');
-      expect(document.getElementById('delete-branch-ok')).toBeTruthy();
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeTruthy();
       expect(okButton().disabled).toBe(false);
       expect(onConfirm).toHaveBeenCalledTimes(1);
     });
@@ -1797,10 +1820,9 @@ describe('dialogs', () => {
       showDeleteBranchDialog('dev', onConfirm);
 
       okButton().click();
-      await vi.waitFor(() => expect(errorEl().style.display).toBe('block'));
+      await vi.waitFor(() => expect(errorText()).toBe('网络连接中断'));
 
-      expect(errorEl().textContent).toBe('网络连接中断');
-      expect(document.getElementById('delete-branch-ok')).toBeTruthy();
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeTruthy();
     });
 
     it('失败路径应输出 [dialog] JSON 日志（branch_delete_confirm 与 branch_delete_failed）', async () => {
@@ -1811,7 +1833,7 @@ describe('dialogs', () => {
       showDeleteBranchDialog('dev', onConfirm);
 
       okButton().click();
-      await vi.waitFor(() => expect(errorEl().style.display).toBe('block'));
+      await vi.waitFor(() => expect(errorText()).toBe('删除分支失败: git 出错'));
 
       const payloads = debugSpy.mock.calls
         .map(c => String(c[0]))
@@ -1828,18 +1850,18 @@ describe('dialogs', () => {
 
       // 取消按钮
       showDeleteBranchDialog('dev', onConfirm);
-      (document.getElementById('delete-branch-cancel') as HTMLElement).click();
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      kitBtn('delete-branch-cancel').click();
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeNull();
 
       // Escape 键
       showDeleteBranchDialog('dev', onConfirm);
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeNull();
 
       // 点击遮罩层
       showDeleteBranchDialog('dev', onConfirm);
       clickOverlay(getOverlay());
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeNull();
 
       expect(onConfirm).not.toHaveBeenCalled();
     });
@@ -1849,15 +1871,16 @@ describe('dialogs', () => {
       showDeleteBranchDialog('dev', vi.fn(async () => {}));
 
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
-      expect(document.getElementById('delete-branch-ok')).toBeTruthy(); // 非 Escape 不关闭
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeTruthy(); // 非 Escape 不关闭
 
-      const cancel = document.getElementById('delete-branch-cancel') as HTMLElement;
+      const cancel = kitBtn('delete-branch-cancel');
       cancel.click();
       cancel.click(); // 幂等：关闭后残留按钮再次触发 close 不应重复注销
 
-      expect(document.getElementById('delete-branch-ok')).toBeNull();
+      expect(document.querySelector('[data-delete-branch-ok] .oc-sdk-btn')).toBeNull();
       expect(removeSpy.mock.calls.filter(c => c[0] === 'keydown')).toHaveLength(1);
       expect(removeSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
     });
   });
+
 });

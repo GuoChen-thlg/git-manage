@@ -23,7 +23,7 @@ export interface BranchDeletedNotifyOptions {
 let currentClose: (() => void) | null = null;
 
 /**
- * 显示分支删除通知卡片（自绘深色卡片，固定于面板右下角）
+ * 显示分支删除通知卡片（主题走 .gm-notify-* class + --gm-* 变量，固定于面板右下角）
  * 行为：正文 + 动作链接（蓝链横排）；10 秒无操作自动过期，mouseenter 暂停、mouseleave 恢复；
  * 动作点击 → 立即禁用链接防重复 → resolve 关闭卡片、reject 弹错误 toast 且保留卡片（链接恢复可点）
  * @param options 通知内容与可选动作回调
@@ -34,21 +34,8 @@ export function showBranchDeletedNotify(options: BranchDeletedNotifyOptions): vo
 
   const card = document.createElement('div');
   card.id = 'git-branch-deleted-notify';
-  // 贴面板风格：深色底 + 描边 + 圆角 + 阴影，固定右下角高层级
-  card.style.cssText = [
-    'position: fixed',
-    'right: 12px',
-    'bottom: 12px',
-    'z-index: 1100',
-    'background: #2a2a2a',
-    'border: 1px solid #444',
-    'border-radius: 6px',
-    'padding: 10px 12px',
-    'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5)',
-    'font-size: 12px',
-    'color: #ccc',
-    'max-width: 320px',
-  ].join('; ');
+  // 主题/几何样式统一在 styles.css 的 .gm-notify 里；内联只保留运行时状态
+  card.className = 'gm-notify';
 
   const message = document.createElement('div');
   message.textContent = t('branch.notifyDeleted', { name: options.branchName });
@@ -106,24 +93,25 @@ export function showBranchDeletedNotify(options: BranchDeletedNotifyOptions): vo
 
   if (actions.length > 0) {
     const row = document.createElement('div');
-    row.style.cssText = 'display: flex; gap: 12px; margin-top: 6px;';
+    row.className = 'gm-notify-actions';
     for (const action of actions) {
       const link = document.createElement('a');
       link.textContent = action.label;
-      link.style.cssText = 'color: #4a9eff; cursor: pointer; text-decoration: none; font-size: 12px;';
+      link.className = 'gm-notify-link';
       /** 动作执行中（防重复点击哨兵） */
       let busy = false;
 
       link.addEventListener('mouseenter', () => {
-        link.style.textDecoration = 'underline';
+        link.classList.add('gm-notify-link-hover');
       });
       link.addEventListener('mouseleave', () => {
-        link.style.textDecoration = 'none';
+        link.classList.remove('gm-notify-link-hover');
       });
 
       link.addEventListener('click', () => {
         if (busy || closed) return;
         busy = true;
+        // 运行时状态：执行中禁点 + 降透明度（保留在内联，属动态值）
         link.style.opacity = '0.6';
         link.style.pointerEvents = 'none';
         void (async () => {

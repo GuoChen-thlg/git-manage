@@ -3,7 +3,7 @@
  * 供提交列表工具栏的 4 个过滤按钮（分支/用户/日期/路径）复用
  *
  * 定位、样式与关闭机制沿用 settings-menu：
- * - fixed 定位挂 body、深色主题（#2d2d2d）、小字号、圆角
+ * - fixed 定位挂 body、浮层主题走 __styles__/dropdown-menu.css 的 .gm-* 类与 --gm-* 变量、小字号、圆角
  * - 点击外部关闭（延迟注册，避免打开菜单的那次点击立即关闭）
  * - 模块级单例引用，保证多实例互斥（新弹出时关闭已有菜单）
  * 在此之上补充：锚点 toggle（再次点击同一按钮关闭）、Escape 关闭、
@@ -92,43 +92,25 @@ function createRow(item: DropdownMenuItem): HTMLElement {
 
   // 分隔线：横线样式（与 settings-menu 一致）
   if (kind === 'separator') {
-    row.style.height = '1px';
-    row.style.background = '#444';
-    row.style.margin = '4px 0';
+    row.className = 'gm-dropdown-sep';
     return row;
   }
 
   // 分组标题：弱化样式、默认光标，不参与点击与悬停高亮
   if (kind === 'group') {
-    row.style.padding = '6px 12px';
-    row.style.fontSize = '11px';
-    row.style.color = '#888';
-    row.style.cursor = 'default';
+    row.className = 'gm-dropdown-row gm-dropdown-group';
     row.textContent = item.label;
     return row;
   }
 
   // 可选项：勾号槽 + 文案（布局与 settings-menu 的开关项一致）
-  row.style.padding = '6px 12px';
-  row.style.fontSize = '12px';
-  row.style.display = 'flex';
-  row.style.alignItems = 'center';
-  row.style.gap = '6px';
-
-  if (item.disabled) {
-    row.dataset.disabled = 'true';
-    row.style.color = '#666';
-    row.style.cursor = 'default';
-  } else {
-    row.style.color = '#ccc';
-    row.style.cursor = 'pointer';
-  }
+  row.className = item.disabled
+    ? 'gm-dropdown-row gm-dropdown-item gm-dropdown-item-disabled'
+    : 'gm-dropdown-row gm-dropdown-item';
+  if (item.disabled) row.dataset.disabled = 'true';
 
   const check = document.createElement('span');
-  check.className = 'git-dropdown-check';
-  check.style.width = '12px';
-  check.style.flex = '0 0 12px';
-  check.style.color = '#4caf50';
+  check.className = 'git-dropdown-check gm-dropdown-check';
   check.textContent = item.checked ? '✓' : '';
 
   // textContent 赋值保证 label 中的 HTML 字符不被解析（防注入）
@@ -207,17 +189,9 @@ export function showDropdownMenu(
 
   const menu = document.createElement('div');
   menu.id = 'git-dropdown-menu';
-  menu.style.position = 'fixed';
-  menu.style.background = '#2d2d2d';
-  menu.style.border = '1px solid #444';
-  menu.style.borderRadius = '4px';
-  menu.style.padding = '4px 0';
-  menu.style.zIndex = '1000';
-  menu.style.minWidth = '160px';
-  // 长列表（如分支很多）防溢出：限制高度并在菜单内部滚动
-  menu.style.maxHeight = '60vh';
-  menu.style.overflowY = 'auto';
-  menu.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.5)';
+  // 主题/几何样式统一在 __styles__/dropdown-menu.css 的 .gm-dropdown-menu 里；
+  // 内联只保留运行时定位坐标（left/top 由 computePosition 计算）
+  menu.className = 'gm-dropdown-menu';
 
   for (const item of items) {
     menu.appendChild(createRow(item));
@@ -271,14 +245,14 @@ export function showDropdownMenu(
   menu.addEventListener('mouseenter', (ev) => {
     const target = (ev.target as HTMLElement).closest('div') as HTMLElement | null;
     if (target && target.parentElement === menu && isSelectableRow(target)) {
-      target.style.background = '#3a3a3a';
+      target.classList.add('gm-dropdown-item-hover');
     }
   }, true);
 
   menu.addEventListener('mouseleave', (ev) => {
     const target = (ev.target as HTMLElement).closest('div') as HTMLElement | null;
     if (target && target.parentElement === menu && isSelectableRow(target)) {
-      target.style.background = 'transparent';
+      target.classList.remove('gm-dropdown-item-hover');
     }
   }, true);
 

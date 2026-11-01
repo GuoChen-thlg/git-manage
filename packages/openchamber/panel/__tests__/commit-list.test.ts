@@ -12,6 +12,9 @@ import { createCommitListPanel, filterCommits } from '../components/commit-list'
 import { createInitialState, getState, setState, stateManager, CommitInfo } from '../state';
 import { ServiceClient } from '../service';
 import { setLocale } from '../i18n';
+import {
+  expectSemanticClass,
+} from './theme-helpers';
 
 /** 宿主 toast 断言句柄（vi.mock 工厂在提升阶段执行，只能引用外部变量以外的东西，故用 vi.hoisted） */
 const { toastMock, writeClipboardMock } = vi.hoisted(() => ({
@@ -181,6 +184,10 @@ describe('commit-list', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     ({ service, getLogMock, listFilesMock } = createServiceMock());
+    // jsdom 未实现 scrollIntoView：部分下拉/列表滚动会调用，注入空实现兜底
+    if (!Element.prototype.scrollIntoView) {
+      Element.prototype.scrollIntoView = () => {};
+    }
     // 安装窗口错误捕获：记录回调异常并阻止其冒泡到 runner
     windowErrors = [];
     onWindowError = (e: ErrorEvent) => {
@@ -307,6 +314,55 @@ describe('commit-list', () => {
     input.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
+  /** 跳转对话框输入框（SDK UI Kit mountTextField，槽位 [data-goto-input]） */
+  function gotoInput(): HTMLInputElement {
+    return document.querySelector('[data-goto-input] .oc-sdk-input') as HTMLInputElement;
+  }
+
+  /** 在跳转对话框输入并派发 input 事件（Kit 受控输入需 dispatch 才触发 onChange） */
+  function typeGoto(value: string): void {
+    const input = gotoInput();
+    input.value = value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /** 点击跳转对话框确定按钮（Kit mountButton） */
+  function clickGotoOk(): void {
+    (document.querySelector('[data-goto-ok] .oc-sdk-btn') as HTMLElement).click();
+  }
+
+  /** 跳转对话框未找到提示（Kit mountBanner tone=error），无提示时为 null */
+  function gotoErrorText(): string | null {
+    return document.querySelector('[data-goto-error] .oc-sdk-banner-title')?.textContent ?? null;
+  }
+
+  /** 点击日期范围对话框确定按钮（Kit mountButton；date 输入仍为自绘 #daterange-*） */
+  function clickDaterangeOk(): void {
+    (document.querySelector('[data-daterange-ok] .oc-sdk-btn') as HTMLElement).click();
+  }
+
+  /** 点击路径编辑对话框确定按钮（Kit mountButton） */
+  function clickPathfilterOk(): void {
+    (document.querySelector('[data-pathfilter-ok] .oc-sdk-btn') as HTMLElement).click();
+  }
+
+  /** 路径编辑对话框多行输入（Kit mountTextField multiline） */
+  function pathfilterInput(): HTMLTextAreaElement {
+    return document.querySelector('[data-pathfilter-input] textarea.oc-sdk-input') as HTMLTextAreaElement;
+  }
+
+  /** 设置路径编辑对话框多行输入值并派发 input 事件 */
+  function typePathfilter(value: string): void {
+    const input = pathfilterInput();
+    input.value = value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /** 路径勾选树对话框确定按钮（Kit mountButton） */
+  function pathtreeOkButton(): HTMLButtonElement {
+    return document.querySelector('[data-pathtree-ok] .oc-sdk-btn') as HTMLButtonElement;
+  }
+
   /**
    * 通过 commitSearch 变化间接触发模块内的 filterCommits
    * （filterCommits 仅由 commitSearch 订阅与刷新按钮触发）
@@ -324,15 +380,22 @@ describe('commit-list', () => {
     expect(rows.length).toBe(4);
     expect(row('h1').textContent).toContain(commits[0].message);
     expect(row('h1').textContent).toContain('张三');
-    // 未选中行的初始背景由模板写入 transparent（jsdom 不解析 background 简写，断言原始样式串）
-    expect(row('h1').getAttribute('style')).toContain('background: transparent');
+    // 未选中行：带基础行类，无选中/悬停态类（主题样式由 CSS 类承担）
+    expectSemanticClass(row('h1'), 'gm-commit-row');
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(false);
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(false);
 
     // 左侧过滤控件 + 右侧角三项（刷新 / 设置 / 跳转）
-    for (const action of ['btn-regex', 'btn-case', 'btn-filter-branch', 'btn-filter-user', 'btn-filter-date', 'btn-filter-path', 'btn-refresh', 'btn-settings', 'btn-goto']) {
+    // 全部为自绘按钮（分支/用户为带 .gm-filter-btn-value 的下拉按钮）
+    for (const action of ['btn-regex', 'btn-case', 'btn-filter-date', 'btn-filter-path', 'btn-refresh', 'btn-settings', 'btn-goto']) {
       expect(container.querySelector(`[data-action="${action}"]`)).toBeTruthy();
     }
+    // 分支/用户过滤为自绘下拉按钮，当前值文案承载在 .gm-filter-btn-value
+    for (const slot of ['filter-branch', 'filter-user']) {
+      expect(container.querySelector(`[data-action="${slot}"] .gm-filter-btn-value`)).toBeTruthy();
+    }
     // 已按 IDEA 移除的按钮不应存在
-    for (const action of ['btn-select-all', 'btn-download', 'btn-compare', 'btn-search']) {
+    for (const action of ['btn-select-all', 'btn-download', 'btn-compare', 'btn-search', 'btn-filter-branch', 'btn-filter-user']) {
       expect(container.querySelector(`[data-action="${action}"]`)).toBeNull();
     }
     expect(container.querySelector('input[placeholder="文本或哈希"]')).toBeTruthy();
@@ -355,9 +418,9 @@ describe('commit-list', () => {
     expect(onCommitSelect).toHaveBeenCalledWith(commits[1]);
     expect(getState().selectedCommit).toBe(commits[1]);
     expect(selectedHashes()).toEqual(['h2']);
-    // 选中行高亮 #2a3a4a
-    expect(row('h2').style.backgroundColor).toBe('rgb(42, 58, 74)');
-    expect(row('h1').style.backgroundColor).not.toBe('rgb(42, 58, 74)');
+    // 选中行带选中态语义类
+    expectSemanticClass(row('h2'), ['gm-commit-row', 'gm-commit-row-selected']);
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(false);
   });
 
   it('Ctrl/Cmd 点击应该切换多选集合', () => {
@@ -487,7 +550,7 @@ describe('commit-list', () => {
     ];
     getLogMock.mockResolvedValue(newCommits);
 
-    (container.querySelector('[data-action="btn-refresh"]') as HTMLElement).click();
+    kitBtn('btn-refresh').click();
 
     await vi.waitFor(() => {
       expect(container.querySelectorAll('[data-hash]').length).toBe(1);
@@ -526,7 +589,7 @@ describe('commit-list', () => {
     expect(container.querySelectorAll('[data-hash]').length).toBe(4);
   });
 
-  it('渲染应该只产生工具栏与列表两个顶层区块且图标按钮内含 svg', () => {
+  it('渲染应该只产生工具栏与列表两个顶层区块且 Kit 控件就位', () => {
     setupCommits();
     createPanel();
 
@@ -534,16 +597,19 @@ describe('commit-list', () => {
     expect(container.childNodes.length).toBe(2);
     expect(container.textContent).not.toContain('Stryker was here!');
 
-    // 右侧角三项都应渲染出对应 svg 图标
+    // 右侧角三项都应渲染出自绘图标按钮（button+getIcon，含 svg 图标）
     for (const action of ['btn-refresh', 'btn-settings', 'btn-goto']) {
       const btn = container.querySelector(`[data-action="${action}"]`) as HTMLElement;
+      expect(btn, `${action} 应渲染图标按钮`).toBeTruthy();
+      expect(btn.tagName).toBe('BUTTON');
       expect(btn.querySelector('svg'), `${action} 应含 svg 图标`).toBeTruthy();
     }
 
-    // 搜索输入框前缀的放大镜图标也应渲染
-    const searchInput = container.querySelector('[data-search-input]') as HTMLInputElement;
-    const prefixIcon = searchInput.parentElement?.querySelector('svg');
-    expect(prefixIcon, '搜索框前缀应含 svg 图标').toBeTruthy();
+    // 搜索框为 Kit mountSearchField，自带放大镜前缀图标
+    const searchSlot = container.querySelector('[data-action="search-box"] .oc-sdk-search') as HTMLElement;
+    expect(searchSlot, '搜索框应挂载 Kit mountSearchField').toBeTruthy();
+    expect(searchSlot.querySelector('.oc-sdk-input'), '搜索框应含输入控件').toBeTruthy();
+    expect(searchSlot.querySelector('svg'), '搜索框前缀应含 svg 图标').toBeTruthy();
 
     // 列表区只应包含提交行，不应有占位残留文本
     const list = row('h1').parentElement as HTMLElement;
@@ -556,29 +622,32 @@ describe('commit-list', () => {
     createPanel();
     const list = row('h1').parentElement as HTMLElement;
 
-    // 未选中：悬停行内子元素（非冒泡事件在捕获阶段命中）→ 悬停色
+    // 未选中：悬停行内子元素（非冒泡事件在捕获阶段命中）→ 悬停态类
     const inner1 = row('h1').querySelector('span') as HTMLElement;
     inner1.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-    expect(row('h1').style.backgroundColor).toBe('rgb(42, 45, 46)');
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(true);
 
-    // 目标没有 data-hash 祖先：不应改写列表容器背景
+    // 目标没有 data-hash 祖先：不应改写列表容器状态
     list.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-    expect(list.style.backgroundColor).toBe('');
+    expect(list.classList.contains('gm-commit-row-hover')).toBe(false);
+    expect(list.classList.contains('gm-commit-row-selected')).toBe(false);
 
-    // 移出未选中行 → 恢复透明
+    // 移出未选中行 → 移除悬停态且无选中态
     inner1.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    expect(row('h1').style.backgroundColor).toBe('transparent');
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(false);
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(false);
 
     list.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    expect(list.style.backgroundColor).toBe('');
+    expect(list.classList.contains('gm-commit-row-hover')).toBe(false);
 
-    // 选中后：移出应回到选中高亮色
+    // 选中后：移出应回到选中态
     clickRow('h1');
     const inner2 = row('h1').querySelector('span') as HTMLElement;
     inner2.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-    expect(row('h1').style.backgroundColor).toBe('rgb(42, 45, 46)');
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(true);
     inner2.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    expect(row('h1').style.backgroundColor).toBe('rgb(42, 58, 74)');
+    expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(false);
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(true);
 
     // 直接派发到列表容器（closest 未命中）的悬停/移出不应抛出异常
     expect(windowErrors).toEqual([]);
@@ -589,13 +658,14 @@ describe('commit-list', () => {
     createPanel();
     // 只改 selectedCommit，保证订阅回调的 changed 仅含该字段
     setState(s => { s.selectedCommit = commits[0]; });
-    expect(row('h1').style.backgroundColor).toBe('rgb(42, 58, 74)');
+    expect(row('h1').classList.contains('gm-commit-row-selected')).toBe(true);
 
     const target = row('h1');
     target.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-    expect(target.style.backgroundColor).toBe('rgb(42, 45, 46)');
+    expect(target.classList.contains('gm-commit-row-hover')).toBe(true);
     target.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    expect(target.style.backgroundColor).toBe('rgb(42, 58, 74)');
+    expect(target.classList.contains('gm-commit-row-hover')).toBe(false);
+    expect(target.classList.contains('gm-commit-row-selected')).toBe(true);
   });
 
   it('分支标签应该按提交映射渲染本地/远程配色并在分支变化时刷新', () => {
@@ -613,43 +683,45 @@ describe('commit-list', () => {
     });
     createPanel();
 
-    /** 取某提交行上的分支标签元素 */
-    const tagOf = (hash: string, name: string) =>
-      [...row(hash).querySelectorAll<HTMLElement>('span[style*="border-radius: 2px"]')]
-        .find(el => el.textContent === name);
+    /** 取某提交行上的引用徽标容器（data-ref 槽位）内挂载的 Kit badge 元素 */
+    const badgeOf = (hash: string, name: string): HTMLElement | null => {
+      const slot = [...row(hash).querySelectorAll<HTMLElement>('span[data-ref]')]
+        .find(el => el.getAttribute('data-ref') === name);
+      return slot?.querySelector('.oc-sdk-badge') ?? null;
+    };
 
     // 同一提交上的多个分支标签都要保留
     expect(row('h1').textContent).toContain('dev');
     expect(row('h1').textContent).toContain('feature/x');
     expect(row('h1').textContent).not.toContain('Stryker was here');
 
-    // 本地分支配色
-    const devTag = tagOf('h1', 'dev');
+    // 本地分支 → Kit mountBadge（tone=primary）
+    const devTag = badgeOf('h1', 'dev');
     expect(devTag).toBeTruthy();
-    expect(devTag!.style.backgroundColor).toBe('rgb(74, 58, 26)');  // #4a3a1a
-    expect(devTag!.style.color).toBe('rgb(232, 168, 56)');         // #e8a838
+    expect(devTag!.textContent).toBe('dev');
+    expect(devTag!.getAttribute('data-tone')).toBe('primary');
 
-    // 远程分支（含 '/'）配色
-    const featureTag = tagOf('h1', 'feature/x');
+    // 远程分支（含 '/'）→ tone=info
+    const featureTag = badgeOf('h1', 'feature/x');
     expect(featureTag).toBeTruthy();
-    expect(featureTag!.style.backgroundColor).toBe('rgb(26, 58, 74)'); // #1a3a4a
-    expect(featureTag!.style.color).toBe('rgb(88, 157, 246)');         // #589df6
-    const originTag = tagOf('h2', 'origin/main');
+    expect(featureTag!.getAttribute('data-tone')).toBe('info');
+    const originTag = badgeOf('h2', 'origin/main');
     expect(originTag).toBeTruthy();
-    expect(originTag!.style.backgroundColor).toBe('rgb(26, 58, 74)');
+    expect(originTag!.getAttribute('data-tone')).toBe('info');
 
-    // HEAD 不算本地分支
-    const headTag = tagOf('h3', 'HEAD');
+    // HEAD 不算本地分支 → tone=info
+    const headTag = badgeOf('h3', 'HEAD');
     expect(headTag).toBeTruthy();
-    expect(headTag!.style.backgroundColor).toBe('rgb(26, 58, 74)');
+    expect(headTag!.getAttribute('data-tone')).toBe('info');
 
-    // 无分支的提交：没有标签、没有残留占位文本
-    expect(row('h4').querySelectorAll('span[style*="border-radius: 2px"]').length).toBe(0);
+    // 无分支的提交：没有徽标、没有残留占位文本
+    expect(row('h4').querySelectorAll('span[data-ref]').length).toBe(0);
     expect(row('h4').textContent).not.toContain('Stryker was here');
 
     // 分支字段变化通过订阅局部刷新出新标签
     setState(s => { s.branches = [{ name: 'feature/y', isCurrent: false, isRemote: true, commit: commits[3].hash.slice(0, 7) }]; });
     expect(row('h4').textContent).toContain('feature/y');
+    expect(badgeOf('h4', 'feature/y')!.getAttribute('data-tone')).toBe('info');
   });
 
   it('创建面板时若已有 logBranch 不应出现分支过滤标签', () => {
@@ -836,7 +908,7 @@ describe('commit-list', () => {
     setState(s => { s.filterAuthor = '张三'; });
     getLogMock.mockResolvedValue(commits);
 
-    (container.querySelector('[data-action="btn-refresh"]') as HTMLElement).click();
+    kitBtn('btn-refresh').click();
 
     await vi.waitFor(() => {
       expect(filteredHashes()).toEqual(['h1', 'h3']);
@@ -851,7 +923,7 @@ describe('commit-list', () => {
     toastMock.mockClear();
     try {
       getLogMock.mockRejectedValue(new Error('网络异常'));
-      (container.querySelector('[data-action="btn-refresh"]') as HTMLElement).click();
+      kitBtn('btn-refresh').click();
 
       // 回归：此前失败只写 console，用户点刷新后看不出任何变化
       await vi.waitFor(() => {
@@ -1120,7 +1192,7 @@ describe('commit-list', () => {
     setupCommits();
     createPanel();
 
-    (container.querySelector('[data-action="btn-settings"]') as HTMLElement).click();
+    kitBtn('btn-settings').click();
 
     const menu = document.getElementById('git-settings-menu');
     expect(menu).toBeTruthy();
@@ -1159,13 +1231,12 @@ describe('commit-list', () => {
     const scrollSpy = vi.fn();
     proto['scrollIntoView'] = scrollSpy;
     try {
-      (container.querySelector('[data-action="btn-goto"]') as HTMLElement).click();
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      expect(input).toBeTruthy();
-      input.value = 'H2'; // 大小写不敏感的哈希前缀
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      kitBtn('btn-goto').click();
+      expect(gotoInput()).toBeTruthy();
+      typeGoto('H2'); // 大小写不敏感的哈希前缀
+      clickGotoOk();
 
-      expect(document.getElementById('goto-input')).toBeNull(); // 对话框已关闭
+      expect(gotoInput()).toBeNull(); // 对话框已关闭
       expect(getState().selectedCommit).toBe(commits[1]);
       expect(selectedHashes()).toEqual(['h2']);
       expect(onCommitSelect).toHaveBeenCalledWith(commits[1]);
@@ -1186,12 +1257,11 @@ describe('commit-list', () => {
       ];
     });
 
-    (container.querySelector('[data-action="btn-goto"]') as HTMLElement).click();
-    const input = document.getElementById('goto-input') as HTMLInputElement;
-    input.value = 'dev';
-    (document.getElementById('goto-ok') as HTMLElement).click();
+    kitBtn('btn-goto').click();
+    typeGoto('dev');
+    clickGotoOk();
 
-    expect(document.getElementById('goto-input')).toBeNull();
+    expect(gotoInput()).toBeNull();
     expect(getState().logBranch).toBe('dev');
     // 分支首条提交 = 分支 tip（commit: h3）
     expect(getState().selectedCommit).toBe(commits[2]);
@@ -1206,16 +1276,13 @@ describe('commit-list', () => {
     setupCommits();
     createPanel();
 
-    (container.querySelector('[data-action="btn-goto"]') as HTMLElement).click();
-    const input = document.getElementById('goto-input') as HTMLInputElement;
-    input.value = '不存在的引用';
-    (document.getElementById('goto-ok') as HTMLElement).click();
+    kitBtn('btn-goto').click();
+    typeGoto('不存在的引用');
+    clickGotoOk();
 
-    const error = document.getElementById('goto-error') as HTMLElement;
-    expect(error.style.display).toBe('block');
-    expect(error.textContent).toBe('未找到匹配项');
+    expect(gotoErrorText()).toBe('未找到匹配项');
     // 对话框未关闭，状态未变化
-    expect(document.getElementById('goto-input')).toBeTruthy();
+    expect(gotoInput()).toBeTruthy();
     expect(getState().selectedCommit).toBeNull();
     expect(getState().logBranch).toBeNull();
   });
@@ -1228,12 +1295,11 @@ describe('commit-list', () => {
 
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     try {
-      (container.querySelector('[data-action="btn-goto"]') as HTMLElement).click();
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'h'; // startsWith('h') 命中 h1；endsWith('h') 不会命中任何提交
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      kitBtn('btn-goto').click();
+      typeGoto('h'); // startsWith('h') 命中 h1；endsWith('h') 不会命中任何提交
+      clickGotoOk();
 
-      expect(document.getElementById('goto-input')).toBeNull(); // 对话框已关闭
+      expect(gotoInput()).toBeNull(); // 对话框已关闭
       expect(getState().selectedCommit).toBe(commits[0]);
       expect(selectedHashes()).toEqual(['h1']);
       expect(windowErrors).toEqual([]);
@@ -1256,12 +1322,11 @@ describe('commit-list', () => {
 
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     try {
-      (container.querySelector('[data-action="btn-goto"]') as HTMLElement).click();
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'dev';
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      kitBtn('btn-goto').click();
+      typeGoto('dev');
+      clickGotoOk();
 
-      expect(document.getElementById('goto-input')).toBeNull();
+      expect(gotoInput()).toBeNull();
       expect(getState().logBranch).toBe('dev');
       expect(getState().selectedCommit).toBe(commits[2]); // 分支 tip = h3
       expect(windowErrors).toEqual([]);
@@ -1281,12 +1346,11 @@ describe('commit-list', () => {
 
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     try {
-      (container.querySelector('[data-action="btn-goto"]') as HTMLElement).click();
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'dev';
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      kitBtn('btn-goto').click();
+      typeGoto('dev');
+      clickGotoOk();
 
-      expect(document.getElementById('goto-input')).toBeNull();
+      expect(gotoInput()).toBeNull();
       expect(getState().logBranch).toBe('dev');
       expect(getState().selectedCommit).toBeNull();
       expect(onCommitSelect).not.toHaveBeenCalled();
@@ -1305,12 +1369,11 @@ describe('commit-list', () => {
 
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     try {
-      (container.querySelector('[data-action="btn-goto"]') as HTMLElement).click();
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = '不存在的引用';
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      kitBtn('btn-goto').click();
+      typeGoto('不存在的引用');
+      clickGotoOk();
 
-      expect(document.getElementById('goto-input')).toBeTruthy(); // 保持打开
+      expect(gotoInput()).toBeTruthy(); // 保持打开
       expect(windowErrors).toEqual([]);
       const log = parseDebugLogs(debugSpy).find(p => p.event === 'goto_not_found');
       expect(log).toMatchObject({
@@ -1331,10 +1394,9 @@ describe('commit-list', () => {
 
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     try {
-      (container.querySelector('[data-action="btn-goto"]') as HTMLElement).click();
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'h';
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      kitBtn('btn-goto').click();
+      typeGoto('h');
+      clickGotoOk();
 
       expect(getState().selectedCommit).toBe(commits[0]);
       // 目标行缺失时应直接返回，不得解引用 null
@@ -1376,10 +1438,9 @@ describe('commit-list', () => {
     });
 
     try {
-      (container.querySelector('[data-action="btn-goto"]') as HTMLElement).click();
-      const input = document.getElementById('goto-input') as HTMLInputElement;
-      input.value = 'H2';
-      (document.getElementById('goto-ok') as HTMLElement).click();
+      kitBtn('btn-goto').click();
+      typeGoto('H2');
+      clickGotoOk();
 
       expect(getState().selectedCommit).toBe(commits[1]);
       expect(scrolledTo).toBe(120); // 降级分支必须写入 container.scrollTop = row.offsetTop
@@ -1394,14 +1455,17 @@ describe('commit-list', () => {
 
   // ===== 工具栏错误日志与点击边界 =====
 
-  it('点击分支过滤按钮不应打开跳转对话框', () => {
+  it('点击分支过滤下拉不应打开跳转对话框', () => {
     setupCommits();
     createPanel();
 
-    (container.querySelector('[data-action="btn-filter-branch"]') as HTMLElement).click();
+    // 分支过滤为自绘下拉按钮，点击它弹出下拉而非跳转对话框
+    openKitSelect('filter-branch');
 
-    expect(document.getElementById('goto-input')).toBeNull();
+    expect(gotoInput()).toBeNull();
     expect(windowErrors).toEqual([]);
+    // 清理弹层，避免跨用例残留
+    closeKitSelect('filter-branch');
   });
 
   // ===== 订阅与渲染边界 =====
@@ -1454,12 +1518,15 @@ describe('commit-list', () => {
     setupCommits();
     createPanel();
 
+    // 日期列显示 → 作者列走基础类（左边距 12px 由 CSS 类承担）
     const authorCol = row('h1').querySelector('[data-col="author"]') as HTMLElement;
-    expect(authorCol.style.marginLeft).toBe('12px'); // 日期列显示 → 12px
+    expectSemanticClass(authorCol, 'gm-commit-col-author');
+    expect(authorCol.classList.contains('gm-commit-col-author-shift')).toBe(false);
 
+    // 日期列隐藏 → 作者列接替右对齐（shift 类）
     setState(s => { s.displaySettings.showDate = false; });
     const authorCol2 = row('h1').querySelector('[data-col="author"]') as HTMLElement;
-    expect(authorCol2.style.marginLeft).toBe('auto'); // 日期列隐藏 → 接替右对齐
+    expectSemanticClass(authorCol2, ['gm-commit-col-author', 'gm-commit-col-author-shift']);
   });
 
   it('作者名中的特殊字符应经转义后按原文渲染', () => {
@@ -1551,9 +1618,8 @@ describe('commit-list', () => {
 
   // ===== 过滤工具栏接线（Cc / .* / 分支▾ / 用户▾ / 日期▾ / 路径▾） =====
 
-  /** 激活态按钮背景色断言值（#1a3a5a / #333） */
-  const ACTIVE_BG = 'rgb(26, 58, 90)';
-  const IDLE_BG = 'rgb(51, 51, 51)';
+  /** 过滤按钮激活态语义类 */
+  const ACTIVE_CLASS = 'gm-commit-filter-btn-active';
 
   /** 获取当前打开的下拉菜单容器（不存在返回 null） */
   const dropdownMenu = () => document.getElementById('git-dropdown-menu');
@@ -1566,8 +1632,16 @@ describe('commit-list', () => {
   const dropdownChecked = (id: string) =>
     dropdownRow(id)?.querySelector('.git-dropdown-check')?.textContent ?? null;
 
-  /** 按 data-action 取工具栏按钮 */
+  /** 按 data-action 取工具栏按钮（自绘过滤按钮：正则/大小写/日期/路径） */
   const toolbarBtn = (action: string) =>
+    container.querySelector(`[data-action="${action}"]`) as HTMLElement;
+
+  /**
+   * 取工具栏右侧图标按钮（自绘 button+getIcon）。
+   * 刷新/Cherry-pick/设置/跳转 保持自绘图标按钮：mountButton 仅支持文本 label、无图标插槽，
+   * 图标型按钮用 Kit 会退化为空白，故直接点击按钮本体即可触发委托处理。
+   */
+  const kitBtn = (action: 'btn-refresh' | 'btn-cherry-pick' | 'btn-settings' | 'btn-goto') =>
     container.querySelector(`[data-action="${action}"]`) as HTMLElement;
 
   /** 读取路径下拉中已选路径条目的 data-id 列表（p: 前缀，按渲染顺序） */
@@ -1575,6 +1649,69 @@ describe('commit-list', () => {
     Array.from(dropdownMenu()?.querySelectorAll('[data-id^="p:"]') ?? []).map(el =>
       el.getAttribute('data-id'),
     );
+
+  // ===== 自绘 dropdown-menu（分支/用户过滤单选下拉）交互辅助 =====
+  // 与日期/路径下拉同源：点击自绘按钮弹出 #git-dropdown-menu，选中态存于 .git-dropdown-check 勾选标记
+
+  /** 取分支/用户过滤触发按钮（自绘 button，点它弹出 dropdown-menu） */
+  const kitSelect = (slot: 'filter-branch' | 'filter-user'): HTMLElement => {
+    const btn = toolbarBtn(slot);
+    expect(btn, `槽位 ${slot} 应为自绘过滤按钮`).toBeTruthy();
+    return btn;
+  };
+
+  /** 取触发按钮本体（自绘下拉由按钮 toggle，与 kitSelect 同元素） */
+  const kitTrigger = (slot: 'filter-branch' | 'filter-user'): HTMLButtonElement =>
+    kitSelect(slot) as HTMLButtonElement;
+
+  /** 打开分支/用户过滤下拉（点击自绘按钮） */
+  const openKitSelect = (slot: 'filter-branch' | 'filter-user') => {
+    kitTrigger(slot).click();
+  };
+
+  /** 取当前打开的下拉容器（未打开返回 null） */
+  const kitPopup = (): HTMLElement | null => dropdownMenu() as HTMLElement | null;
+
+  /**
+   * 取下拉内指定 id 的行，并包装为兼容旧 aria-selected 断言的代理对象。
+   * 自绘行无 aria-selected 属性，选中态存于 .git-dropdown-check 勾选标记；
+   * 代理把 getAttribute('aria-selected') 映射为：选中→'true'、未选→'false'，
+   * 其余成员（click/querySelector/textContent 等）原样透传真实行元素。
+   * @param id 行的 data-id（分支=纯分支名，用户=作者名，all=全部）
+   * @returns 行代理；行不存在返回 null
+   */
+  const kitOption = (id: string): HTMLElement | null => {
+    const row = dropdownRow(id);
+    if (!row) return null;
+    return new Proxy(row, {
+      get(target, prop) {
+        if (prop === 'getAttribute') {
+          return (name: string): string | null => {
+            if (name === 'aria-selected') {
+              return dropdownChecked(id) ? 'true' : 'false';
+            }
+            return target.getAttribute(name);
+          };
+        }
+        const value = (target as unknown as Record<string | symbol, unknown>)[prop];
+        return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(target) : value;
+      },
+    }) as unknown as HTMLElement;
+  };
+
+  /** 读取过滤按钮当前值文案（.gm-filter-btn-value，未选显示“全部”） */
+  const kitValue = (slot: 'filter-branch' | 'filter-user'): string =>
+    (kitSelect(slot).querySelector('.gm-filter-btn-value')?.textContent ?? '');
+
+  /** 按渲染顺序返回下拉各行的 data-id 列表（分支=纯分支名，用户=作者名，首项 all） */
+  const kitOptionIds = (): string[] =>
+    Array.from(kitPopup()?.querySelectorAll('[data-id]') ?? []).map(el => el.getAttribute('data-id') ?? '');
+
+  /** 关闭下拉（自绘 Escape 同步关闭，等价于点击外部关闭；slot 仅为保持调用签名） */
+  const closeKitSelect = (slot: 'filter-branch' | 'filter-user') => {
+    void slot;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  };
 
   it('正则开关应切换 searchRegex 并让字面搜不到的模式按正则命中', () => {
     setupCommits();
@@ -1674,21 +1811,20 @@ describe('commit-list', () => {
     try {
       regexBtn.click();
       expect(getState().searchRegex).toBe(true);
-      expect(regexBtn.style.backgroundColor).toBe(ACTIVE_BG);
-      expect(regexBtn.style.border).toBe('1px solid rgb(42, 90, 138)');
-      expect(regexBtn.style.color).toBe('rgb(207, 232, 255)');
+      expect(regexBtn.classList.contains(ACTIVE_CLASS)).toBe(true);
+      expectSemanticClass(regexBtn, 'gm-commit-filter-btn');
 
       caseBtn.click();
       expect(getState().searchCaseSensitive).toBe(true);
-      expect(caseBtn.style.backgroundColor).toBe(ACTIVE_BG);
+      expect(caseBtn.classList.contains(ACTIVE_CLASS)).toBe(true);
 
       regexBtn.click(); // 再次点击恢复
       expect(getState().searchRegex).toBe(false);
-      expect(regexBtn.style.backgroundColor).toBe(IDLE_BG);
+      expect(regexBtn.classList.contains(ACTIVE_CLASS)).toBe(false);
 
       caseBtn.click();
       expect(getState().searchCaseSensitive).toBe(false);
-      expect(caseBtn.style.backgroundColor).toBe(IDLE_BG);
+      expect(caseBtn.classList.contains(ACTIVE_CLASS)).toBe(false);
 
       const events = parseDebugLogs(debugSpy).map(p => p.event);
       expect(events).toContain('search_regex_toggled');
@@ -1698,36 +1834,37 @@ describe('commit-list', () => {
     }
   });
 
-  it('logBranch/filterAuthor/日期字段变化应激活对应按钮，清除后恢复', () => {
+  it('logBranch/filterAuthor/日期字段变化应激活日期按钮，分支/用户值展示在下拉按钮上', () => {
     setupCommits();
     createPanel();
-    const branchBtn = toolbarBtn('btn-filter-branch');
-    const userBtn = toolbarBtn('btn-filter-user');
     const dateBtn = toolbarBtn('btn-filter-date');
+    // 让分支选项里存在 dev，按钮才能展示其名称
+    setState(s => { s.branches = [{ name: 'dev', isCurrent: true, isRemote: false }]; });
 
     setState(s => { s.logBranch = 'dev'; });
-    expect(branchBtn.style.backgroundColor).toBe(ACTIVE_BG);
+    // 分支/用户过滤为自绘下拉按钮：选中值展示在按钮文案上（无独立激活态样式）
+    expect(kitValue('filter-branch')).toBe('dev');
 
     setState(s => { s.filterAuthor = '张三'; });
-    expect(userBtn.style.backgroundColor).toBe(ACTIVE_BG);
+    expect(kitValue('filter-user')).toBe('张三');
 
     setState(s => { s.filterDateFrom = new Date().toISOString(); });
-    expect(dateBtn.style.backgroundColor).toBe(ACTIVE_BG);
+    expect(dateBtn.classList.contains(ACTIVE_CLASS)).toBe(true);
 
-    // 清除全部过滤状态 → 恢复未激活样式
+    // 清除全部过滤状态 → 日期按钮恢复未激活，select 回到“全部”
     setState(s => {
       s.logBranch = null;
       s.filterAuthor = '';
       s.filterDateFrom = '';
     });
-    expect(branchBtn.style.backgroundColor).toBe(IDLE_BG);
-    expect(userBtn.style.backgroundColor).toBe(IDLE_BG);
-    expect(dateBtn.style.backgroundColor).toBe(IDLE_BG);
-    // 按钮元素引用未被重建（激活态刷新只改样式）
-    expect(toolbarBtn('btn-filter-branch')).toBe(branchBtn);
+    expect(dateBtn.classList.contains(ACTIVE_CLASS)).toBe(false);
+    expect(kitValue('filter-branch')).toBe('全部');
+    expect(kitValue('filter-user')).toBe('全部');
+    // 日期按钮元素引用未被重建（激活态刷新只改样式）
+    expect(toolbarBtn('btn-filter-date')).toBe(dateBtn);
   });
 
-  it('分支下拉应按本地/远程/收藏分组渲染并默认勾选全部', () => {
+  it('分支下拉应按本地/远程/收藏给出提示并默认选中全部', () => {
     setupCommits();
     createPanel();
     setState(s => {
@@ -1741,21 +1878,26 @@ describe('commit-list', () => {
       s.logBranch = null;
     });
 
-    toolbarBtn('btn-filter-branch').click();
+    openKitSelect('filter-branch');
 
-    const menu = dropdownMenu();
-    expect(menu).toBeTruthy();
-    expect(menu!.textContent).toContain('全部');
-    expect(menu!.textContent).toContain('本地分支');
-    expect(menu!.textContent).toContain('远程分支');
-    expect(menu!.textContent).toContain('收藏');
-    // 收藏的 wip 只出现在收藏组（分组互斥，本地组不含它）
-    expect(dropdownRow('wip')).toBeTruthy();
-    expect(dropdownChecked('all')).toBe('✓');
+    const popup = kitPopup();
+    expect(popup).toBeTruthy();
+    // 自绘下拉无分组标题，分组信息降级为选项 label 的 hint 后缀
+    expect(popup!.textContent).toContain('全部');
+    expect(popup!.textContent).toContain('本地分支');
+    expect(popup!.textContent).toContain('远程分支');
+    expect(popup!.textContent).toContain('收藏');
+    // 收藏的 wip 仍在选项内，且其 label 内联标注收藏 hint（自绘 label 形如 `wip (收藏)`）
+    const wip = kitOption('wip');
+    expect(wip).toBeTruthy();
+    expect(wip!.textContent).toContain('收藏');
+    // 默认选中“全部”（aria-selected=true）
+    expect(kitOption('all')!.getAttribute('aria-selected')).toBe('true');
+    expect(kitOption('dev')!.getAttribute('aria-selected')).toBe('false');
 
-    // Escape 关闭，避免菜单跨用例残留
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    expect(dropdownMenu()).toBeNull();
+    // 关闭弹层，避免跨用例残留
+    closeKitSelect('filter-branch');
+    expect(kitPopup()).toBeNull();
   });
 
   it('分支下拉选择分支应写入 logBranch/selectedBranch 并以分支参数重新拉取', async () => {
@@ -1766,8 +1908,8 @@ describe('commit-list', () => {
     getLogMock.mockResolvedValue(commits);
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     try {
-      toolbarBtn('btn-filter-branch').click();
-      dropdownRow('dev')!.click();
+      openKitSelect('filter-branch');
+      kitOption('dev')!.click();
 
       expect(getState().logBranch).toBe('dev');
       expect(getState().selectedBranch).toBe(branch); // 面板高亮同步
@@ -1779,7 +1921,7 @@ describe('commit-list', () => {
 
       const log = parseDebugLogs(debugSpy).find(p => p.event === 'branch_dropdown_select');
       expect(log).toMatchObject({ prefix: '[commit-list]', event: 'branch_dropdown_select', branch: 'dev' });
-      expect(dropdownMenu()).toBeNull(); // 选中后菜单关闭
+      expect(kitPopup()).toBeNull(); // 选中后弹层关闭
     } finally {
       debugSpy.mockRestore();
     }
@@ -1793,10 +1935,10 @@ describe('commit-list', () => {
       s.logBranch = 'dev';
     });
 
-    toolbarBtn('btn-filter-branch').click();
-    expect(dropdownChecked('dev')).toBe('✓'); // 当前分支打勾
-    expect(dropdownChecked('all')).toBe('');
-    dropdownRow('all')!.click();
+    openKitSelect('filter-branch');
+    expect(kitOption('dev')!.getAttribute('aria-selected')).toBe('true'); // 当前分支选中
+    expect(kitOption('all')!.getAttribute('aria-selected')).toBe('false');
+    kitOption('all')!.click();
 
     expect(getState().logBranch).toBeNull();
     expect(getState().selectedBranch).toBeNull();
@@ -1807,40 +1949,39 @@ describe('commit-list', () => {
     });
   });
 
-  it('再次点击分支按钮应 toggle 关闭菜单', () => {
+  it('再次点击分支触发器应 toggle 关闭弹层', () => {
     setupCommits();
     createPanel();
 
-    toolbarBtn('btn-filter-branch').click();
-    expect(dropdownMenu()).toBeTruthy();
+    openKitSelect('filter-branch');
+    expect(kitPopup()).toBeTruthy();
 
-    toolbarBtn('btn-filter-branch').click();
-    expect(dropdownMenu()).toBeNull();
+    kitTrigger('filter-branch').click();
+    expect(kitPopup()).toBeNull();
   });
 
   it('用户下拉应从 allCommits 去重排序渲染作者并支持选择与清除', () => {
     setupCommits();
     createPanel();
 
-    toolbarBtn('btn-filter-user').click();
+    openKitSelect('filter-user');
 
-    // 4 条提交中张三出现两次 → 去重后 3 位作者，按 UTF-16 序排列
-    const ids = [...dropdownMenu()!.children].map(el => el.getAttribute('data-id'));
-    expect(ids).toEqual(['all', '张三', '李四', '王五']);
-    expect(dropdownChecked('all')).toBe('✓');
+    // 4 条提交中张三出现两次 → 去重后 3 位作者，按 UTF-16 序排列（含“全部”选项）
+    expect(kitOptionIds()).toEqual(['all', '张三', '李四', '王五']);
+    expect(kitOption('all')!.getAttribute('aria-selected')).toBe('true');
 
-    dropdownRow('李四')!.click();
+    kitOption('李四')!.click();
     expect(getState().filterAuthor).toBe('李四');
     expect(filteredHashes()).toEqual(['h2']);
-    expect(toolbarBtn('btn-filter-user').style.backgroundColor).toBe(ACTIVE_BG);
+    expect(kitValue('filter-user')).toBe('李四');
 
     // 再次打开选“全部” → 清除作者过滤
-    toolbarBtn('btn-filter-user').click();
-    expect(dropdownChecked('李四')).toBe('✓');
-    dropdownRow('all')!.click();
+    openKitSelect('filter-user');
+    expect(kitOption('李四')!.getAttribute('aria-selected')).toBe('true');
+    kitOption('all')!.click();
     expect(getState().filterAuthor).toBe('');
     expect(filteredHashes()).toEqual(['h1', 'h2', 'h3', 'h4']);
-    expect(toolbarBtn('btn-filter-user').style.backgroundColor).toBe(IDLE_BG);
+    expect(kitValue('filter-user')).toBe('全部');
   });
 
   it('用户下拉应输出结构化选择日志', () => {
@@ -1849,8 +1990,8 @@ describe('commit-list', () => {
 
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     try {
-      toolbarBtn('btn-filter-user').click();
-      dropdownRow('张三')!.click();
+      openKitSelect('filter-user');
+      kitOption('张三')!.click();
 
       const log = parseDebugLogs(debugSpy).find(p => p.event === 'user_dropdown_select');
       expect(log).toMatchObject({ prefix: '[commit-list]', event: 'user_dropdown_select', author: '张三' });
@@ -1863,15 +2004,16 @@ describe('commit-list', () => {
     setupCommits([]);
     createPanel();
 
-    toolbarBtn('btn-filter-user').click();
+    openKitSelect('filter-user');
 
-    const menu = dropdownMenu();
-    expect(menu).toBeTruthy();
-    expect(menu!.children.length).toBe(1);
-    expect(dropdownChecked('all')).toBe('✓');
+    const popup = kitPopup();
+    expect(popup).toBeTruthy();
+    expect(kitOptionIds()).toEqual(['all']);
+    expect(kitOption('all')!.getAttribute('aria-selected')).toBe('true');
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    expect(dropdownMenu()).toBeNull();
+    closeKitSelect('filter-user');
+    expect(kitPopup()).toBeNull();
   });
 
   it('日期下拉选择“今天”应写入精确本地日界区间并排除旧提交', () => {
@@ -1893,7 +2035,7 @@ describe('commit-list', () => {
       expect(getState().filterDateFrom).toBe(new Date(2026, 0, 15, 0, 0, 0, 0).toISOString());
       expect(getState().filterDateTo).toBe(new Date(2026, 0, 15, 23, 59, 59, 999).toISOString());
       expect(filteredHashes()).toEqual(['c-new']); // 旧提交被排除
-      expect(toolbarBtn('btn-filter-date').style.backgroundColor).toBe(ACTIVE_BG);
+      expect(toolbarBtn('btn-filter-date').classList.contains(ACTIVE_CLASS)).toBe(true);
     } finally {
       vi.useRealTimers();
     }
@@ -1945,7 +2087,7 @@ describe('commit-list', () => {
       expect(getState().filterDateFrom).toBe('');
       expect(getState().filterDateTo).toBe('');
       expect(filteredHashes()).toEqual(['h1', 'h2', 'h3', 'h4']);
-      expect(toolbarBtn('btn-filter-date').style.backgroundColor).toBe(IDLE_BG);
+      expect(toolbarBtn('btn-filter-date').classList.contains(ACTIVE_CLASS)).toBe(false);
 
       // 再打开：all 勾选、today 无勾
       toolbarBtn('btn-filter-date').click();
@@ -1971,12 +2113,12 @@ describe('commit-list', () => {
 
     (document.getElementById('daterange-from') as HTMLInputElement).value = '2026-01-01';
     (document.getElementById('daterange-to') as HTMLInputElement).value = '2026-01-31';
-    (document.getElementById('daterange-ok') as HTMLElement).click();
+    clickDaterangeOk();
 
     expect(getState().filterDateFrom).toBe('2026-01-01');
     expect(getState().filterDateTo).toBe('2026-01-31');
     expect(document.getElementById('daterange-from')).toBeNull(); // 应用后关闭
-    expect(toolbarBtn('btn-filter-date').style.backgroundColor).toBe(ACTIVE_BG);
+    expect(toolbarBtn('btn-filter-date').classList.contains(ACTIVE_CLASS)).toBe(true);
   });
 
   it('日期下拉应输出结构化选择日志', () => {
@@ -1995,19 +2137,20 @@ describe('commit-list', () => {
     }
   });
 
-  it('路径按钮应可点击且样式与其他下拉按钮一致', () => {
+  it('路径按钮应可点击且样式与其他自绘下拉按钮一致', () => {
     setupCommits();
     createPanel();
 
     const pathBtn = toolbarBtn('btn-filter-path') as HTMLButtonElement;
-    const branchBtn = toolbarBtn('btn-filter-branch');
-    // 不再是禁用态：无 disabled 属性、可点击光标、不弱化透明度
+    // 四个过滤按钮均为自绘 dropdown-menu 按钮，样式应一致
+    const dateBtn = toolbarBtn('btn-filter-date');
+    // 不再是禁用态：无 disabled 属性、与其他自绘下拉按钮同语义类、不弱化透明度
     expect(pathBtn.hasAttribute('disabled')).toBe(false);
     expect(pathBtn.disabled).toBe(false);
-    expect(pathBtn.getAttribute('style')).toBe(branchBtn.getAttribute('style'));
-    expect(pathBtn.style.cursor).toBe('pointer');
-    expect(pathBtn.getAttribute('style')).not.toContain('opacity');
-    expect(pathBtn.getAttribute('style')).not.toContain('not-allowed');
+    expect(pathBtn.className).toBe(dateBtn.className);
+    expectSemanticClass(pathBtn, 'gm-commit-filter-btn');
+    expect(pathBtn.getAttribute('style') ?? '').not.toContain('opacity');
+    expect(pathBtn.getAttribute('style') ?? '').not.toContain('not-allowed');
     // label 为 zh-CN 的 filter.path 文案（不再设置 pathSoon 提示）
     expect(pathBtn.textContent).toContain('路径');
     expect(pathBtn.title).not.toContain('暂未实现');
@@ -2055,7 +2198,7 @@ describe('commit-list', () => {
     setupCommits();
     createPanel();
     setState(s => { s.filterPaths = ['src/']; }); // 已有路径过滤 → 按钮激活
-    expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(ACTIVE_BG);
+    expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(true);
     getLogMock.mockResolvedValue(makeCommits());
 
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
@@ -2068,7 +2211,7 @@ describe('commit-list', () => {
       await vi.waitFor(() => {
         expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, undefined);
       });
-      expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(IDLE_BG); // 激活态熄灭
+      expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(false); // 激活态熄灭
 
       const log = parseDebugLogs(debugSpy).find(p => p.event === 'path_dropdown_select');
       expect(log).toMatchObject({ prefix: '[commit-list]', event: 'path_dropdown_select', path: [] });
@@ -2113,7 +2256,7 @@ describe('commit-list', () => {
     await vi.waitFor(() => {
       expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, undefined);
     });
-    expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(IDLE_BG); // 激活态熄灭
+    expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(false); // 激活态熄灭
   });
 
   it('点选择文件夹应打开路径勾选树并保留不在列表中的已选路径', async () => {
@@ -2154,7 +2297,7 @@ describe('commit-list', () => {
       });
 
       (document.querySelector('[data-path="src"]') as HTMLElement).click(); // 勾选 src 目录
-      const okBtn = document.getElementById('pathtree-ok') as HTMLButtonElement;
+      const okBtn = pathtreeOkButton();
       expect(okBtn.disabled).toBe(false);
       okBtn.click();
 
@@ -2163,7 +2306,7 @@ describe('commit-list', () => {
       await vi.waitFor(() => {
         expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, ['src']);
       });
-      expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(ACTIVE_BG);
+      expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(true);
 
       const log = parseDebugLogs(debugSpy).find(p => p.event === 'path_dropdown_select');
       expect(log).toMatchObject({ prefix: '[commit-list]', event: 'path_dropdown_select', path: ['src'] });
@@ -2182,9 +2325,9 @@ describe('commit-list', () => {
     dropdownRow('pick')!.click();
     // 等待 listFiles 构建完成并渲染（OK 按钮解禁）
     await vi.waitFor(() => {
-      expect((document.getElementById('pathtree-ok') as HTMLButtonElement).disabled).toBe(false);
+      expect((pathtreeOkButton()).disabled).toBe(false);
     });
-    (document.getElementById('pathtree-ok') as HTMLButtonElement).click();
+    (pathtreeOkButton()).click();
 
     expect(document.getElementById('pathtree-list')).toBeNull();
     expect(getState().filterPaths).toEqual(['src']);
@@ -2195,13 +2338,13 @@ describe('commit-list', () => {
     setupCommits();
     createPanel();
     const pathBtn = toolbarBtn('btn-filter-path');
-    expect(pathBtn.style.backgroundColor).toBe(IDLE_BG); // 初始空数组不过滤
+    expect(pathBtn.classList.contains(ACTIVE_CLASS)).toBe(false); // 初始空数组不过滤
 
     setState(s => { s.filterPaths = ['src/']; });
-    expect(pathBtn.style.backgroundColor).toBe(ACTIVE_BG); // 非空 → 点亮
+    expect(pathBtn.classList.contains(ACTIVE_CLASS)).toBe(true); // 非空 → 点亮
 
     setState(s => { s.filterPaths = []; });
-    expect(pathBtn.style.backgroundColor).toBe(IDLE_BG); // 恢复空数组 → 熄灭
+    expect(pathBtn.classList.contains(ACTIVE_CLASS)).toBe(false); // 恢复空数组 → 熄灭
     // 激活态刷新只改样式，不重建按钮元素
     expect(toolbarBtn('btn-filter-path')).toBe(pathBtn);
   });
@@ -2212,7 +2355,7 @@ describe('commit-list', () => {
     setState(s => { s.filterPaths = ['packages/core', 'docs/']; }); // 多选路径
     getLogMock.mockResolvedValue(makeCommits());
 
-    toolbarBtn('btn-refresh').click();
+    kitBtn('btn-refresh').click();
 
     await vi.waitFor(() => {
       expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, ['packages/core', 'docs/']);
@@ -2225,7 +2368,7 @@ describe('commit-list', () => {
     setState(s => { s.filterPaths = ['src/']; });
     getLogMock.mockResolvedValue(makeCommits());
 
-    toolbarBtn('btn-refresh').click();
+    kitBtn('btn-refresh').click();
 
     await vi.waitFor(() => {
       expect(getLogMock).toHaveBeenCalled();
@@ -2244,13 +2387,13 @@ describe('commit-list', () => {
     dropdownRow('edit')!.click();
 
     expect(dropdownMenu()).toBeNull(); // 选择后菜单关闭
-    const input = document.getElementById('pathfilter-input') as HTMLTextAreaElement;
+    const input = pathfilterInput();
     expect(input).toBeTruthy();
     expect(input.value).toBe('src/\npackages/core'); // 预填当前数组（每行一条）
 
     // Escape 关闭残留对话框
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    expect(document.getElementById('pathfilter-input')).toBeNull();
+    expect(pathfilterInput()).toBeNull();
   });
 
   it('编辑路径多行输入确定应写入 filterPaths 数组并以数组参数重新拉取', async () => {
@@ -2260,16 +2403,16 @@ describe('commit-list', () => {
 
     toolbarBtn('btn-filter-path').click();
     dropdownRow('edit')!.click();
-    (document.getElementById('pathfilter-input') as HTMLTextAreaElement).value = 'src/\n docs/core \ndocs/core';
-    (document.getElementById('pathfilter-ok') as HTMLElement).click();
+    typePathfilter('src/\n docs/core \ndocs/core');
+    clickPathfilterOk();
 
     // 解析：trim + 去空行 + 保序去重（dialogs.parsePathLines）
     expect(getState().filterPaths).toEqual(['src/', 'docs/core']);
-    expect(document.getElementById('pathfilter-input')).toBeNull(); // 确定后关闭
+    expect(pathfilterInput()).toBeNull(); // 确定后关闭
     await vi.waitFor(() => {
       expect(getLogMock).toHaveBeenCalledWith('/repo', undefined, ['src/', 'docs/core']);
     });
-    expect(toolbarBtn('btn-filter-path').style.backgroundColor).toBe(ACTIVE_BG); // 激活态点亮
+    expect(toolbarBtn('btn-filter-path').classList.contains(ACTIVE_CLASS)).toBe(true); // 激活态点亮
   });
 
   it('编辑路径确定值与当前相同应仅关闭且不重复发起请求', () => {
@@ -2280,9 +2423,9 @@ describe('commit-list', () => {
     toolbarBtn('btn-filter-path').click();
     dropdownRow('edit')!.click();
     // 预填值未修改直接确定 → 解析出同内容的新数组引用
-    (document.getElementById('pathfilter-ok') as HTMLElement).click();
+    clickPathfilterOk();
 
-    expect(document.getElementById('pathfilter-input')).toBeNull();
+    expect(pathfilterInput()).toBeNull();
     expect(getState().filterPaths).toEqual(['src/']);
     expect(getLogMock).not.toHaveBeenCalled(); // 深比较相同 → 不重复触发请求
   });
@@ -2295,8 +2438,8 @@ describe('commit-list', () => {
 
     toolbarBtn('btn-filter-path').click();
     dropdownRow('edit')!.click();
-    (document.getElementById('pathfilter-input') as HTMLTextAreaElement).value = '   ';
-    (document.getElementById('pathfilter-ok') as HTMLElement).click();
+    typePathfilter('   ');
+    clickPathfilterOk();
 
     expect(getState().filterPaths).toEqual([]); // trim 后空 → 等价清除
     await vi.waitFor(() => {
@@ -2311,7 +2454,7 @@ describe('commit-list', () => {
     setState(s => { s.filterPaths = ['not-exist/']; });
     getLogMock.mockResolvedValue([]); // 服务端 git log -- 不存在路径 → 空列表
 
-    toolbarBtn('btn-refresh').click();
+    kitBtn('btn-refresh').click();
 
     await vi.waitFor(() => {
       expect(container.textContent).toContain('暂无提交记录');
@@ -2325,10 +2468,12 @@ describe('commit-list', () => {
 
     expect(toolbarBtn('btn-regex').title).toBe('正则表达式');
     expect(toolbarBtn('btn-case').title).toBe('大小写敏感');
-    expect(toolbarBtn('btn-filter-branch').textContent).toContain('分支');
-    expect(toolbarBtn('btn-filter-user').textContent).toContain('用户');
     expect(toolbarBtn('btn-filter-date').textContent).toContain('日期');
     expect(toolbarBtn('btn-filter-path').textContent).toContain('路径');
+    // 分支/用户过滤为自绘下拉按钮：文案由当前值（占位“全部”）承载，
+    // 断言按钮值 span 的占位文案为 i18n 的“全部”
+    expect(kitValue('filter-branch')).toBe('全部');
+    expect(kitValue('filter-user')).toBe('全部');
   });
 
   it('Ctrl+A 应该全选当前过滤后的提交', () => {
@@ -2346,7 +2491,8 @@ describe('commit-list', () => {
     createPanel();
 
     const list = row('h1').parentElement as HTMLElement;
-    expect(list.style.userSelect).toBe('none');
+    // 文字禁选由 .gm-commit-list 类承担（user-select: none）
+    expectSemanticClass(list, 'gm-commit-list');
   });
 
   it('拖拽应该连续选中经过的提交行', () => {
@@ -2377,7 +2523,7 @@ describe('commit-list', () => {
 
     // 选中前两条（列表顺序为新→旧，挑选应按旧→新）
     setState(s => { s.selectedCommits = new Set([commits[0].hash, commits[1].hash]); });
-    toolbarBtn('btn-cherry-pick').click();
+    kitBtn('btn-cherry-pick').click();
     await new Promise(r => setTimeout(r, 0));
 
     expect(cherryPickMock).toHaveBeenCalledTimes(2);
@@ -2392,7 +2538,7 @@ describe('commit-list', () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     toastMock.mockClear();
 
-    toolbarBtn('btn-cherry-pick').click();
+    kitBtn('btn-cherry-pick').click();
     await new Promise(r => setTimeout(r, 0));
 
     expect(cherryPickMock).not.toHaveBeenCalled();
@@ -2412,7 +2558,7 @@ describe('commit-list', () => {
     toastMock.mockClear();
 
     setState(s => { s.selectedCommit = commits[0]; s.selectedCommits = new Set([commits[0].hash]); });
-    toolbarBtn('btn-cherry-pick').click();
+    kitBtn('btn-cherry-pick').click();
     await new Promise(r => setTimeout(r, 0));
 
     expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({
@@ -2429,7 +2575,7 @@ describe('commit-list', () => {
     toastMock.mockClear();
 
     setState(s => { s.selectedCommits = new Set([commits[0].hash, commits[1].hash]); });
-    toolbarBtn('btn-cherry-pick').click();
+    kitBtn('btn-cherry-pick').click();
     await new Promise(r => setTimeout(r, 0));
 
     expect(cherryPickMock).toHaveBeenCalledTimes(2);
@@ -2448,7 +2594,7 @@ describe('commit-list', () => {
     toastMock.mockClear();
 
     setState(s => { s.selectedCommit = commits[0]; s.selectedCommits = new Set([commits[0].hash]); });
-    toolbarBtn('btn-cherry-pick').click();
+    kitBtn('btn-cherry-pick').click();
     await new Promise(r => setTimeout(r, 0));
 
     // 回归：此前冲突只打 console，界面无任何反馈
@@ -2595,10 +2741,10 @@ describe('commit-list', () => {
       [...menu.querySelectorAll<HTMLElement>('div')].find(el => el.textContent === label);
 
     // 改写历史的项置灰（对齐 IDEA：不可用时菜单项直接禁用，而非点击后报错）
-    expect(findItem('编辑提交信息')?.style.color).toBe('rgb(102, 102, 102)');
-    expect(findItem('删除提交')?.style.color).toBe('rgb(102, 102, 102)');
+    expect(findItem('编辑提交信息')?.classList.contains('gm-ctx-item-disabled')).toBe(true);
+    expect(findItem('删除提交')?.classList.contains('gm-ctx-item-disabled')).toBe(true);
     // 不影响历史的项仍可用
-    expect(findItem('复制提交哈希')?.style.color).not.toBe('rgb(102, 102, 102)');
+    expect(findItem('复制提交哈希')?.classList.contains('gm-ctx-item-disabled')).toBe(false);
   });
 
   it('工作区干净时，编辑提交信息与删除提交应可用', async () => {
@@ -2611,7 +2757,7 @@ describe('commit-list', () => {
     const findItem = (label: string) =>
       [...menu.querySelectorAll<HTMLElement>('div')].find(el => el.textContent === label);
 
-    expect(findItem('编辑提交信息')?.style.color).not.toBe('rgb(102, 102, 102)');
-    expect(findItem('删除提交')?.style.color).not.toBe('rgb(102, 102, 102)');
+    expect(findItem('编辑提交信息')?.classList.contains('gm-ctx-item-disabled')).toBe(false);
+    expect(findItem('删除提交')?.classList.contains('gm-ctx-item-disabled')).toBe(false);
   });
 });
