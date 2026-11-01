@@ -29,10 +29,8 @@ import type { DropdownMenuItem } from './dropdown-menu';
 import { host } from '../host';
 import { showOperationError } from './errors';
 import { getIcon } from '../icons';
-import { mountSelect, mountBadge, mountSearchField } from '@openchamber/sdk/ui';
+import { mountBadge, mountSearchField } from '@openchamber/sdk/ui';
 import type {
-  SelectOption,
-  SelectHandle,
   BadgeHandle,
   SearchFieldHandle,
 } from '@openchamber/sdk/ui';
@@ -67,9 +65,6 @@ export function createCommitListPanel(
     date: HTMLElement | null;
     path: HTMLElement | null;
   } = { regex: null, caseSensitive: null, branch: null, user: null, date: null, path: null };
-  /** SDK UI Kit 单选下拉 handle（分支/用户过滤）：纳入 dispose 流程避免泄漏 */
-  let branchSelect: SelectHandle | null = null;
-  let userSelect: SelectHandle | null = null;
   /** SDK UI Kit 搜索框 handle（提交搜索）：render 重建前与组件 dispose 时统一释放 */
   let searchHandle: SearchFieldHandle | null = null;
 
@@ -167,12 +162,11 @@ export function createCommitListPanel(
   };
 
   /**
-   * 按当前状态刷新工具栏过滤按钮的激活样式（仅正则/大小写/日期/路径四个自绘按钮）
-   * 分支/用户过滤已改为 SDK UI Kit 的 mountSelect，激活态由其选中值（placeholder=全部）承载，
-   * 不参与本函数的自绘按钮激活样式刷新
+   * 按当前状态刷新工具栏过滤按钮的激活样式（6 个自绘按钮：正则/大小写/分支/用户/日期/路径）
    * 激活/未激活视觉由 __styles__/commit-list.css 的
    * .gm-commit-filter-btn(.gm-commit-filter-btn-active) 承担
    * 映射：btn-regex ← searchRegex；btn-case ← searchCaseSensitive；
+   * filter-branch ← logBranch 非空；filter-user ← filterAuthor 非空；
    * btn-filter-date ← filterDateFrom/filterDateTo 任一非空；
    * btn-filter-path ← filterPaths 非空（多选路径数组，空数组 = 不过滤）
    * 触发时机：toolbar 构建后一次 + subscribeFields 订阅回调（仅关注字段变化时执行）
@@ -182,6 +176,8 @@ export function createCommitListPanel(
     const activeFlags: Array<[HTMLElement | null, boolean]> = [
       [filterBtnRefs.regex, state.searchRegex],
       [filterBtnRefs.caseSensitive, state.searchCaseSensitive],
+      [filterBtnRefs.branch, !!state.logBranch],
+      [filterBtnRefs.user, !!state.filterAuthor],
       [filterBtnRefs.date, !!(state.filterDateFrom || state.filterDateTo)],
       [filterBtnRefs.path, state.filterPaths.length > 0],
     ];
@@ -208,9 +204,9 @@ export function createCommitListPanel(
         <button data-action="btn-case" class="gm-commit-filter-btn gm-commit-filter-btn-bold" title="${t('filter.case')}">Cc</button>
         <!-- 分隔线 -->
         <div class="gm-commit-toolbar-sep"></div>
-        <!-- 分支/用户过滤下拉（SDK UI Kit mountSelect 容器） -->
-        <div data-action="filter-branch" class="gm-commit-filter-slot"></div>
-        <div data-action="filter-user" class="gm-commit-filter-slot"></div>
+        <!-- 分支/用户过滤下拉（自绘 dropdown-menu，与日期/路径一致） -->
+        <button data-action="filter-branch" class="gm-commit-filter-btn gm-commit-filter-btn-menu"><span class="gm-filter-btn-value"></span> ▾</button>
+        <button data-action="filter-user" class="gm-commit-filter-btn gm-commit-filter-btn-menu"><span class="gm-filter-btn-value"></span> ▾</button>
         <!-- 日期/路径仍为自绘 dropdown-menu（日期含自定义对话框，路径为多选勾选） -->
         <button data-action="btn-filter-date" class="gm-commit-filter-btn gm-commit-filter-btn-menu">${t('filter.date')} ▾</button>
         <button data-action="btn-filter-path" class="gm-commit-filter-btn gm-commit-filter-btn-menu">${t('filter.path')} ▾</button>
@@ -292,6 +288,8 @@ export function createCommitListPanel(
       const action = target.getAttribute('data-action');
       if (action === 'btn-regex') toggleRegex();
       else if (action === 'btn-case') toggleCase();
+      else if (action === 'filter-branch') openBranchDropdown(target as HTMLElement);
+      else if (action === 'filter-user') openUserDropdown(target as HTMLElement);
       else if (action === 'btn-filter-date') openDateDropdown(target as HTMLElement);
       else if (action === 'btn-filter-path') openPathDropdown(target as HTMLElement);
       else if (action === 'btn-refresh') void refreshCommits(service, directory);
@@ -305,18 +303,14 @@ export function createCommitListPanel(
     filterBtnRefs = {
       regex: toolbar.querySelector<HTMLElement>('[data-action="btn-regex"]'),
       caseSensitive: toolbar.querySelector<HTMLElement>('[data-action="btn-case"]'),
-      branch: null, // 分支过滤改为 mountSelect，激活态由 Kit 控件的选中值承载，无自绘按钮
-      user: null,   // 用户过滤改为 mountSelect，同上
+      branch: toolbar.querySelector<HTMLElement>('[data-action="filter-branch"]'),
+      user: toolbar.querySelector<HTMLElement>('[data-action="filter-user"]'),
       date: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-date"]'),
       path: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-path"]'),
     };
-    // 挂载分支/用户过滤下拉（SDK UI Kit mountSelect），重建前先释放旧 handle
-    branchSelect?.dispose();
-    userSelect?.dispose();
-    branchSelect = mountBranchSelect(toolbar.querySelector<HTMLElement>('[data-action="filter-branch"]')!);
-    userSelect = mountUserSelect(toolbar.querySelector<HTMLElement>('[data-action="filter-user"]')!);
     updateFilterButtons();
-    // 分支过滤标签单独更新，不随工具栏整体重建
+    // 分支/用户按钮文案（当前选中值）+ 分支过滤标签单独更新，不随工具栏整体重建
+    updateFilterButtonLabels();
     renderFilterTag();
 
     // 提交列表
@@ -482,14 +476,14 @@ export function createCommitListPanel(
         console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'sub_changed', changed }));
         // 过滤按钮激活态随关注字段变化刷新（无关字段不进入本回调，不触发重绘）
         updateFilterButtons();
-        // 分支/用户过滤下拉（Kit）的选中值与选项随 state 同步
+        // 分支/用户过滤按钮文案（当前选中值）随 state 同步
         if (
           changed.includes('logBranch') ||
           changed.includes('filterAuthor') ||
           changed.includes('branches') ||
           changed.includes('allCommits')
         ) {
-          syncFilterSelects();
+          updateFilterButtonLabels();
         }
         // 搜索模式开关（外部直接 setState 场景）→ 重算过滤；点击按钮场景由 toggle 显式调用，管道幂等
         if (changed.includes('searchRegex') || changed.includes('searchCaseSensitive')) {
@@ -596,119 +590,103 @@ export function createCommitListPanel(
   };
 
   /**
-   * 构造分支过滤下拉选项（全部 + 分支名，分组信息降级为 hint）
-   * 收藏优先、其余按远程/本地排序，同组内保持原顺序
+   * 构造分支过滤下拉条目（全部 + 分支名，分组信息降级为 hint 前缀）
+   * 收藏优先、其余按远程/本地排序，同组内保持原顺序；当前选中项 checked
    */
-  const buildBranchOptions = (): SelectOption[] => {
+  const buildBranchItems = (): DropdownMenuItem[] => {
     const state = getState();
+    const current = state.logBranch ?? ALL_OPTION_ID;
     const isFav = (b: { isCurrent: boolean; name: string }): boolean =>
       !b.isCurrent && state.favorites.has(b.name);
     const hintOf = (b: { isCurrent: boolean; name: string; isRemote: boolean }): string =>
       isFav(b) ? t('filter.favorites') : b.isRemote ? t('filter.remoteBranches') : t('filter.localBranches');
     const ordered = [...state.branches].sort((a, b) => Number(isFav(b)) - Number(isFav(a)));
-    const options: SelectOption[] = [{ id: ALL_OPTION_ID, label: t('filter.all') }];
+    const items: DropdownMenuItem[] = [{ id: ALL_OPTION_ID, label: t('filter.all'), checked: current === ALL_OPTION_ID }];
     for (const b of ordered) {
-      options.push({ id: b.name, label: b.name, hint: hintOf(b) });
+      items.push({ id: b.name, label: `${b.name} (${hintOf(b)})`, checked: current === b.name });
     }
-    return options;
+    return items;
   };
 
   /**
-   * 构造用户（作者）过滤下拉选项（全部 + allCommits 去重排序作者名）
+   * 构造用户（作者）过滤下拉条目（全部 + allCommits 去重排序作者名）；当前选中项 checked
    */
-  const buildUserOptions = (): SelectOption[] => {
+  const buildUserItems = (): DropdownMenuItem[] => {
     const state = getState();
+    const current = state.filterAuthor || ALL_OPTION_ID;
     const authors = [...new Set(state.allCommits.map(c => c.authorName))].sort();
-    const options: SelectOption[] = [{ id: ALL_OPTION_ID, label: t('filter.all') }];
+    const items: DropdownMenuItem[] = [{ id: ALL_OPTION_ID, label: t('filter.all'), checked: current === ALL_OPTION_ID }];
     for (const name of authors) {
-      options.push({ id: name, label: name });
+      items.push({ id: name, label: name, checked: current === name });
     }
-    return options;
+    return items;
   };
 
   /**
-   * 挂载分支过滤单选下拉（SDK UI Kit mountSelect）
-   * 分组规则复用 branch-panel：收藏 = 非当前分支且在 favorites 中；
-   * 本地 = 非远程且非收藏（含当前分支），远程 = 远程且非收藏。
-   * mountSelect 仅支持单选、无分组标题/子菜单，故分组信息以 hint 前缀降级表达。
-   * 选中 → setState(logBranch/selectedBranch) 并清空多选后按分支重新拉取提交；
-   * 选"全部"（ALL_OPTION_ID）→ 清空分支过滤状态后按全量拉取。
-   * @param root 挂载容器（工具栏分支过滤槽位）
-   * @returns Kit handle（update 同步选中值/选项，dispose 由组件统一释放）
+   * 刷新分支/用户过滤按钮的文案（当前选中值，未选时显示“全部”）
+   * 与日期/路径同为自绘 dropdown-menu 触发按钮，文案由当前状态驱动
    */
-  const mountBranchSelect = (root: HTMLElement): SelectHandle => {
-    const handle = mountSelect(root, {
-      // 工具栏内联紧凑布局，不传 label（Kit select 的 label 为纵向堆叠会撑乱工具栏行高）；
-      // 语义由 trigger 当前值 + title 提示承载
-      value: getState().logBranch ?? ALL_OPTION_ID,
-      options: buildBranchOptions(),
-      placeholder: t('filter.all'),
-      onChange: (id) => {
-        console.debug(JSON.stringify({
-          prefix: '[commit-list]',
-          event: 'branch_dropdown_select',
-          branch: id === ALL_OPTION_ID ? null : id,
-        }));
-        if (id === ALL_OPTION_ID) {
-          setState(s => {
-            s.logBranch = null;
-            s.selectedBranch = null;
-            s.selectedCommits = new Set<string>();
-          });
-        } else {
-          const branch = getState().branches.find(b => b.name === id) ?? null;
-          setState(s => {
-            s.logBranch = id;
-            s.selectedBranch = branch;
-            s.selectedCommits = new Set<string>();
-          });
-        }
-        // 按新分支重新拉取提交（内部会带 logBranch 调 getLog 并重跑过滤管道）
-        void refreshCommits(service, directory);
-      },
-    });
-    return handle;
-  };
-
-  /**
-   * 挂载用户（作者）过滤单选下拉（SDK UI Kit mountSelect）
-   * 条目 = "全部" + allCommits 中去重排序后的作者名（无提交时仅"全部"）
-   * 选中 → setState(filterAuthor) 后立即重跑过滤管道（数据不重新拉取）
-   * @param root 挂载容器（工具栏用户过滤槽位）
-   * @returns Kit handle（update 同步选中值/选项，dispose 由组件统一释放）
-   */
-  const mountUserSelect = (root: HTMLElement): SelectHandle => {
-    const handle = mountSelect(root, {
-      // 工具栏内联紧凑布局，不传 label（同分支下拉，避免纵向堆叠撑乱工具栏行高）
-      value: getState().filterAuthor || ALL_OPTION_ID,
-      options: buildUserOptions(),
-      placeholder: t('filter.all'),
-      onChange: (id) => {
-        const author = id === ALL_OPTION_ID ? '' : id;
-        console.debug(JSON.stringify({
-          prefix: '[commit-list]',
-          event: 'user_dropdown_select',
-          author,
-        }));
-        setState(s => { s.filterAuthor = author; });
-        filterCommits();
-      },
-    });
-    return handle;
-  };
-
-  /**
-   * 同步分支/用户过滤下拉的选中值与选项到当前状态
-   * 外部直接改写 logBranch/filterAuthor/branches/allCommits 时由订阅调用，
-   * 保证 Kit 控件展示与 state 一致（Kit 自身只在用户交互时改内部值）
-   */
-  const syncFilterSelects = (): void => {
+  const updateFilterButtonLabels = (): void => {
     const state = getState();
-    branchSelect?.update({ value: state.logBranch ?? ALL_OPTION_ID });
-    userSelect?.update({ value: state.filterAuthor || ALL_OPTION_ID });
-    // 选项集随分支表/作者集合变化而变化，需整体替换 options
-    branchSelect?.update({ options: buildBranchOptions() });
-    userSelect?.update({ options: buildUserOptions() });
+    const branchValue = filterBtnRefs.branch?.querySelector('.gm-filter-btn-value');
+    const userValue = filterBtnRefs.user?.querySelector('.gm-filter-btn-value');
+    if (branchValue) branchValue.textContent = state.logBranch || t('filter.all');
+    if (userValue) userValue.textContent = state.filterAuthor || t('filter.all');
+  };
+
+  /**
+   * 打开分支过滤下拉菜单（自绘 dropdown-menu，与日期/路径一致）
+   * 分组规则复用 branch-panel：收藏 = 非当前分支且在 favorites 中；
+   * 本地 = 非远程且非收藏（含当前分支），远程 = 远程且非收藏，以 hint 前缀降级表达。
+   * 选中 → setState(logBranch/selectedBranch) 并清空多选后按分支重新拉取提交；
+   * 选“全部”（ALL_OPTION_ID）→ 清空分支过滤状态后按全量拉取。
+   * @param anchor 触发按钮（再次点击同一按钮由 showDropdownMenu 做 toggle 关闭）
+   */
+  const openBranchDropdown = (anchor: HTMLElement): void => {
+    showDropdownMenu(anchor, buildBranchItems(), (id) => {
+      console.debug(JSON.stringify({
+        prefix: '[commit-list]',
+        event: 'branch_dropdown_select',
+        branch: id === ALL_OPTION_ID ? null : id,
+      }));
+      if (id === ALL_OPTION_ID) {
+        setState(s => {
+          s.logBranch = null;
+          s.selectedBranch = null;
+          s.selectedCommits = new Set<string>();
+        });
+      } else {
+        const branch = getState().branches.find(b => b.name === id) ?? null;
+        setState(s => {
+          s.logBranch = id;
+          s.selectedBranch = branch;
+          s.selectedCommits = new Set<string>();
+        });
+      }
+      updateFilterButtonLabels();
+      // 按新分支重新拉取提交（内部会带 logBranch 调 getLog 并重跑过滤管道）
+      void refreshCommits(service, directory);
+    });
+  };
+
+  /**
+   * 打开用户（作者）过滤下拉菜单（自绘 dropdown-menu，与日期/路径一致）
+   * 条目 = “全部” + allCommits 中去重排序后的作者名（无提交时仅“全部”）
+   * 选中 → setState(filterAuthor) 后立即重跑过滤管道（数据不重新拉取）
+   * @param anchor 触发按钮
+   */
+  const openUserDropdown = (anchor: HTMLElement): void => {
+    showDropdownMenu(anchor, buildUserItems(), (id) => {
+      const author = id === ALL_OPTION_ID ? '' : id;
+      console.debug(JSON.stringify({
+        prefix: '[commit-list]',
+        event: 'user_dropdown_select',
+        author,
+      }));
+      setState(s => { s.filterAuthor = author; });
+      updateFilterButtonLabels();
+      filterCommits();
+    });
   };
 
   /**
@@ -894,11 +872,7 @@ export function createCommitListPanel(
 
   const dispose = () => {
     disposed = true;
-    // 释放 SDK UI Kit handle（select/badge/search/button），避免监听与节点泄漏
-    branchSelect?.dispose();
-    branchSelect = null;
-    userSelect?.dispose();
-    userSelect = null;
+    // 释放 SDK UI Kit handle（badge/search），避免监听与节点泄漏
     searchHandle?.dispose();
     searchHandle = null;
     disposeBadges();

@@ -184,7 +184,7 @@ describe('commit-list', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     ({ service, getLogMock, listFilesMock } = createServiceMock());
-    // jsdom 未实现 scrollIntoView：SDK UI Kit 的 mountSelect 打开弹层时会调用，注入空实现兜底
+    // jsdom 未实现 scrollIntoView：部分下拉/列表滚动会调用，注入空实现兜底
     if (!Element.prototype.scrollIntoView) {
       Element.prototype.scrollIntoView = () => {};
     }
@@ -386,13 +386,13 @@ describe('commit-list', () => {
     expect(row('h1').classList.contains('gm-commit-row-hover')).toBe(false);
 
     // 左侧过滤控件 + 右侧角三项（刷新 / 设置 / 跳转）
-    // 分支/用户过滤为 Kit select 槽位，其余为自绘按钮
+    // 全部为自绘按钮（分支/用户为带 .gm-filter-btn-value 的下拉按钮）
     for (const action of ['btn-regex', 'btn-case', 'btn-filter-date', 'btn-filter-path', 'btn-refresh', 'btn-settings', 'btn-goto']) {
       expect(container.querySelector(`[data-action="${action}"]`)).toBeTruthy();
     }
-    // 分支/用户过滤下拉为 SDK UI Kit mountSelect（已替换自绘按钮）
+    // 分支/用户过滤为自绘下拉按钮，当前值文案承载在 .gm-filter-btn-value
     for (const slot of ['filter-branch', 'filter-user']) {
-      expect(container.querySelector(`[data-action="${slot}"] .oc-sdk-select`)).toBeTruthy();
+      expect(container.querySelector(`[data-action="${slot}"] .gm-filter-btn-value`)).toBeTruthy();
     }
     // 已按 IDEA 移除的按钮不应存在
     for (const action of ['btn-select-all', 'btn-download', 'btn-compare', 'btn-search', 'btn-filter-branch', 'btn-filter-user']) {
@@ -1459,7 +1459,7 @@ describe('commit-list', () => {
     setupCommits();
     createPanel();
 
-    // 分支过滤为 Kit select，点击其触发器打开弹层而非跳转对话框
+    // 分支过滤为自绘下拉按钮，点击它弹出下拉而非跳转对话框
     openKitSelect('filter-branch');
 
     expect(gotoInput()).toBeNull();
@@ -1650,51 +1650,67 @@ describe('commit-list', () => {
       el.getAttribute('data-id'),
     );
 
-  // ===== SDK UI Kit mountSelect（分支/用户过滤单选下拉）交互辅助 =====
+  // ===== 自绘 dropdown-menu（分支/用户过滤单选下拉）交互辅助 =====
+  // 与日期/路径下拉同源：点击自绘按钮弹出 #git-dropdown-menu，选中态存于 .git-dropdown-check 勾选标记
 
-  /** 取分支/用户过滤槽位内的 Kit select 根节点（.oc-sdk-select） */
+  /** 取分支/用户过滤触发按钮（自绘 button，点它弹出 dropdown-menu） */
   const kitSelect = (slot: 'filter-branch' | 'filter-user'): HTMLElement => {
-    const root = container.querySelector(`[data-action="${slot}"] .oc-sdk-select`) as HTMLElement;
-    expect(root, `槽位 ${slot} 应挂载 Kit select`).toBeTruthy();
-    return root;
+    const btn = toolbarBtn(slot);
+    expect(btn, `槽位 ${slot} 应为自绘过滤按钮`).toBeTruthy();
+    return btn;
   };
 
-  /** 取 Kit select 的触发按钮（.oc-sdk-trigger） */
+  /** 取触发按钮本体（自绘下拉由按钮 toggle，与 kitSelect 同元素） */
   const kitTrigger = (slot: 'filter-branch' | 'filter-user'): HTMLButtonElement =>
-    kitSelect(slot).querySelector('.oc-sdk-trigger') as HTMLButtonElement;
+    kitSelect(slot) as HTMLButtonElement;
 
-  /** 打开 Kit select 弹层 */
+  /** 打开分支/用户过滤下拉（点击自绘按钮） */
   const openKitSelect = (slot: 'filter-branch' | 'filter-user') => {
     kitTrigger(slot).click();
   };
 
-  /** 取当前打开的 Kit select 弹层（未打开返回 null） */
-  const kitPopup = (): HTMLElement | null =>
-    container.querySelector('.oc-sdk-popup') as HTMLElement | null;
+  /** 取当前打开的下拉容器（未打开返回 null） */
+  const kitPopup = (): HTMLElement | null => dropdownMenu() as HTMLElement | null;
 
-  /** 取弹层内指定 id 的选项按钮（以 -<id> 结尾的 oc-sdk-option） */
-  const kitOption = (id: string): HTMLButtonElement | null => {
-    const options = Array.from(
-      (kitPopup() ?? document).querySelectorAll<HTMLButtonElement>('.oc-sdk-option'),
-    );
-    return options.find(el => el.id.endsWith(`-${id}`)) ?? null;
+  /**
+   * 取下拉内指定 id 的行，并包装为兼容旧 aria-selected 断言的代理对象。
+   * 自绘行无 aria-selected 属性，选中态存于 .git-dropdown-check 勾选标记；
+   * 代理把 getAttribute('aria-selected') 映射为：选中→'true'、未选→'false'，
+   * 其余成员（click/querySelector/textContent 等）原样透传真实行元素。
+   * @param id 行的 data-id（分支=纯分支名，用户=作者名，all=全部）
+   * @returns 行代理；行不存在返回 null
+   */
+  const kitOption = (id: string): HTMLElement | null => {
+    const row = dropdownRow(id);
+    if (!row) return null;
+    return new Proxy(row, {
+      get(target, prop) {
+        if (prop === 'getAttribute') {
+          return (name: string): string | null => {
+            if (name === 'aria-selected') {
+              return dropdownChecked(id) ? 'true' : 'false';
+            }
+            return target.getAttribute(name);
+          };
+        }
+        const value = (target as unknown as Record<string | symbol, unknown>)[prop];
+        return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(target) : value;
+      },
+    }) as unknown as HTMLElement;
   };
 
-  /** 读取 Kit select 当前选中值展示文本（.oc-sdk-trigger-value） */
+  /** 读取过滤按钮当前值文案（.gm-filter-btn-value，未选显示“全部”） */
   const kitValue = (slot: 'filter-branch' | 'filter-user'): string =>
-    (kitSelect(slot).querySelector('.oc-sdk-trigger-value')?.textContent ?? '');
+    (kitSelect(slot).querySelector('.gm-filter-btn-value')?.textContent ?? '');
 
-  /** 读取弹层内所有选项 id（按渲染顺序，去掉 uid 前缀） */
+  /** 按渲染顺序返回下拉各行的 data-id 列表（分支=纯分支名，用户=作者名，首项 all） */
   const kitOptionIds = (): string[] =>
-    Array.from(kitPopup()?.querySelectorAll<HTMLButtonElement>('.oc-sdk-option') ?? []).map(el => {
-      const id = el.id;
-      // 选项 id 形如 <uid>-<原始 id>，取最后一个 '-' 之后部分；原始 id 本身可含 '-'，用 endsWith 推断
-      return id.replace(/^oc-sdk-select-\d+-/, '');
-    });
+    Array.from(kitPopup()?.querySelectorAll('[data-id]') ?? []).map(el => el.getAttribute('data-id') ?? '');
 
-  /** 关闭 Kit select 弹层（模拟焦点移出，等价于点击外部） */
+  /** 关闭下拉（自绘 Escape 同步关闭，等价于点击外部关闭；slot 仅为保持调用签名） */
   const closeKitSelect = (slot: 'filter-branch' | 'filter-user') => {
-    kitSelect(slot).dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+    void slot;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
   };
 
   it('正则开关应切换 searchRegex 并让字面搜不到的模式按正则命中', () => {
@@ -1818,15 +1834,15 @@ describe('commit-list', () => {
     }
   });
 
-  it('logBranch/filterAuthor/日期字段变化应激活日期按钮，分支/用户改由 Kit select 承载', () => {
+  it('logBranch/filterAuthor/日期字段变化应激活日期按钮，分支/用户值展示在下拉按钮上', () => {
     setupCommits();
     createPanel();
     const dateBtn = toolbarBtn('btn-filter-date');
-    // 让分支选项里存在 dev，select 才能展示其标签
+    // 让分支选项里存在 dev，按钮才能展示其名称
     setState(s => { s.branches = [{ name: 'dev', isCurrent: true, isRemote: false }]; });
 
     setState(s => { s.logBranch = 'dev'; });
-    // 分支/用户过滤改为 Kit select：无自绘激活态按钮，选中值展示在触发器上
+    // 分支/用户过滤为自绘下拉按钮：选中值展示在按钮文案上（无独立激活态样式）
     expect(kitValue('filter-branch')).toBe('dev');
 
     setState(s => { s.filterAuthor = '张三'; });
@@ -1866,15 +1882,15 @@ describe('commit-list', () => {
 
     const popup = kitPopup();
     expect(popup).toBeTruthy();
-    // mountSelect 无分组标题，分组信息降级为选项 hint
+    // 自绘下拉无分组标题，分组信息降级为选项 label 的 hint 后缀
     expect(popup!.textContent).toContain('全部');
     expect(popup!.textContent).toContain('本地分支');
     expect(popup!.textContent).toContain('远程分支');
     expect(popup!.textContent).toContain('收藏');
-    // 收藏的 wip 仍在选项内，且被标记为收藏 hint
+    // 收藏的 wip 仍在选项内，且其 label 内联标注收藏 hint（自绘 label 形如 `wip (收藏)`）
     const wip = kitOption('wip');
     expect(wip).toBeTruthy();
-    expect(wip!.querySelector('.oc-sdk-option-hint')?.textContent).toBe('收藏');
+    expect(wip!.textContent).toContain('收藏');
     // 默认选中“全部”（aria-selected=true）
     expect(kitOption('all')!.getAttribute('aria-selected')).toBe('true');
     expect(kitOption('dev')!.getAttribute('aria-selected')).toBe('false');
@@ -2126,7 +2142,7 @@ describe('commit-list', () => {
     createPanel();
 
     const pathBtn = toolbarBtn('btn-filter-path') as HTMLButtonElement;
-    // 日期/路径仍为自绘 dropdown-menu 按钮，样式应一致（分支/用户已改为 Kit select）
+    // 四个过滤按钮均为自绘 dropdown-menu 按钮，样式应一致
     const dateBtn = toolbarBtn('btn-filter-date');
     // 不再是禁用态：无 disabled 属性、与其他自绘下拉按钮同语义类、不弱化透明度
     expect(pathBtn.hasAttribute('disabled')).toBe(false);
@@ -2454,12 +2470,10 @@ describe('commit-list', () => {
     expect(toolbarBtn('btn-case').title).toBe('大小写敏感');
     expect(toolbarBtn('btn-filter-date').textContent).toContain('日期');
     expect(toolbarBtn('btn-filter-path').textContent).toContain('路径');
-    // 分支/用户过滤为 Kit select：工具栏内联紧凑布局不带 label（避免纵向堆叠），
-    // 语义由 trigger 当前值（占位“全部”）承载，故断言 select 就位且占位文案为 i18n 的“全部”
-    const branchTrigger = kitSelect('filter-branch').querySelector('.oc-sdk-trigger-value');
-    const userTrigger = kitSelect('filter-user').querySelector('.oc-sdk-trigger-value');
-    expect(branchTrigger?.textContent).toBe('全部');
-    expect(userTrigger?.textContent).toBe('全部');
+    // 分支/用户过滤为自绘下拉按钮：文案由当前值（占位“全部”）承载，
+    // 断言按钮值 span 的占位文案为 i18n 的“全部”
+    expect(kitValue('filter-branch')).toBe('全部');
+    expect(kitValue('filter-user')).toBe('全部');
   });
 
   it('Ctrl+A 应该全选当前过滤后的提交', () => {

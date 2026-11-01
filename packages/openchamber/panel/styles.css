@@ -386,15 +386,25 @@
   min-width: 80px;
 }
 
-/* 过滤按钮（未激活） */
+/* 过滤按钮（未激活）—— 对齐 SDK UI Kit trigger 的设计语言（raised 表面、同圆角/高度/内边距/悬停） */
 .gm-commit-filter-btn {
-  padding: 2px 5px;
-  background: var(--gm-elevated);
-  border: 1px solid var(--gm-border);
-  border-radius: var(--gm-radius);
-  color: var(--gm-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--oc-sdk-raised-bg, var(--gm-elevated));
+  border: 1px solid transparent;
+  border-radius: calc(var(--gm-radius) - 2px);
+  box-shadow: var(--oc-sdk-raised-lift, none);
+  color: var(--gm-elevated-fg);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: background 150ms ease-out;
+}
+.gm-commit-filter-btn:hover {
+  background: var(--oc-sdk-lit, var(--gm-hover));
 }
 
 /* 过滤按钮 - 激活态 */
@@ -416,8 +426,14 @@
 
 /* 下拉过滤按钮（带 ▾ 文案，不换行） */
 .gm-commit-filter-btn-menu {
-  padding: 2px 6px;
   white-space: nowrap;
+}
+
+/* 下拉按钮里承载当前选中值的文案（分支/用户过滤） */
+.gm-filter-btn-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
 }
 
 /* 工具栏分隔线 */
@@ -428,14 +444,23 @@
   margin: 0 3px;
 }
 
-/* 工具栏图标按钮（无边框） */
+/* 工具栏图标按钮（ghost，无边框；高度对齐 Kit 控件统一 28px） */
 .gm-commit-toolbar-btn {
-  padding: 2px 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   background: transparent;
   border: none;
-  border-radius: var(--gm-radius);
+  border-radius: calc(var(--gm-radius) - 2px);
   color: var(--gm-muted);
   cursor: pointer;
+}
+.gm-commit-toolbar-btn:hover {
+  background: var(--oc-sdk-lit, var(--gm-hover));
+  color: var(--gm-fg);
 }
 
 /* 过滤标签容器 */
@@ -2119,17 +2144,4 @@
 .gm-syntax-operator { color: var(--gm-syntax-operator); }
 
 /* ============ 工具栏内联下拉（分支/用户过滤）对齐 ============ */
-/* Kit select 默认为表单纵向（label 在上），工具栏场景去掉 label 后仅剩 trigger，
-   这里让其与工具栏其它控件同行垂直居中、不撑高行 */
-.gm-commit-filter-slot {
-  display: flex;
-  align-items: center;
-}
-.gm-commit-filter-slot .oc-sdk-select {
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
-}
-.gm-commit-filter-slot .oc-sdk-trigger {
-  height: 26px;
-}
+/* 分支/用户过滤已退回自绘 dropdown-menu，与日期/路径共用 .gm-commit-filter-btn(-menu) 视觉 */
