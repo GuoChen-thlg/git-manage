@@ -52,15 +52,18 @@ interface SidebarItem {
 }
 
 /** 侧边栏容器样式（沿用原 main.ts 布局） */
-const SIDEBAR_STYLE =
-  'width: 40px; min-width: 40px; background: #2b2b2b; border-right: 1px solid #333; display: flex; flex-direction: column; align-items: center; padding: 4px 0; gap: 2px;';
+// 样式已迁移到 __styles__/sidebar.css 的 .gm-sidebar class
+const SIDEBAR_CLASS = 'gm-sidebar';
+
+// 样式已迁移到 __styles__/sidebar.css 的 .gm-sidebar-btn class
+const BUTTON_CLASS = 'gm-sidebar-btn';
+
+/*
 
 /** 激活态背景色（对齐 IDEA ToggleAction 选中时的按钮底色） */
-const ACTIVE_BG = '#2e4a6e';
 
 /** 单个图标按钮样式 */
-const BUTTON_STYLE =
-  'width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; color: #6E6E6E;';
+/*
 
 /**
  * 收起/展开按钮的 tooltip
@@ -116,7 +119,7 @@ export function createSidebar(
   /** 收起/展开按钮引用（title 与图标随面板显隐切换） */
   let toggleBtn: HTMLElement | null = null;
 
-  container.style.cssText = SIDEBAR_STYLE;
+  container.className = SIDEBAR_CLASS;
   container.innerHTML = '';
 
   for (const item of ITEMS) {
@@ -124,7 +127,7 @@ export function createSidebar(
     const title = isToggle ? buildToggleTitle() : t(item.titleKey);
 
     const btn = html`
-      <div data-sidebar="${item.key}" style="${BUTTON_STYLE}" title="${title}">
+      <div data-sidebar="${item.key}" class="${BUTTON_CLASS}" title="${title}">
         ${isToggle ? buildToggleIcon() : (item.customSvg ?? getIcon(item.icon))}
       </div>
     `;
@@ -134,15 +137,15 @@ export function createSidebar(
     // 统一初始态：未激活、可用、透明背景（激活态由 applyButtonState 设置）
     btn.dataset.active = 'false';
     btn.dataset.disabled = 'false';
-    btn.style.background = 'transparent';
+    btn.classList.remove('gm-sidebar-btn-hover', 'gm-sidebar-btn-active');
 
     // hover 高亮：激活态保持激活底色，其余用 hover 色
     btn.addEventListener('mouseenter', () => {
       if (btn.dataset.disabled === 'true') return;
-      btn.style.background = btn.dataset.active === 'true' ? ACTIVE_BG : '#3c3c3c';
+      btn.classList.toggle('gm-sidebar-btn-hover', btn.dataset.active !== 'true');
     });
     btn.addEventListener('mouseleave', () => {
-      btn.style.background = btn.dataset.active === 'true' ? ACTIVE_BG : 'transparent';
+      btn.classList.remove('gm-sidebar-btn-hover');
     });
 
     btn.addEventListener('click', (e) => {
@@ -178,7 +181,7 @@ export function createSidebar(
   ): void => {
     btn.dataset.active = active ? 'true' : 'false';
     btn.dataset.disabled = enabled ? 'false' : 'true';
-    btn.style.background = active ? ACTIVE_BG : 'transparent';
+    btn.classList.toggle('gm-sidebar-btn-active', active);
     btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
     btn.style.opacity = enabled ? '1' : '0.45';
     if (!enabled) {

@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { showSettingsMenu, hideSettingsMenu } from '../components/settings-menu';
 import { setState, createInitialState, getState } from '../state';
 import { setLocale } from '../i18n';
+import { expectThemedClass, expectNoHardcodedHex } from './theme-helpers';
 
 /**
  * 构造打开菜单用的鼠标事件
@@ -71,7 +72,6 @@ describe('settings-menu', () => {
       showSettingsMenu(createClickEvent());
 
       const menu = getMenu();
-      expect(menu.style.position).toBe('fixed');
       expect(menu.style.left).toBe('20px');
       expect(menu.style.top).toBe('30px');
       expect(menu.textContent).toContain('显示设置');
@@ -106,50 +106,34 @@ describe('settings-menu', () => {
       expect(document.getElementById('git-settings-menu')).toBeNull();
     });
 
-    it('菜单容器应应用背景、边框、圆角、内边距、层级与阴影样式', () => {
+    it('菜单容器应带主题化容器类与定位坐标，不含硬编码色值', () => {
       showSettingsMenu(createClickEvent());
 
       const menu = getMenu();
-      expect(menu.style.background).toBe('rgb(45, 45, 45)');
-      expect(menu.style.border).toBe('1px solid rgb(68, 68, 68)');
-      expect(menu.style.borderRadius).toBe('4px');
-      expect(menu.style.padding).toBe('4px 0px');
-      expect(menu.style.zIndex).toBe('1000');
-      expect(menu.style.minWidth).toBe('160px');
-      expect(menu.style.boxShadow).toBe('0 2px 8px rgba(0, 0, 0, 0.5)');
+      expectThemedClass(menu, 'gm-settings-menu');
+      expectNoHardcodedHex(menu);
     });
 
-    it('标题与分隔线应应用字号、颜色与分隔样式', () => {
+    it('标题与分隔线应应用语义类（弱化标题、分隔线）', () => {
       showSettingsMenu(createClickEvent());
 
       const menu = getMenu();
       const title = menu.firstElementChild as HTMLElement;
-      expect(title.style.padding).toBe('6px 12px');
-      expect(title.style.fontSize).toBe('11px');
-      expect(title.style.color).toBe('rgb(136, 136, 136)');
+      expectThemedClass(title, 'gm-settings-title');
 
       const separator = title.nextElementSibling as HTMLElement;
-      expect(separator.style.background).toBe('rgb(68, 68, 68)');
-      expect(separator.style.margin).toBe('4px 0px');
+      expectThemedClass(separator, 'gm-settings-sep');
     });
 
-    it('开关项与勾号应应用布局与高亮色样式', () => {
+    it('开关项与勾号应应用布局与高亮色的语义类', () => {
       showSettingsMenu(createClickEvent());
 
       const item = getItem('showAuthor');
-      expect(item.style.padding).toBe('6px 12px');
-      expect(item.style.cursor).toBe('pointer');
-      expect(item.style.fontSize).toBe('12px');
-      expect(item.style.color).toBe('rgb(204, 204, 204)');
-      expect(item.style.display).toBe('flex');
-      expect(item.style.alignItems).toBe('center');
-      expect(item.style.gap).toBe('6px');
+      expectThemedClass(item, 'gm-settings-item');
 
       const check = item.querySelector<HTMLElement>('.git-settings-check');
       expect(check).toBeTruthy();
-      expect(check!.style.width).toBe('12px');
-      expect(check!.style.flex).toBe('0 0 12px');
-      expect(check!.style.color).toBe('rgb(76, 175, 80)');
+      expectThemedClass(check!, 'gm-settings-check');
     });
   });
 
@@ -187,7 +171,7 @@ describe('settings-menu', () => {
       title.click();
 
       const separator = title.nextElementSibling as HTMLElement;
-      expect(separator.style.height).toBe('1px');
+      expect(separator.classList.contains('gm-settings-sep')).toBe(true);
       separator.click();
 
       expect(getState().displaySettings).toEqual({
@@ -234,7 +218,7 @@ describe('settings-menu', () => {
       const item = getItem('showAuthor');
       item.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
 
-      expect(item.style.background).toBe('rgb(58, 58, 58)');
+      expect(item.classList.contains('gm-settings-item-hover')).toBe(true);
     });
 
     it('鼠标移入标题不应高亮标题背景', () => {
@@ -243,18 +227,18 @@ describe('settings-menu', () => {
       const title = getMenu().firstElementChild as HTMLElement;
       title.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
 
-      expect(title.style.background).toBe('');
+      expect(title.classList.contains('gm-settings-item-hover')).toBe(false);
     });
 
-    it('鼠标移出开关项应恢复透明背景', () => {
+    it('鼠标移出开关项应恢复（移除高亮类）', () => {
       showSettingsMenu(createClickEvent());
 
       const item = getItem('showDate');
       item.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(item.style.background).toBe('rgb(58, 58, 58)');
+      expect(item.classList.contains('gm-settings-item-hover')).toBe(true);
 
       item.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-      expect(item.style.background).toBe('transparent');
+      expect(item.classList.contains('gm-settings-item-hover')).toBe(false);
     });
 
     it('鼠标移出标题不应改变标题背景', () => {
@@ -263,7 +247,7 @@ describe('settings-menu', () => {
       const title = getMenu().firstElementChild as HTMLElement;
       title.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
 
-      expect(title.style.background).toBe('');
+      expect(title.classList.contains('gm-settings-item-hover')).toBe(false);
     });
   });
 
@@ -289,12 +273,12 @@ describe('settings-menu', () => {
       const item = getItem('showAuthor');
 
       nested.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(nested.style.background).toBe('');
-      expect(item.style.background).toBe('');
+      expect(nested.classList.contains('gm-settings-item-hover')).toBe(false);
+      expect(item.classList.contains('gm-settings-item-hover')).toBe(false);
 
       nested.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-      expect(nested.style.background).toBe('');
-      expect(item.style.background).toBe('');
+      expect(nested.classList.contains('gm-settings-item-hover')).toBe(false);
+      expect(item.classList.contains('gm-settings-item-hover')).toBe(false);
     });
 
     it('点击带 data-key 的嵌套子元素不应切换开关状态', () => {

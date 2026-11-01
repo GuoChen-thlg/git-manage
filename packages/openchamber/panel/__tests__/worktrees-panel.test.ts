@@ -52,9 +52,10 @@ describe('worktrees-panel', () => {
     return handle;
   }
 
-  /** 点击扩展确认对话框的确定按钮 */
+  /** 点击扩展确认对话框的确定按钮（确认对话框按钮已改用 SDK UI Kit，.oc-sdk-btn） */
   function clickConfirmOk(): void {
-    const ok = document.getElementById('confirm-ok') as HTMLElement | null;
+    const overlay = document.querySelector('.gm-dialog-overlay') as HTMLElement | null;
+    const ok = overlay?.querySelector('[data-confirm-ok] .oc-sdk-btn') as HTMLElement | null;
     ok?.click();
   }
 
@@ -139,12 +140,12 @@ describe('worktrees-panel', () => {
     create(service);
     await new Promise(r => setTimeout(r, 0));
 
-    const removeBtn = [...container.querySelectorAll('button')].find(b => b.textContent === '移除') as HTMLElement;
+    const removeBtn = [...container.querySelectorAll('.oc-sdk-btn')].find(b => b.textContent === '移除') as HTMLElement;
     removeBtn.click();
     await new Promise(r => setTimeout(r, 0));
 
-    // 沙箱中不可用原生 confirm，改用扩展自身对话框
-    expect(document.getElementById('confirm-ok')).toBeTruthy();
+    // 沙箱中不可用原生 confirm，改用扩展自身对话框（确定按钮为 Kit 控件）
+    expect(document.querySelector('[data-confirm-ok] .oc-sdk-btn')).toBeTruthy();
     clickConfirmOk();
     await new Promise(r => setTimeout(r, 0));
 
@@ -168,7 +169,7 @@ describe('worktrees-panel', () => {
     create(service);
     await new Promise(r => setTimeout(r, 0));
 
-    const removeBtn = [...container.querySelectorAll('button')].find(b => b.textContent === '移除') as HTMLElement;
+    const removeBtn = [...container.querySelectorAll('.oc-sdk-btn')].find(b => b.textContent === '移除') as HTMLElement;
     removeBtn.click();
     await new Promise(r => setTimeout(r, 0));
     // 首次确认
@@ -192,7 +193,7 @@ describe('worktrees-panel', () => {
     create(service);
     await new Promise(r => setTimeout(r, 0));
 
-    const pruneBtn = [...container.querySelectorAll('button')].find(b => b.textContent === '清理失效项') as HTMLElement;
+    const pruneBtn = [...container.querySelectorAll('.oc-sdk-btn')].find(b => b.textContent === '清理失效项') as HTMLElement;
     pruneBtn.click();
     await new Promise(r => setTimeout(r, 0));
 
@@ -220,7 +221,7 @@ describe('worktrees-panel', () => {
     await new Promise(r => setTimeout(r, 0));
     const callsBefore = listWorktrees.mock.calls.length;
 
-    const refreshBtn = [...container.querySelectorAll('button')].find(b => b.textContent === '刷新') as HTMLElement;
+    const refreshBtn = [...container.querySelectorAll('.oc-sdk-btn')].find(b => b.textContent === '刷新') as HTMLElement;
     refreshBtn.click();
     await new Promise(r => setTimeout(r, 0));
 
@@ -241,7 +242,7 @@ describe('worktrees-panel', () => {
     dispose = handle.dispose;
     await new Promise(r => setTimeout(r, 0));
 
-    const pruneBtn = [...container.querySelectorAll('button')].find(b => b.textContent === '清理失效项') as HTMLElement;
+    const pruneBtn = [...container.querySelectorAll('.oc-sdk-btn')].find(b => b.textContent === '清理失效项') as HTMLElement;
     pruneBtn.click();
     await new Promise(r => setTimeout(r, 0));
 
@@ -260,7 +261,7 @@ describe('worktrees-panel', () => {
     dispose = handle.dispose;
     await new Promise(r => setTimeout(r, 0));
 
-    const pruneBtn = [...container.querySelectorAll('button')].find(b => b.textContent === '清理失效项') as HTMLElement;
+    const pruneBtn = [...container.querySelectorAll('.oc-sdk-btn')].find(b => b.textContent === '清理失效项') as HTMLElement;
     pruneBtn.click();
     await new Promise(r => setTimeout(r, 0));
 
@@ -279,12 +280,11 @@ describe('worktrees-panel', () => {
     dispose = handle.dispose;
     await new Promise(r => setTimeout(r, 0));
 
-    const removeBtn = [...container.querySelectorAll('button')].find(b => b.textContent === '移除') as HTMLElement;
+    const removeBtn = [...container.querySelectorAll('.oc-sdk-btn')].find(b => b.textContent === '移除') as HTMLElement;
     removeBtn.click();
     await new Promise(r => setTimeout(r, 0));
-    // 确认对话框
-    const ok = document.querySelector('#confirm-ok') as HTMLElement;
-    ok.click();
+    // 确认对话框（确定按钮为 Kit 控件）
+    clickConfirmOk();
     await new Promise(r => setTimeout(r, 0));
 
     // 回归：此类失败此前只写 console，用户点完什么都看不到
@@ -308,15 +308,15 @@ describe('worktrees-panel', () => {
     dispose = handle.dispose;
     await new Promise(r => setTimeout(r, 0));
 
-    const removeBtn = [...container.querySelectorAll('button')].find(b => b.textContent === '移除') as HTMLElement;
+    const removeBtn = [...container.querySelectorAll('.oc-sdk-btn')].find(b => b.textContent === '移除') as HTMLElement;
     removeBtn.click();
     await new Promise(r => setTimeout(r, 0));
-    (document.querySelector('#confirm-ok') as HTMLElement).click();
+    clickConfirmOk();
     await new Promise(r => setTimeout(r, 0));
 
     // 第一次失败命中「有改动」→ 弹出强制移除确认
-    expect(document.querySelector('#confirm-ok')).toBeTruthy();
-    (document.querySelector('#confirm-ok') as HTMLElement).click();
+    expect(document.querySelector('[data-confirm-ok] .oc-sdk-btn')).toBeTruthy();
+    clickConfirmOk();
     await new Promise(r => setTimeout(r, 0));
 
     expect(removeWorktree).toHaveBeenCalledTimes(2);

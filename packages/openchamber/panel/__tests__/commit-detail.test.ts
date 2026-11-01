@@ -7,6 +7,11 @@ import { createCommitDetailPanel } from '../components/commit-detail';
 import { setState, createInitialState, stateManager } from '../state';
 import type { CommitInfo } from '../state';
 import type { ServiceClient } from '../service';
+import {
+  expectThemedClass,
+  expectNoHardcodedHex,
+  expectOnlyRuntimeInlineStyles,
+} from './theme-helpers';
 
 /** 已创建组件的清理列表（afterEach 依次 dispose） */
 let disposers: Array<() => void> = [];
@@ -234,13 +239,21 @@ describe('commit-detail', () => {
       expect(authorField.children[0].textContent).toBe('作者');
       expect(dateField.children[0].textContent).toBe('日期');
 
-      // hash 字段带等宽字体
-      expect(hashField.children[1].getAttribute('style')).toContain('font-family: monospace;');
+      // hash 字段带等宽字体（语义类 gm-detail-value-mono，字体由 CSS 变量承担）
+      expectThemedClass(hashField.children[1] as HTMLElement, ['gm-detail-value', 'gm-detail-value-mono']);
       expect(hashField.children[1].textContent).toContain(sampleCommit.hash);
 
-      // 其余字段不带等宽字体声明（模板中该位置为空串）
-      expect(authorField.children[1].getAttribute('style')).toBe('color: #ccc; word-break: break-all; ');
-      expect(dateField.children[1].getAttribute('style')).toBe('color: #ccc; word-break: break-all; ');
+      // 其余字段不带等宽字体类，仅基础值类
+      expectThemedClass(authorField.children[1] as HTMLElement, 'gm-detail-value');
+      expect((authorField.children[1] as HTMLElement).classList.contains('gm-detail-value-mono')).toBe(false);
+      expectThemedClass(dateField.children[1] as HTMLElement, 'gm-detail-value');
+      expect((dateField.children[1] as HTMLElement).classList.contains('gm-detail-value-mono')).toBe(false);
+      // 主题类接管后不应再有内联样式（字段值无运行时计算值）
+      expectOnlyRuntimeInlineStyles(hashField.children[1] as HTMLElement);
+      expectOnlyRuntimeInlineStyles(authorField.children[1] as HTMLElement);
+      expectOnlyRuntimeInlineStyles(dateField.children[1] as HTMLElement);
+      // 整个面板子树不应出现硬编码颜色
+      expectNoHardcodedHex(container);
     });
   });
 });

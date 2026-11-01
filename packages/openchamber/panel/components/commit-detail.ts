@@ -24,18 +24,18 @@ export function createCommitDetailPanel(
 
     // 标题
     container.appendChild(html`
-      <div style="padding: 4px 8px; background: #252526; border-bottom: 1px solid #333; font-size: 12px; color: #ccc; flex-shrink: 0;">
+      <div class="gm-detail-title">
         ${t('detail.title')}
       </div>
     `);
 
     // 内容
     const content = html`
-      <div style="flex: 1; overflow-y: auto; padding: 8px; font-size: 12px;"></div>
+      <div class="gm-detail-content"></div>
     `;
 
     if (!state.commitDetail) {
-      content.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">${t('commit.noSelection')}</div>`;
+      content.innerHTML = `<div class="gm-detail-empty">${t('commit.noSelection')}</div>`;
     } else {
       renderCommitDetail(content, state.commitDetail);
     }
@@ -61,17 +61,17 @@ export function createCommitDetailPanel(
 
     for (const field of fields) {
       container.appendChild(html`
-        <div style="margin-bottom: 8px;">
-          <div style="color: #888; font-size: 11px; margin-bottom: 2px;">${field.label}</div>
-          <div style="color: #ccc; word-break: break-all; ${field.mono ? 'font-family: monospace;' : ''}">${field.value}</div>
+        <div class="gm-detail-field">
+          <div class="gm-detail-label">${field.label}</div>
+          <div class="${field.mono ? 'gm-detail-value gm-detail-value-mono' : 'gm-detail-value'}">${field.value}</div>
         </div>
       `);
     }
 
     // 提交消息
     container.appendChild(html`
-      <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #333;">
-        <div style="color: #ccc; white-space: pre-wrap;">${commit.message}</div>
+      <div class="gm-detail-message-block">
+        <div class="gm-detail-message">${commit.message}</div>
       </div>
     `);
   };

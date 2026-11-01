@@ -21,7 +21,6 @@ import {
 } from '../state';
 import { ServiceClient } from '../service';
 import { t, getLang } from '../i18n';
-import { getIcon } from '../icons';
 import { showCommitContextMenu } from './context-menu';
 import { showSettingsMenu } from './settings-menu';
 import { showGotoDialog, showDateRangeDialog, showPathFilterDialog, showPathTreeDialog } from './dialogs';
@@ -29,6 +28,18 @@ import { showDropdownMenu } from './dropdown-menu';
 import type { DropdownMenuItem } from './dropdown-menu';
 import { host } from '../host';
 import { showOperationError } from './errors';
+import { getIcon } from '../icons';
+import { mountBadge, mountSearchField } from '@openchamber/sdk/ui';
+import type {
+  BadgeHandle,
+  SearchFieldHandle,
+} from '@openchamber/sdk/ui';
+
+/** 按钮式触发选择下拉使用的空值选项标识（全部/不过滤） */
+const ALL_OPTION_ID = 'all';
+
+/** 提交行引用徽标 handle 列表（renderList 重建前与组件 dispose 时统一释放） */
+const badgeHandles: BadgeHandle[] = [];
 
 export function createCommitListPanel(
   container: HTMLElement,
@@ -54,6 +65,8 @@ export function createCommitListPanel(
     date: HTMLElement | null;
     path: HTMLElement | null;
   } = { regex: null, caseSensitive: null, branch: null, user: null, date: null, path: null };
+  /** SDK UI Kit 搜索框 handle（提交搜索）：render 重建前与组件 dispose 时统一释放 */
+  let searchHandle: SearchFieldHandle | null = null;
 
   const findCommitFromEvent = (e: Event): CommitInfo | null => {
     const target = e.target as HTMLElement;
@@ -76,7 +89,7 @@ export function createCommitListPanel(
   
   /**
    * 聚焦工具栏搜索框
-   * data-search-input 是侧边栏搜索图标的契约选择器（main.ts 按其聚焦）
+   * 搜索框为 Kit mountSearchField，聚焦其内部 .oc-sdk-input
    */
   
   /**
@@ -149,10 +162,12 @@ export function createCommitListPanel(
   };
 
   /**
-   * 按当前状态刷新工具栏 6 个过滤按钮的激活样式
-   * 激活：background #1a3a5a、border #2a5a8a、color #cfe8ff；未激活恢复 #333/#444/#888
-   * 映射：btn-regex ← searchRegex；btn-case ← searchCaseSensitive；btn-filter-branch ← logBranch；
-   * btn-filter-user ← filterAuthor；btn-filter-date ← filterDateFrom/filterDateTo 任一非空；
+   * 按当前状态刷新工具栏过滤按钮的激活样式（6 个自绘按钮：正则/大小写/分支/用户/日期/路径）
+   * 激活/未激活视觉由 __styles__/commit-list.css 的
+   * .gm-commit-filter-btn(.gm-commit-filter-btn-active) 承担
+   * 映射：btn-regex ← searchRegex；btn-case ← searchCaseSensitive；
+   * filter-branch ← logBranch 非空；filter-user ← filterAuthor 非空；
+   * btn-filter-date ← filterDateFrom/filterDateTo 任一非空；
    * btn-filter-path ← filterPaths 非空（多选路径数组，空数组 = 不过滤）
    * 触发时机：toolbar 构建后一次 + subscribeFields 订阅回调（仅关注字段变化时执行）
    */
@@ -168,9 +183,7 @@ export function createCommitListPanel(
     ];
     for (const [btn, active] of activeFlags) {
       if (!btn) continue;
-      btn.style.background = active ? '#1a3a5a' : '#333';
-      btn.style.border = active ? '1px solid #2a5a8a' : '1px solid #444';
-      btn.style.color = active ? '#cfe8ff' : '#888';
+      btn.classList.toggle('gm-commit-filter-btn-active', active);
     }
   };
 
@@ -179,44 +192,43 @@ export function createCommitListPanel(
     container.innerHTML = '';
 
     // 搜索过滤工具栏 (IntelliJ 完整风格)
+    // 分支/用户过滤改为 SDK UI Kit 的 mountSelect（单选下拉）；日期/路径仍为自绘 dropdown-menu。
+    // 搜索框改用 Kit mountSearchField。右侧四个图标按钮保持自绘 button+getIcon：
+    // mountButton 仅支持文本 label、无图标插槽，图标型按钮用 Kit 会退化为空白，故保留自绘。
     toolbar = html`
-      <div style="display: flex; align-items: center; gap: 2px; padding: 4px 6px; border-bottom: 1px solid #333; flex-shrink: 0; background: #1e1e1e; flex-wrap: wrap;">
-        <!-- 搜索输入框 -->
-        <div style="display: flex; align-items: center; background: #2a2a2a; border: 1px solid #444; border-radius: 3px; padding: 0 6px; width: 280px; max-width: 280px; flex: 0 1 280px; min-width: 120px;">
-          <span style="color: #888; font-size: 12px; margin-right: 4px;">${getIcon('search')}</span>
-          <input 
-            type="text" 
-            placeholder="${t('commit.searchPlaceholder')}" 
-            data-search-input
-            style="flex: 1; padding: 3px 0; background: transparent; border: none; color: #ccc; font-size: 12px; outline: none; min-width: 80px;"
-          />
-        </div>
+      <div class="gm-commit-toolbar">
+        <!-- 搜索输入框（Kit mountSearchField 容器） -->
+        <div data-action="search-box" class="gm-commit-search-slot"></div>
         <!-- 正则/大小写按钮 -->
-        <button data-action="btn-regex" style="padding: 2px 5px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; font-family: monospace;" title="${t('filter.regex')}">.*</button>
-        <button data-action="btn-case" style="padding: 2px 5px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; font-weight: bold;" title="${t('filter.case')}">Cc</button>
+        <button data-action="btn-regex" class="gm-commit-filter-btn gm-commit-filter-btn-mono" title="${t('filter.regex')}">.*</button>
+        <button data-action="btn-case" class="gm-commit-filter-btn gm-commit-filter-btn-bold" title="${t('filter.case')}">Cc</button>
         <!-- 分隔线 -->
-        <div style="width: 1px; height: 16px; background: #444; margin: 0 3px;"></div>
-        <!-- 过滤下拉按钮 -->
-        <button data-action="btn-filter-branch" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.branch')} ▾</button>
-        <button data-action="btn-filter-user" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.user')} ▾</button>
-        <button data-action="btn-filter-date" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.date')} ▾</button>
-        <button data-action="btn-filter-path" style="padding: 2px 6px; background: #333; border: 1px solid #444; border-radius: 3px; color: #888; cursor: pointer; font-size: 11px; white-space: nowrap;">${t('filter.path')} ▾</button>
+        <div class="gm-commit-toolbar-sep"></div>
+        <!-- 分支/用户过滤下拉（自绘 dropdown-menu，与日期/路径一致） -->
+        <button data-action="filter-branch" class="gm-commit-filter-btn gm-commit-filter-btn-menu"><span class="gm-filter-btn-value"></span> ▾</button>
+        <button data-action="filter-user" class="gm-commit-filter-btn gm-commit-filter-btn-menu"><span class="gm-filter-btn-value"></span> ▾</button>
+        <!-- 日期/路径仍为自绘 dropdown-menu（日期含自定义对话框，路径为多选勾选） -->
+        <button data-action="btn-filter-date" class="gm-commit-filter-btn gm-commit-filter-btn-menu">${t('filter.date')} ▾</button>
+        <button data-action="btn-filter-path" class="gm-commit-filter-btn gm-commit-filter-btn-menu">${t('filter.path')} ▾</button>
         <!-- 分隔线 -->
-        <div style="width: 1px; height: 16px; background: #444; margin: 0 3px;"></div>
-        <!-- 右侧角：刷新 / Cherry-pick / 视图选项 / 搜索 -->
-        <button data-action="btn-refresh" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('sidebar.refresh')}">${getIcon('refresh')}</button>
-        <button data-action="btn-cherry-pick" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('commit.cherryPick')}">${getIcon('cherryPick')}</button>
-        <button data-action="btn-settings" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('settings.title')}">${getIcon('gearSettings')}</button>
-        <button data-action="btn-goto" style="padding: 2px 5px; background: transparent; border: none; border-radius: 3px; color: #888; cursor: pointer;" title="${t('goto.title')}">${getIcon('search')}</button>
+        <div class="gm-commit-toolbar-sep"></div>
+        <!-- 右侧角：刷新 / Cherry-pick / 视图选项 / 搜索（自绘图标按钮） -->
+        <button data-action="btn-refresh" class="gm-commit-toolbar-btn" title="${t('sidebar.refresh')}">${getIcon('refresh')}</button>
+        <button data-action="btn-cherry-pick" class="gm-commit-toolbar-btn" title="${t('commit.cherryPick')}">${getIcon('cherryPick')}</button>
+        <button data-action="btn-settings" class="gm-commit-toolbar-btn" title="${t('settings.title')}">${getIcon('gearSettings')}</button>
+        <button data-action="btn-goto" class="gm-commit-toolbar-btn" title="${t('goto.title')}">${getIcon('search')}</button>
       </div>
     `;
 
-    const searchInput = toolbar.querySelector('input') as HTMLInputElement;
-    searchInput.value = getState().commitSearch;
-    searchInput.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      setState(s => { s.commitSearch = target.value; });
-      // 订阅回调会触发 filterCommits，filterCommits 更新 filteredCommits 后再触发 renderList
+    // 挂载搜索框（Kit mountSearchField），重建前先释放旧 handle
+    searchHandle?.dispose();
+    searchHandle = mountSearchField(toolbar.querySelector<HTMLElement>('[data-action="search-box"]')!, {
+      value: getState().commitSearch,
+      placeholder: t('commit.searchPlaceholder'),
+      onChange: (value) => {
+        setState(s => { s.commitSearch = value; });
+        // 订阅回调会触发 filterCommits，filterCommits 更新 filteredCommits 后再触发 renderList
+      },
     });
 
     /**
@@ -269,19 +281,20 @@ export function createCommitListPanel(
       }
     };
 
+    // 右侧四个图标按钮走事件委托（自绘 button+getIcon），与过滤按钮同一入口
     toolbar.addEventListener('click', (e) => {
       const target = (e.target as HTMLElement).closest('[data-action]');
       if (!target) return;
       const action = target.getAttribute('data-action');
-      if (action === 'btn-refresh') refreshCommits(service, directory);
-      else if (action === 'btn-regex') toggleRegex();
+      if (action === 'btn-regex') toggleRegex();
       else if (action === 'btn-case') toggleCase();
-      else if (action === 'btn-filter-branch') openBranchDropdown(target as HTMLElement);
-      else if (action === 'btn-filter-user') openUserDropdown(target as HTMLElement);
+      else if (action === 'filter-branch') openBranchDropdown(target as HTMLElement);
+      else if (action === 'filter-user') openUserDropdown(target as HTMLElement);
       else if (action === 'btn-filter-date') openDateDropdown(target as HTMLElement);
       else if (action === 'btn-filter-path') openPathDropdown(target as HTMLElement);
+      else if (action === 'btn-refresh') void refreshCommits(service, directory);
       else if (action === 'btn-cherry-pick') void handleCherryPick();
-      else if (action === 'btn-settings') showSettingsMenu(e);
+      else if (action === 'btn-settings') showSettingsMenu(e as MouseEvent);
       else if (action === 'btn-goto') showGotoDialog(gotoReference);
     });
 
@@ -290,18 +303,19 @@ export function createCommitListPanel(
     filterBtnRefs = {
       regex: toolbar.querySelector<HTMLElement>('[data-action="btn-regex"]'),
       caseSensitive: toolbar.querySelector<HTMLElement>('[data-action="btn-case"]'),
-      branch: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-branch"]'),
-      user: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-user"]'),
+      branch: toolbar.querySelector<HTMLElement>('[data-action="filter-branch"]'),
+      user: toolbar.querySelector<HTMLElement>('[data-action="filter-user"]'),
       date: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-date"]'),
       path: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-path"]'),
     };
     updateFilterButtons();
-    // 分支过滤标签单独更新，不随工具栏整体重建
+    // 分支/用户按钮文案（当前选中值）+ 分支过滤标签单独更新，不随工具栏整体重建
+    updateFilterButtonLabels();
     renderFilterTag();
 
     // 提交列表
     listContainer = html`
-      <div tabindex="0" style="flex: 1; overflow-y: auto; overflow-x: hidden; user-select: none; outline: none;"></div>
+      <div tabindex="0" class="gm-commit-list"></div>
     `;
 
     // Ctrl/Cmd+A 全选提交（列表获得焦点时生效，对齐 IDEA）
@@ -352,7 +366,7 @@ export function createCommitListPanel(
 
     listContainer.addEventListener('mouseenter', (e) => {
       const target = (e.target as HTMLElement).closest('[data-hash]');
-      if (target) (target as HTMLElement).style.background = '#2a2d2e';
+      if (target) (target as HTMLElement).classList.add('gm-commit-row-hover');
     }, true);
 
     listContainer.addEventListener('mouseleave', (e) => {
@@ -362,7 +376,9 @@ export function createCommitListPanel(
         const hash = target.getAttribute('data-hash');
         const isSelected = hash !== null &&
           (state.selectedCommits.has(hash) || state.selectedCommit?.hash === hash);
-        (target as HTMLElement).style.background = isSelected ? '#2a3a4a' : 'transparent';
+        const row = target as HTMLElement;
+        row.classList.remove('gm-commit-row-hover');
+        row.classList.toggle('gm-commit-row-selected', isSelected);
       }
     }, true);
 
@@ -439,6 +455,7 @@ export function createCommitListPanel(
     unsubscribe = subscribeFields(
       [
         'filteredCommits',
+        'allCommits',
         'branches',
         'logBranch',
         'selectedCommit',
@@ -459,6 +476,15 @@ export function createCommitListPanel(
         console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'sub_changed', changed }));
         // 过滤按钮激活态随关注字段变化刷新（无关字段不进入本回调，不触发重绘）
         updateFilterButtons();
+        // 分支/用户过滤按钮文案（当前选中值）随 state 同步
+        if (
+          changed.includes('logBranch') ||
+          changed.includes('filterAuthor') ||
+          changed.includes('branches') ||
+          changed.includes('allCommits')
+        ) {
+          updateFilterButtonLabels();
+        }
         // 搜索模式开关（外部直接 setState 场景）→ 重算过滤；点击按钮场景由 toggle 显式调用，管道幂等
         if (changed.includes('searchRegex') || changed.includes('searchCaseSensitive')) {
           filterCommits();
@@ -543,14 +569,14 @@ export function createCommitListPanel(
     };
 
     const sortTag = html`
-      <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; background: #3a2e1a; border-radius: 3px; font-size: 11px;">
-        <span style="color: #e8a838;">${t(sortLabelKey[state.sortMode])}</span>
-        <span data-action="btn-clear-sort" style="color: #888; cursor: pointer; font-size: 10px;">×</span>
+      <span class="gm-commit-sort-tag">
+        <span class="gm-commit-sort-tag-text">${t(sortLabelKey[state.sortMode])}</span>
+        <span data-action="btn-clear-sort" class="gm-commit-sort-tag-close">×</span>
       </span>
     `;
 
     filterTag = html`
-      <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 4px;">
+      <span class="gm-commit-filter-tag">
         ${sortTag}
       </span>
     `;
@@ -564,43 +590,66 @@ export function createCommitListPanel(
   };
 
   /**
-   * 打开分支过滤下拉菜单
+   * 构造分支过滤下拉条目（全部 + 分支名，分组信息降级为 hint 前缀）
+   * 收藏优先、其余按远程/本地排序，同组内保持原顺序；当前选中项 checked
+   */
+  const buildBranchItems = (): DropdownMenuItem[] => {
+    const state = getState();
+    const current = state.logBranch ?? ALL_OPTION_ID;
+    const isFav = (b: { isCurrent: boolean; name: string }): boolean =>
+      !b.isCurrent && state.favorites.has(b.name);
+    const hintOf = (b: { isCurrent: boolean; name: string; isRemote: boolean }): string =>
+      isFav(b) ? t('filter.favorites') : b.isRemote ? t('filter.remoteBranches') : t('filter.localBranches');
+    const ordered = [...state.branches].sort((a, b) => Number(isFav(b)) - Number(isFav(a)));
+    const items: DropdownMenuItem[] = [{ id: ALL_OPTION_ID, label: t('filter.all'), checked: current === ALL_OPTION_ID }];
+    for (const b of ordered) {
+      items.push({ id: b.name, label: `${b.name} (${hintOf(b)})`, checked: current === b.name });
+    }
+    return items;
+  };
+
+  /**
+   * 构造用户（作者）过滤下拉条目（全部 + allCommits 去重排序作者名）；当前选中项 checked
+   */
+  const buildUserItems = (): DropdownMenuItem[] => {
+    const state = getState();
+    const current = state.filterAuthor || ALL_OPTION_ID;
+    const authors = [...new Set(state.allCommits.map(c => c.authorName))].sort();
+    const items: DropdownMenuItem[] = [{ id: ALL_OPTION_ID, label: t('filter.all'), checked: current === ALL_OPTION_ID }];
+    for (const name of authors) {
+      items.push({ id: name, label: name, checked: current === name });
+    }
+    return items;
+  };
+
+  /**
+   * 刷新分支/用户过滤按钮的文案（当前选中值，未选时显示“全部”）
+   * 与日期/路径同为自绘 dropdown-menu 触发按钮，文案由当前状态驱动
+   */
+  const updateFilterButtonLabels = (): void => {
+    const state = getState();
+    const branchValue = filterBtnRefs.branch?.querySelector('.gm-filter-btn-value');
+    const userValue = filterBtnRefs.user?.querySelector('.gm-filter-btn-value');
+    if (branchValue) branchValue.textContent = state.logBranch || t('filter.all');
+    if (userValue) userValue.textContent = state.filterAuthor || t('filter.all');
+  };
+
+  /**
+   * 打开分支过滤下拉菜单（自绘 dropdown-menu，与日期/路径一致）
    * 分组规则复用 branch-panel：收藏 = 非当前分支且在 favorites 中；
-   * 本地 = 非远程且非收藏（含当前分支），远程 = 远程且非收藏
+   * 本地 = 非远程且非收藏（含当前分支），远程 = 远程且非收藏，以 hint 前缀降级表达。
    * 选中 → setState(logBranch/selectedBranch) 并清空多选后按分支重新拉取提交；
-   * 选"全部" → 清空分支过滤状态后按全量拉取
+   * 选“全部”（ALL_OPTION_ID）→ 清空分支过滤状态后按全量拉取。
    * @param anchor 触发按钮（再次点击同一按钮由 showDropdownMenu 做 toggle 关闭）
    */
   const openBranchDropdown = (anchor: HTMLElement): void => {
-    const state = getState();
-    const isFav = (b: { isCurrent: boolean; name: string }): boolean =>
-      !b.isCurrent && state.favorites.has(b.name);
-    const localBranches = state.branches.filter(b => !b.isRemote && !isFav(b));
-    const remoteBranches = state.branches.filter(b => b.isRemote && !isFav(b));
-    const favoriteBranches = state.branches.filter(b => isFav(b));
-
-    const items: DropdownMenuItem[] = [
-      { id: 'all', label: t('filter.all'), checked: state.logBranch === null },
-      { id: 'sep-branch', label: '', kind: 'separator' },
-    ];
-    const pushGroup = (labelKey: string, groupId: string, branches: { name: string }[]): void => {
-      if (branches.length === 0) return;
-      items.push({ id: groupId, label: t(labelKey), kind: 'group' });
-      for (const b of branches) {
-        items.push({ id: b.name, label: b.name, checked: state.logBranch === b.name });
-      }
-    };
-    pushGroup('filter.localBranches', 'group-local', localBranches);
-    pushGroup('filter.remoteBranches', 'group-remote', remoteBranches);
-    pushGroup('filter.favorites', 'group-favorites', favoriteBranches);
-
-    showDropdownMenu(anchor, items, (id) => {
+    showDropdownMenu(anchor, buildBranchItems(), (id) => {
       console.debug(JSON.stringify({
         prefix: '[commit-list]',
         event: 'branch_dropdown_select',
-        branch: id === 'all' ? null : id,
+        branch: id === ALL_OPTION_ID ? null : id,
       }));
-      if (id === 'all') {
+      if (id === ALL_OPTION_ID) {
         setState(s => {
           s.logBranch = null;
           s.selectedBranch = null;
@@ -614,36 +663,28 @@ export function createCommitListPanel(
           s.selectedCommits = new Set<string>();
         });
       }
+      updateFilterButtonLabels();
       // 按新分支重新拉取提交（内部会带 logBranch 调 getLog 并重跑过滤管道）
       void refreshCommits(service, directory);
     });
   };
 
   /**
-   * 打开用户（作者）过滤下拉菜单
-   * 条目 = "全部" + allCommits 中去重排序后的作者名（无提交时仅"全部"）
+   * 打开用户（作者）过滤下拉菜单（自绘 dropdown-menu，与日期/路径一致）
+   * 条目 = “全部” + allCommits 中去重排序后的作者名（无提交时仅“全部”）
    * 选中 → setState(filterAuthor) 后立即重跑过滤管道（数据不重新拉取）
    * @param anchor 触发按钮
    */
   const openUserDropdown = (anchor: HTMLElement): void => {
-    const state = getState();
-    const authors = [...new Set(state.allCommits.map(c => c.authorName))].sort();
-
-    const items: DropdownMenuItem[] = [
-      { id: 'all', label: t('filter.all'), checked: state.filterAuthor === '' },
-    ];
-    for (const name of authors) {
-      items.push({ id: name, label: name, checked: state.filterAuthor === name });
-    }
-
-    showDropdownMenu(anchor, items, (id) => {
-      const author = id === 'all' ? '' : id;
+    showDropdownMenu(anchor, buildUserItems(), (id) => {
+      const author = id === ALL_OPTION_ID ? '' : id;
       console.debug(JSON.stringify({
         prefix: '[commit-list]',
         event: 'user_dropdown_select',
         author,
       }));
       setState(s => { s.filterAuthor = author; });
+      updateFilterButtonLabels();
       filterCommits();
     });
   };
@@ -798,11 +839,13 @@ export function createCommitListPanel(
   const renderList = () => {
     if (disposed || !listContainer) return;
     const state = getState();
+    // 重建列表前释放上一轮引用徽标 handle，避免节点/监听泄漏
+    disposeBadges();
     listContainer.innerHTML = '';
 
     const commits = state.filteredCommits;
     if (commits.length === 0) {
-      listContainer.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:12px;">${t('commit.empty')}</div>`;
+      listContainer.innerHTML = `<div class="gm-commit-empty">${t('commit.empty')}</div>`;
       return;
     }
 
@@ -822,13 +865,17 @@ export function createCommitListPanel(
       for (const [shortHash, names] of branchMap) {
         if (commit.hash.startsWith(shortHash)) branches.push(...names);
       }
-      const item = createCommitItem(commit, branches);
+      const item = createCommitItem(commit, branches, badgeHandles);
       listContainer.appendChild(item);
     }
   };
 
   const dispose = () => {
     disposed = true;
+    // 释放 SDK UI Kit handle（badge/search），避免监听与节点泄漏
+    searchHandle?.dispose();
+    searchHandle = null;
+    disposeBadges();
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;
@@ -843,66 +890,82 @@ export function createCommitListPanel(
   return { dispose };
 }
 
-function createCommitItem(commit: CommitInfo, branches: string[] = []): HTMLElement {
+/**
+ * 清空已挂载的引用徽标 handle（renderList 重建前与 dispose 时调用）
+ */
+function disposeBadges(): void {
+  while (badgeHandles.length > 0) {
+    badgeHandles.pop()?.dispose();
+  }
+}
+
+function createCommitItem(
+  commit: CommitInfo,
+  branches: string[] = [],
+  badgeHandles: BadgeHandle[] = [],
+): HTMLElement {
   const state = getState();
   const settings = state.displaySettings;
   // 多选集合成员或单选主提交均高亮
   const isSelected = state.selectedCommits.has(commit.hash) ||
     state.selectedCommit?.hash === commit.hash;
-  const bgColor = isSelected ? '#2a3a4a' : 'transparent';
 
-  // 引用标签（IntelliJ 风格彩色标签）
+  // 引用徽标（IntelliJ 风格彩色标签，改用 SDK UI Kit mountBadge）
   // 语义对齐 IDEA SimpleRefGroup.buildGroups：
   // - compactReferences：所有引用合并成一组，只渲染该组的首个名字
   // - showTagNames：控制标签是否显示名字（不影响分支）；两者独立生效，与调整顺序无关
-  const renderRef = (name: string, isTag: boolean): string => {
+  // tone 映射：tag=neutral、本地分支=primary、远程分支=info
+  const renderRef = (name: string, isTag: boolean): HTMLElement => {
     const isLocal = !isTag && !name.includes('/') && name !== 'HEAD';
-    const bgColor = isTag ? '#2a3a2a' : (isLocal ? '#4a3a1a' : '#1a3a4a');
-    const fgColor = isTag ? '#6fbf73' : (isLocal ? '#e8a838' : '#589df6');
+    const tone = isTag ? 'neutral' : isLocal ? 'primary' : 'info';
     // 标签名被隐藏时仍保留标签色块，只是不显示文字（与 IDEA 传入空名一致）
     const label = isTag && !settings.showTagNames ? '' : name;
-    return `<span data-ref="${name}" style="margin-left: 6px; padding: 0 5px; background: ${bgColor}; border-radius: 2px; font-size: 10px; color: ${fgColor}; flex-shrink: 0; white-space: nowrap;">${label}</span>`;
+    const slot = document.createElement('span');
+    slot.setAttribute('data-ref', name);
+    const badge = mountBadge(slot, { label, tone });
+    badgeHandles.push(badge);
+    return slot;
   };
 
   const refs = branches.map(b => ({ name: b, isTag: b.startsWith('tag:') }));
-  const branchTags = (() => {
-    if (refs.length === 0) return '';
+  const branchTags: HTMLElement[] = (() => {
+    if (refs.length === 0) return [];
     if (settings.compactReferences) {
       // 紧凑：只显示首个引用（若首个是标签且标签名隐藏，则只留色块）
       const first = refs[0];
-      return renderRef(first.name, first.isTag);
+      return [renderRef(first.name, first.isTag)];
     }
-    return refs.map(r => renderRef(r.name, r.isTag)).join('');
+    return refs.map(r => renderRef(r.name, r.isTag));
   })();
 
   // 哈希列 / 日期列 / 作者列按显示设置开关；日期列隐藏时作者列接替右对齐
   const hashCol = settings.showHash
-    ? `<span data-col="hash" style="font-family: monospace; color: #888; font-size: 11px; flex-shrink: 0; margin-right: 6px; white-space: nowrap;">${escapeText(commit.shortHash)}</span>`
+    ? `<span data-col="hash" class="gm-commit-col-hash">${escapeText(commit.shortHash)}</span>`
     : '';
   const dateCol = settings.showDate
-    ? `<span data-col="date" style="margin-left: auto; color: #888; font-size: 11px; flex-shrink: 0; white-space: nowrap;">${formatDate(
+    ? `<span data-col="date" class="gm-commit-col-date">${formatDate(
         settings.preferCommitDate && commit.commitDate ? commit.commitDate : commit.date,
       )}</span>`
     : '';
   const authorCol = settings.showAuthor
-    ? `<span data-col="author" style="margin-left: ${settings.showDate ? '12px' : 'auto'}; color: #888; font-size: 11px; flex-shrink: 0; white-space: nowrap;">${escapeText(commit.authorName)}</span>`
+    ? `<span data-col="author" class="gm-commit-col-author ${settings.showDate ? '' : 'gm-commit-col-author-shift'}">${escapeText(commit.authorName)}</span>`
     : '';
 
   const item = html`
     <div 
-      style="display: flex; align-items: center; padding: 2px 8px; cursor: pointer; border-bottom: 1px solid #2a2a2a; font-size: 12px; background: ${bgColor}; height: 28px;"
+      class="gm-commit-row ${isSelected ? 'gm-commit-row-selected' : ''}"
       data-hash="${commit.hash}"
     >
       <!-- 圆点指示器 -->
-      <span style="width: 16px; text-align: center; flex-shrink: 0;">
-        <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#e8a838"/></svg>
+      <span class="gm-commit-dot">
+        <svg width="10" height="10" viewBox="0 0 10 10"><circle class="gm-commit-dot-mark" cx="5" cy="5" r="4" fill="var(--gm-primary)"/></svg>
       </span>
       <!-- 哈希列 -->
       ${hashCol}
       <!-- 引用在左：referencesOnLeft 开启时标签置于消息之前 -->
       ${settings.referencesOnLeft ? branchTags : ''}
       <!-- 提交消息 -->
-      <span style="flex: 1; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 4px;">${commit.message}</span>
+      <span class="gm-commit-msg">${commit.message}</span>
       <!-- 引用在右（默认） -->
       ${settings.referencesOnLeft ? '' : branchTags}
       <!-- 时间 -->

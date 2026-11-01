@@ -7,6 +7,9 @@ import { createFileDiffPanel } from '../components/file-diff';
 import { setState, createInitialState, stateManager } from '../state';
 import type { FileDiff } from '../state';
 import type { ServiceClient } from '../service';
+import {
+  expectThemedClass,
+} from './theme-helpers';
 
 /** 已创建组件的清理列表（afterEach 依次 dispose） */
 let disposers: Array<() => void> = [];
@@ -123,17 +126,17 @@ const statusDiffs: FileDiff[] = [
   { path: 'src/mixed.modified.renamed.ts', additions: 6, deletions: 3, lines: [] },
 ];
 
-/** 各路径期望的状态标记与颜色 */
+/** 各路径期望的状态标记与 class 后缀 */
 const expectedStatus: Array<[string, string]> = [
-  ['A', '#4caf50'],
-  ['A', '#4caf50'],
-  ['D', '#f44336'],
-  ['D', '#f44336'],
-  ['M', '#ff9800'],
-  ['M', '#ff9800'],
-  ['R', '#589df6'],
-  ['M', '#ff9800'],
-  ['M', '#ff9800'],
+  ['A', 'gm-file-diff-status-add'],
+  ['A', 'gm-file-diff-status-add'],
+  ['D', 'gm-file-diff-status-del'],
+  ['D', 'gm-file-diff-status-del'],
+  ['M', 'gm-file-diff-status-mod'],
+  ['M', 'gm-file-diff-status-mod'],
+  ['R', 'gm-file-diff-status-ren'],
+  ['M', 'gm-file-diff-status-mod'],
+  ['M', 'gm-file-diff-status-mod'],
 ];
 
 
@@ -228,21 +231,21 @@ describe('file-diff', () => {
       expect(contextLine.children[3].textContent).toBe('const a = 1;');
       expect(contextLine.children[0].textContent).toBe('1');
       expect(contextLine.children[1].textContent).toBe('1');
-      expect(contextLine.getAttribute('style')).toContain('background: transparent');
+      expectThemedClass(contextLine, 'gm-diff-line-context');
 
-      // add 行：前缀 +、绿色背景、只有新侧行号
+      // add 行：前缀 +、新增状态色、只有新侧行号
       expect(addLine.children[2].textContent).toBe('+');
       expect(addLine.children[3].textContent).toBe('const b = 2;');
       expect(addLine.children[0].textContent).toBe(' ');
       expect(addLine.children[1].textContent).toBe('2');
-      expect(addLine.getAttribute('style')).toContain('background: #1a3a1a');
+      expectThemedClass(addLine, 'gm-diff-line-add');
 
-      // delete 行：前缀 -、红色背景、只有旧侧行号
+      // delete 行：前缀 -、删除状态色、只有旧侧行号
       expect(deleteLine.children[2].textContent).toBe('-');
       expect(deleteLine.children[3].textContent).toBe('const c = 3;');
       expect(deleteLine.children[0].textContent).toBe('2');
       expect(deleteLine.children[1].textContent).toBe(' ');
-      expect(deleteLine.getAttribute('style')).toContain('background: #3a1a1a');
+      expectThemedClass(deleteLine, 'gm-diff-line-delete');
     });
 
     it('差异文件没有行内容时应该显示无差异内容', () => {
@@ -355,9 +358,9 @@ describe('file-diff', () => {
 
       items.forEach((item, index) => {
         const statusSpan = (item as HTMLElement).children[0] as HTMLElement;
-        const [label, color] = expectedStatus[index];
+        const [label, cls] = expectedStatus[index];
         expect(statusSpan.textContent).toBe(label);
-        expect(statusSpan.getAttribute('style')).toContain(`color: ${color}`);
+        expectThemedClass(statusSpan, cls);
       });
     });
   });
@@ -374,9 +377,9 @@ describe('file-diff', () => {
       const diffContent = (getPreviewContainer(container).children[1] as HTMLElement);
       const [contextLine, addLine, deleteLine] = Array.from(diffContent.children) as HTMLElement[];
 
-      expect(contextLine.getAttribute('style')).toContain('color: #ccc');
-      expect(addLine.getAttribute('style')).toContain('color: #4caf50');
-      expect(deleteLine.getAttribute('style')).toContain('color: #f44336');
+      expectThemedClass(contextLine, 'gm-diff-line-context');
+      expectThemedClass(addLine, 'gm-diff-line-add');
+      expectThemedClass(deleteLine, 'gm-diff-line-delete');
     });
   });
 
@@ -393,12 +396,12 @@ describe('file-diff', () => {
 
       try {
         dispatchMouse(item, 'mouseenter');
-        expect(item.style.background).toBe('rgb(42, 42, 42)');
+        expect(item.classList.contains('gm-file-diff-item-hover')).toBe(true);
 
         // 目标没有 data-path：原实现应直接跳过，既不抛错也不改样式
         dispatchMouse(list, 'mouseenter');
         expect(errors).toHaveLength(0);
-        expect(item.style.background).toBe('rgb(42, 42, 42)');
+        expect(item.classList.contains('gm-file-diff-item-hover')).toBe(true);
       } finally {
         restore();
       }
@@ -416,18 +419,19 @@ describe('file-diff', () => {
       const { errors, restore } = captureListenerErrors();
 
       try {
-        // 未选中条目：悬停高亮后移出应恢复透明
+        // 未选中条目：悬停高亮后移出应恢复
         dispatchMouse(other, 'mouseenter');
-        expect(other.style.background).toBe('rgb(42, 42, 42)');
+        expect(other.classList.contains('gm-file-diff-item-hover')).toBe(true);
         dispatchMouse(other, 'mouseleave');
-        expect(other.style.background).toBe('transparent');
+        expect(other.classList.contains('gm-file-diff-item-hover')).toBe(false);
+        expect(other.classList.contains('gm-file-diff-item-selected')).toBe(false);
 
-        // 选中条目：移出后保持选中色
+        // 选中条目：移出后保持选中态
         selected.click();
         dispatchMouse(selected, 'mouseenter');
-        expect(selected.style.background).toBe('rgb(42, 42, 42)');
+        expect(selected.classList.contains('gm-file-diff-item-hover')).toBe(true);
         dispatchMouse(selected, 'mouseleave');
-        expect(selected.style.background).toBe('rgb(42, 58, 74)');
+        expect(selected.classList.contains('gm-file-diff-item-selected')).toBe(true);
 
         // 列表空白处：目标没有 data-path，不应抛错
         dispatchMouse(list, 'mouseleave');
@@ -454,8 +458,8 @@ describe('file-diff', () => {
         first.click();
 
         expect(errors).toHaveLength(0);
-        expect(first.style.background).toBe('rgb(42, 58, 74)');
-        expect(second.style.background).toBe('transparent');
+        expect(first.classList.contains('gm-file-diff-item-selected')).toBe(true);
+        expect(second.classList.contains('gm-file-diff-item-selected')).toBe(false);
       } finally {
         restore();
       }
@@ -478,7 +482,7 @@ describe('file-diff', () => {
 
         expect(errors).toHaveLength(0);
         expect(getPreviewContainer(container).textContent).toContain('src/app.ts');
-        expect(first.style.background).toBe('rgb(42, 58, 74)');
+        expect(first.classList.contains('gm-file-diff-item-selected')).toBe(true);
       } finally {
         restore();
       }

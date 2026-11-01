@@ -1,6 +1,6 @@
 /**
  * 控制台面板单元测试
- * 覆盖：空态、命令列表渲染、点击查看输出、增量轮询、清空日志、加载失败、dispose 清理
+ * 覆盖：空态、命令列表渲染、点击查看输出、增量轮询、清空按钮（SDK UI Kit）调用 clearCommandLogs 清空列表、加载失败、dispose 清理
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -133,7 +133,10 @@ describe('console-panel', () => {
     await new Promise(r => setTimeout(r, 0));
     expect(container.querySelectorAll('[data-log-id]').length).toBe(1);
 
-    (container.querySelector('[data-log-clear]') as HTMLElement).click();
+    // 清空按钮已改用 SDK UI Kit（oc-sdk-btn），点击其内部按钮触发 onClick
+    const clearBtn = container.querySelector('[data-log-clear] .oc-sdk-btn') as HTMLElement;
+    expect(clearBtn).toBeTruthy();
+    clearBtn.click();
     await new Promise(r => setTimeout(r, 0));
 
     expect(clearCommandLogs).toHaveBeenCalledWith('/repo');

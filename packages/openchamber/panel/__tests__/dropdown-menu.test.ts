@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { showDropdownMenu } from '../components/dropdown-menu';
 import type { DropdownMenuItem } from '../components/dropdown-menu';
+import { expectThemedClass, expectNoHardcodedHex } from './theme-helpers';
 
 /** 菜单容器元素 id（与组件实现保持一致） */
 const MENU_ID = 'git-dropdown-menu';
@@ -130,7 +131,6 @@ describe('dropdown-menu', () => {
       showDropdownMenu(anchor, createItems(), vi.fn());
 
       const menu = getMenu();
-      expect(menu.style.position).toBe('fixed');
       expect(menu.style.left).toBe('100px');
       expect(menu.style.top).toBe('76px');
       expect(Array.from(menu.children).map(el => el.textContent)).toEqual([
@@ -142,32 +142,25 @@ describe('dropdown-menu', () => {
       ]);
     });
 
-    it('菜单容器应应用深色主题背景、边框、圆角、小字号与层级样式', () => {
+    it('菜单容器应带主题化容器类与行内定位坐标，不含硬编码色值', () => {
       const anchor = createAnchor('anchor-style');
       showDropdownMenu(anchor, createItems(), vi.fn());
 
       const menu = getMenu();
-      expect(menu.style.background).toBe('rgb(45, 45, 45)');
-      expect(menu.style.border).toBe('1px solid rgb(68, 68, 68)');
-      expect(menu.style.borderRadius).toBe('4px');
-      expect(menu.style.padding).toBe('4px 0px');
-      expect(menu.style.zIndex).toBe('1000');
-      expect(menu.style.minWidth).toBe('160px');
-      expect(menu.style.boxShadow).toBe('0 2px 8px rgba(0, 0, 0, 0.5)');
+      // 主题视觉交给 CSS 类与 --gm-* 变量
+      expectThemedClass(menu, 'gm-dropdown-menu');
+      expectNoHardcodedHex(menu);
 
       const row = getRow(menu, 'main');
-      expect(row.style.fontSize).toBe('12px');
-      expect(row.style.color).toBe('rgb(204, 204, 204)');
-      expect(row.style.display).toBe('flex');
+      expectThemedClass(row, ['gm-dropdown-row', 'gm-dropdown-item']);
     });
 
-    it('菜单应限制最大高度并内部滚动（长分支列表防溢出视口）', () => {
+    it('菜单应支持长列表滚动（防溢出视口，样式由 CSS 类承担）', () => {
       const anchor = createAnchor('anchor-maxheight');
       showDropdownMenu(anchor, createItems(), vi.fn());
 
-      const menu = getMenu();
-      expect(menu.style.maxHeight).toBe('60vh');
-      expect(menu.style.overflowY).toBe('auto');
+      // 滚动/高度限制由 .gm-dropdown-menu 类负责，此处断言容器带类即可
+      expectThemedClass(getMenu(), 'gm-dropdown-menu');
     });
 
     it('分组标题应渲染为弱化样式，分隔线应渲染为横线', () => {
@@ -177,44 +170,34 @@ describe('dropdown-menu', () => {
       const menu = getMenu();
       const group = getRow(menu, 'group-main');
       expect(group.dataset.kind).toBe('group');
-      expect(group.style.fontSize).toBe('11px');
-      expect(group.style.color).toBe('rgb(136, 136, 136)');
-      expect(group.style.cursor).toBe('default');
+      expectThemedClass(group, ['gm-dropdown-row', 'gm-dropdown-group']);
 
       const sep = getRow(menu, 'sep-1');
       expect(sep.dataset.kind).toBe('separator');
-      expect(sep.style.height).toBe('1px');
-      expect(sep.style.background).toBe('rgb(68, 68, 68)');
-      expect(sep.style.margin).toBe('4px 0px');
+      expectThemedClass(sep, 'gm-dropdown-sep');
     });
 
-    it('可选项与分组标题应应用完整的行内样式（内边距、对齐、勾号槽）', () => {
+    it('可选项与分组标题应应用语义类（内边距、对齐、勾号槽）', () => {
       const anchor = createAnchor('anchor-row-styles');
       showDropdownMenu(anchor, createItems(), vi.fn());
 
       const menu = getMenu();
 
-      // 分组标题内边距
+      // 分组标题带弱化类
       const group = getRow(menu, 'group-main');
-      expect(group.style.padding).toBe('6px 12px');
+      expectThemedClass(group, ['gm-dropdown-row', 'gm-dropdown-group']);
 
-      // 可选项：内边距、flex 布局、垂直居中、勾号与文案间距、非禁用配色
+      // 可选项：布局类、勾号槽类
       const item = getRow(menu, 'main');
-      expect(item.style.padding).toBe('6px 12px');
-      expect(item.style.display).toBe('flex');
-      expect(item.style.alignItems).toBe('center');
-      expect(item.style.gap).toBe('6px');
-      expect(item.style.color).toBe('rgb(204, 204, 204)');
+      expectThemedClass(item, ['gm-dropdown-row', 'gm-dropdown-item']);
 
-      // 勾号槽：固定宽度、不伸缩、选中色
+      // 勾号槽：带勾号槽类
       const check = item.querySelector<HTMLElement>('.git-dropdown-check');
       expect(check).toBeTruthy();
-      expect(check!.style.width).toBe('12px');
-      expect(check!.style.flex).toBe('0 0 12px');
-      expect(check!.style.color).toBe('rgb(76, 175, 80)');
+      expectThemedClass(check!, 'gm-dropdown-check');
     });
 
-    it('未禁用可选项光标应为 pointer 手型，禁用项保持 default', () => {
+    it('未禁用可选项光标应为手型（pointer），禁用项保持 default（由类表达）', () => {
       const anchor = createAnchor('anchor-cursor');
       showDropdownMenu(
         anchor,
@@ -226,8 +209,8 @@ describe('dropdown-menu', () => {
       );
 
       const menu = getMenu();
-      expect(getRow(menu, 'ok').style.cursor).toBe('pointer');
-      expect(getRow(menu, 'off').style.cursor).toBe('default');
+      expect(getRow(menu, 'ok').classList.contains('gm-dropdown-item-disabled')).toBe(false);
+      expect(getRow(menu, 'off').classList.contains('gm-dropdown-item-disabled')).toBe(true);
     });
   });
 
@@ -277,8 +260,7 @@ describe('dropdown-menu', () => {
       expect(document.getElementById(MENU_ID)).toBeTruthy();
       const row = getRow(getMenu(), 'locked');
       expect(row.dataset.disabled).toBe('true');
-      expect(row.style.color).toBe('rgb(102, 102, 102)');
-      expect(row.style.cursor).toBe('default');
+      expectThemedClass(row, 'gm-dropdown-item-disabled');
     });
 
     it('checked 条目应渲染 ✓ 标记，未选中条目无标记', () => {
@@ -555,19 +537,20 @@ describe('dropdown-menu', () => {
       );
       const menu = getMenu();
 
+      // 悬停高亮通过 class 切换表达（配色在 CSS 类里）
       const ok = getRow(menu, 'ok');
       ok.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(ok.style.background).toBe('rgb(58, 58, 58)');
+      expect(ok.classList.contains('gm-dropdown-item-hover')).toBe(true);
       ok.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-      expect(ok.style.background).toBe('transparent');
+      expect(ok.classList.contains('gm-dropdown-item-hover')).toBe(false);
 
       const group = getRow(menu, 'g');
       group.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(group.style.background).toBe('');
+      expect(group.classList.contains('gm-dropdown-item-hover')).toBe(false);
 
       const off = getRow(menu, 'off');
       off.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(off.style.background).toBe('');
+      expect(off.classList.contains('gm-dropdown-item-hover')).toBe(false);
     });
 
     it('行内嵌套的可选项不应响应点击与悬停（仅菜单直属行生效）', () => {
@@ -592,11 +575,11 @@ describe('dropdown-menu', () => {
 
       // 悬停进入：不应高亮
       nested.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(nested.style.background).toBe('');
+      expect(nested.classList.contains('gm-dropdown-item-hover')).toBe(false);
 
-      // 悬停离开：不应重置背景
+      // 悬停离开：不应重置高亮类
       nested.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-      expect(nested.style.background).toBe('');
+      expect(nested.classList.contains('gm-dropdown-item-hover')).toBe(false);
     });
 
     it('打开与选择应输出 [dropdown] 前缀的 JSON 调试日志', () => {
@@ -723,7 +706,7 @@ describe('dropdown-menu', () => {
       expect(getMenu().style.top).toBe('148px');
     });
 
-    it('悬停高亮不作用于菜单本体与分组/禁用行（进入与离开均不改背景）', () => {
+    it('悬停高亮不作用于菜单本体与分组/禁用行（进入与离开均不加高亮类）', () => {
       const anchor = createAnchor('anchor-hover-edge');
       showDropdownMenu(
         anchor,
@@ -735,34 +718,33 @@ describe('dropdown-menu', () => {
         vi.fn(),
       );
       const menu = getMenu();
-      const initialBg = menu.style.background;
 
-      // 菜单本体：enter/leave 均不改背景
+      // 菜单本体：enter/leave 均不应带高亮类
       menu.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(menu.style.background).toBe(initialBg);
+      expect(menu.classList.contains('gm-dropdown-item-hover')).toBe(false);
       menu.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-      expect(menu.style.background).toBe(initialBg);
+      expect(menu.classList.contains('gm-dropdown-item-hover')).toBe(false);
 
-      // 分组标题：leave 不应设置/重置背景
+      // 分组标题：leave 不应设置/移除高亮类
       const group = getRow(menu, 'g');
       group.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(group.style.background).toBe('');
+      expect(group.classList.contains('gm-dropdown-item-hover')).toBe(false);
       group.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-      expect(group.style.background).toBe('');
+      expect(group.classList.contains('gm-dropdown-item-hover')).toBe(false);
 
       // 禁用项同理：leave 不响应
       const off = getRow(menu, 'off');
       off.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(off.style.background).toBe('');
+      expect(off.classList.contains('gm-dropdown-item-hover')).toBe(false);
       off.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-      expect(off.style.background).toBe('');
+      expect(off.classList.contains('gm-dropdown-item-hover')).toBe(false);
 
-      // 可选项 leave 应重置为透明（正向对照）
+      // 可选项 enter/leave 应加/移除高亮类（正向对照）
       const ok = getRow(menu, 'ok');
       ok.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      expect(ok.style.background).toBe('rgb(58, 58, 58)');
+      expect(ok.classList.contains('gm-dropdown-item-hover')).toBe(true);
       ok.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-      expect(ok.style.background).toBe('transparent');
+      expect(ok.classList.contains('gm-dropdown-item-hover')).toBe(false);
     });
   });
 

@@ -1,24 +1,32 @@
 /**
  * 提交图线组件
  * 可视化分支合并图
+ * 车道配色走语义 token（由 __styles__/commit-graph.css 映射到 --gm-* 主题变量）：
+ * - HEAD / 当前车道：primary
+ * - 合并点：warning
+ * - 其余车道：muted / border 中性色（不再硬编码蓝/红等色值）
  */
 
 import { CommitInfo } from '../state';
 
-/** 分支颜色 */
-const BRANCH_COLORS = [
-  '#589df6', // 蓝色
-  '#4caf50', // 绿色
-  '#ff9800', // 橙色
-  '#f44336', // 红色
-  '#9c27b0', // 紫色
-  '#00bcd4', // 青色
+/**
+ * 车道语义色 token（非颜色字面量，映射规则见 __styles__/commit-graph.css）
+ * 循环顺序保证相邻车道颜色可区分：中性两色交替，主色留首位
+ */
+const LANE_TOKENS = [
+  'primary',
+  'muted',
+  'border',
+  'subtle',
+  'muted-surface',
+  'elevated',
 ];
 
 /** 图线列信息 */
 export interface GraphColumn {
   hash: string;
   column: number;
+  /** 语义色 token（如 'primary'），由 CSS 映射为 --gm-* 变量色 */
   color: string;
 }
 
@@ -76,7 +84,7 @@ export function calculateGraphRows(commits: CommitInfo[]): GraphColumn[][] {
           break;
         }
       }
-      const color = BRANCH_COLORS[col % BRANCH_COLORS.length];
+      const color = LANE_TOKENS[col % LANE_TOKENS.length];
       rowColumns.push({ hash, column: col, color });
     }
 
@@ -102,9 +110,12 @@ export function generateRowGraphSVG(
   // 找到当前提交的列
   const nodeCol = rowColumns.find(c => c.hash === commit.hash);
   const nodeX = PADDING + (nodeCol ? nodeCol.column : 0) * COL_WIDTH;
-  const nodeColor = nodeCol ? nodeCol.color : BRANCH_COLORS[0];
+  // 合并提交（多父）节点用 warning 语义色，其余取所在车道 token
+  const isMerge = commit.parents.length > 1;
+  const nodeToken = isMerge ? 'warning' : (nodeCol ? nodeCol.color : LANE_TOKENS[0]);
+  const nodeColor = `var(--gm-${nodeToken})`;
 
-  let svg = `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">`;
+  let svg = `<svg class="gm-graph-row" width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">`;
 
   // 绘制垂直线（从当前行到下一行）
   if (nextRowColumns) {
@@ -113,10 +124,10 @@ export function generateRowGraphSVG(
       // 找到下一行中对应的列
       const nextCol = nextRowColumns.find(c => c.column === col.column);
       if (nextCol) {
-        svg += `<line x1="${x}" y1="0" x2="${x}" y2="${HEIGHT}" stroke="${col.color}" stroke-width="2"/>`;
+        svg += `<line class="gm-graph-line" x1="${x}" y1="0" x2="${x}" y2="${HEIGHT}" stroke="var(--gm-${col.color})" stroke-width="2"/>`;
       } else {
         // 列在下一行结束
-        svg += `<line x1="${x}" y1="0" x2="${x}" y2="${HEIGHT / 2}" stroke="${col.color}" stroke-width="2"/>`;
+        svg += `<line class="gm-graph-line" x1="${x}" y1="0" x2="${x}" y2="${HEIGHT / 2}" stroke="var(--gm-${col.color})" stroke-width="2"/>`;
       }
     }
 
@@ -124,7 +135,7 @@ export function generateRowGraphSVG(
     for (const col of nextRowColumns) {
       if (!rowColumns.find(c => c.column === col.column)) {
         const x = PADDING + col.column * COL_WIDTH;
-        svg += `<line x1="${x}" y1="${HEIGHT / 2}" x2="${x}" y2="${HEIGHT}" stroke="${col.color}" stroke-width="2"/>`;
+        svg += `<line class="gm-graph-line" x1="${x}" y1="${HEIGHT / 2}" x2="${x}" y2="${HEIGHT}" stroke="var(--gm-${col.color})" stroke-width="2"/>`;
       }
     }
 
@@ -136,19 +147,19 @@ export function generateRowGraphSVG(
       if (parent1Col && parent2Col) {
         const x1 = PADDING + parent1Col.column * COL_WIDTH;
         const x2 = PADDING + parent2Col.column * COL_WIDTH;
-        svg += `<line x1="${x1}" y1="${HEIGHT / 2}" x2="${x2}" y2="${HEIGHT / 2}" stroke="${nodeColor}" stroke-width="2"/>`;
+        svg += `<line class="gm-graph-merge-line" x1="${x1}" y1="${HEIGHT / 2}" x2="${x2}" y2="${HEIGHT / 2}" stroke="${nodeColor}" stroke-width="2"/>`;
       }
     }
   } else {
     // 最后一行，只绘制到中间的垂直线
     for (const col of rowColumns) {
       const x = PADDING + col.column * COL_WIDTH;
-      svg += `<line x1="${x}" y1="0" x2="${x}" y2="${HEIGHT / 2}" stroke="${col.color}" stroke-width="2"/>`;
+      svg += `<line class="gm-graph-line" x1="${x}" y1="0" x2="${x}" y2="${HEIGHT / 2}" stroke="var(--gm-${col.color})" stroke-width="2"/>`;
     }
   }
 
   // 绘制节点
-  svg += `<circle cx="${nodeX}" cy="${HEIGHT / 2}" r="4" fill="${nodeColor}"/>`;
+  svg += `<circle class="gm-graph-node" cx="${nodeX}" cy="${HEIGHT / 2}" r="4" fill="${nodeColor}"/>`;
 
   svg += '</svg>';
   return svg;
