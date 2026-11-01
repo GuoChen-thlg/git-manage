@@ -1714,14 +1714,20 @@
 /* 文本/日期输入框（date 类型 Kit 不支持，保留自绘） */
 .gm-dialog-input {
   width: 100%;
-  padding: 6px 8px;
-  background: var(--gm-muted-surface);
-  border: 1px solid var(--gm-border);
-  border-radius: 3px;
+  height: 32px;
+  padding: 0 10px;
+  background: var(--oc-sdk-field-bg, var(--gm-muted-surface));
+  border: 0;
+  border-radius: calc(var(--gm-radius) - 2px);
+  box-shadow: inset 0 0 0 1px var(--oc-sdk-edge, var(--gm-border));
   color: var(--gm-elevated-fg);
-  font-size: 12px;
+  font-size: 13px;
   box-sizing: border-box;
   font-family: var(--gm-font);
+}
+.gm-dialog-input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--gm-focus);
 }
 
 /* 确认消息正文（可换行） */
@@ -1742,17 +1748,42 @@
 .gm-dialog-mode-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 13px;
   color: var(--gm-elevated-fg);
   padding: 4px 0;
   cursor: pointer;
 }
 
-/* 单选/复选框重置（reset 模式 radio 仍自绘） */
+/* 单选/复选框重置（reset 模式 radio 仍自绘，但视觉对齐 Kit checkbox：
+   appearance:none 画 14px 方框/圆点，选中填充 primary，与 mountCheckbox 一致） */
 .gm-dialog-check {
+  appearance: none;
   margin: 0;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 1px solid var(--oc-sdk-edge, var(--gm-border));
+  background: transparent;
   cursor: pointer;
+  transition: border-color 150ms ease-out;
+}
+.gm-dialog-check[type="radio"] {
+  border-radius: 50%;
+}
+.gm-dialog-check[type="checkbox"] {
+  border-radius: 4px;
+}
+.gm-dialog-check:hover {
+  border-color: var(--gm-focus);
+}
+.gm-dialog-check:checked {
+  background: var(--gm-primary);
+  border-color: var(--gm-primary);
+  background-clip: content-box;
+}
+.gm-dialog-check[type="radio"]:checked {
+  box-shadow: inset 0 0 0 3px var(--gm-elevated);
 }
 
 /* 字段块（上标签下输入的容器） */
@@ -1781,14 +1812,14 @@
 .gm-dialog-list {
   height: 240px;
   overflow: auto;
-  background: var(--gm-muted-surface);
-  border: 1px solid var(--gm-border);
-  border-radius: 3px;
+  background: var(--oc-sdk-field-bg, var(--gm-muted-surface));
+  border: 1px solid var(--oc-sdk-edge, var(--gm-border));
+  border-radius: calc(var(--gm-radius) - 2px);
   padding: 4px 0;
   box-sizing: border-box;
 }
 
-/* 路径树行（左缩进 paddingLeft 为运行时 depth 计算值，内联） */
+/* 路径树行（左缩进 paddingLeft 为运行时 depth 计算值，内联；内容行保持紧凑密度） */
 .gm-dialog-row {
   display: flex;
   align-items: center;
