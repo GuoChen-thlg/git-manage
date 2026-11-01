@@ -2105,3 +2105,15 @@
   color: var(--gm-fg);
   background: var(--gm-bg);
 }
+
+/* ============ diff 行语法高亮 ============ */
+/* token 颜色走 --gm-syntax-* 变量（映射宿主 --oc-syntax-*）；plain 为不着色 */
+.gm-syntax-plain { color: inherit; }
+.gm-syntax-keyword { color: var(--gm-syntax-keyword); }
+.gm-syntax-string { color: var(--gm-syntax-string); }
+.gm-syntax-number { color: var(--gm-syntax-number); }
+.gm-syntax-function { color: var(--gm-syntax-function); }
+.gm-syntax-type { color: var(--gm-syntax-type); }
+.gm-syntax-comment { color: var(--gm-syntax-comment); }
+.gm-syntax-variable { color: var(--gm-syntax-variable); }
+.gm-syntax-operator { color: var(--gm-syntax-operator); }

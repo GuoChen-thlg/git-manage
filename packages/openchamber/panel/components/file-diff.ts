@@ -7,6 +7,7 @@ import { getState, subscribeFields, FileDiff, DiffLine } from '../state';
 import { ServiceClient } from '../service';
 import { showFileContextMenu } from './file-context-menu';
 import { t } from '../i18n';
+import { tokenize } from '../syntax';
 
 export function createFileDiffPanel(
   container: HTMLElement,
@@ -179,6 +180,23 @@ export function createFileDiffPanel(
  * @param line 差异行
  * @returns 差异行元素
  */
+/**
+ * 把一行 diff 文本按语法高亮切成带 gm-syntax-* class 的 span 序列。
+ * tokeniser 见 syntax.ts；颜色由 styles.css 的 .gm-syntax-* 规则读 --gm-syntax-* 变量上色。
+ * @param content 行文本
+ * @returns DocumentFragment，含多个 <span class="gm-syntax-xxx">
+ */
+function highlightContent(content: string): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  for (const token of tokenize(content)) {
+    const span = document.createElement('span');
+    span.className = token.kind === 'plain' ? 'gm-syntax-plain' : `gm-syntax-${token.kind}`;
+    span.textContent = token.text;
+    frag.appendChild(span);
+  }
+  return frag;
+}
+
 export function createDiffLine(line: DiffLine): HTMLElement {
   let lineClass = 'gm-diff-line gm-diff-line-context';
   let prefix = ' ';
@@ -194,14 +212,17 @@ export function createDiffLine(line: DiffLine): HTMLElement {
   const lineNum = line.newLine !== undefined ? String(line.newLine) : ' ';
   const oldNum = line.oldLine !== undefined ? String(line.oldLine) : ' ';
 
-  return html`
+  const el = html`
     <div class="${lineClass}">
       <span class="gm-diff-line-num">${oldNum}</span>
       <span class="gm-diff-line-num">${lineNum}</span>
       <span class="gm-diff-line-prefix">${prefix}</span>
-      <span class="gm-diff-line-content">${line.content}</span>
+      <span class="gm-diff-line-content"></span>
     </div>
   `;
+  // 语法高亮：content 按 token 拆成 span 序列，颜色走 --gm-syntax-* 变量
+  el.querySelector('.gm-diff-line-content')!.appendChild(highlightContent(line.content));
+  return el;
 }
 
 function createFileDiffItem(diff: FileDiff): HTMLElement {
