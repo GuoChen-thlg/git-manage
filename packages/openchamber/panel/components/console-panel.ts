@@ -10,6 +10,7 @@
 import { html } from '../html';
 import { t } from '../i18n';
 import type { GitCommandLogEntry, ServiceClient } from '../service';
+import { mountButton, type ButtonHandle } from '@openchamber/sdk/ui';
 
 /** 单次轮询窗口大小 */
 const POLL_INTERVAL_MS = 1000;
@@ -63,7 +64,7 @@ export function createConsolePanel(
       <span data-log-count>0</span>
       <span>${t('console.commandCount')}</span>
       <span class="gm-console-header-spacer"></span>
-      <button data-log-clear class="gm-console-clear-btn">${t('console.clear')}</button>
+      <div data-log-clear class="gm-console-clear-slot"></div>
     </div>
   `;
   container.appendChild(header);
@@ -183,19 +184,26 @@ export function createConsolePanel(
     }
   };
 
-  // 清空日志（同时清 service 端缓冲，否则下一轮又会拉回来）
-  header.querySelector('[data-log-clear]')?.addEventListener('click', () => {
-    void (async () => {
-      try {
-        await service.clearCommandLogs(directory);
-        entries = [];
-        selectedId = null;
-        renderList();
-        renderOutput();
-      } catch (err) {
-        console.error(JSON.stringify({ prefix: '[console]', event: 'clear_error', error: String(err) }));
-      }
-    })();
+  // 清空按钮改用 SDK UI Kit（handle 纳入 dispose 流程）
+  let clearHandle: ButtonHandle | null = null;
+  clearHandle = mountButton(header.querySelector('[data-log-clear]') as HTMLElement, {
+    label: t('console.clear'),
+    variant: 'secondary',
+    size: 'sm',
+    onClick: () => {
+      // 清空日志（同时清 service 端缓冲，否则下一轮又会拉回来）
+      void (async () => {
+        try {
+          await service.clearCommandLogs(directory);
+          entries = [];
+          selectedId = null;
+          renderList();
+          renderOutput();
+        } catch (err) {
+          console.error(JSON.stringify({ prefix: '[console]', event: 'clear_error', error: String(err) }));
+        }
+      })();
+    },
   });
 
   // 首屏拉全量，之后每秒拉增量（git 命令没有推送通道）
@@ -213,6 +221,8 @@ export function createConsolePanel(
       disposed = true;
       if (pollTimer !== null) window.clearInterval(pollTimer);
       pollTimer = null;
+      clearHandle?.dispose();
+      clearHandle = null;
       container.innerHTML = '';
     },
   };

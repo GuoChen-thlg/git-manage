@@ -10,6 +10,8 @@ import { ServiceClient } from '../service';
 import { getIcon } from '../icons';
 import { t } from '../i18n';
 import { showContextMenu } from './context-menu';
+import { mountSearchField } from '@openchamber/sdk/ui';
+import type { SearchFieldHandle } from '@openchamber/sdk/ui';
 
 /**
  * 创建分支面板
@@ -33,6 +35,8 @@ export function createBranchPanel(
   let listContainer: HTMLElement | null = null;
   const expandedGroups = new Set<string>([t('branch.groupHead'), t('branch.groupLocal')]);
   let unsubscribe: (() => void) | null = null;
+  /** SDK UI Kit 搜索框 handle（分支搜索）：render 重建前与组件 dispose 时统一释放 */
+  let searchHandle: SearchFieldHandle | null = null;
 
   const findBranchFromEvent = (e: Event): Branch | null => {
     const target = e.target as HTMLElement;
@@ -65,26 +69,21 @@ export function createBranchPanel(
     if (disposed) return;
     container.innerHTML = '';
 
-    // 搜索框
+    // 搜索框（SDK UI Kit mountSearchField）
     const searchContainer = html`
       <div class="gm-branch-search">
-        <div class="gm-branch-search-box">
-          <span class="gm-branch-search-icon">${getIcon('search')}</span>
-          <input 
-            type="text" 
-            placeholder="${t('branch.searchPlaceholder')}" 
-            class="gm-branch-search-input"
-          />
-        </div>
+        <div data-branch-search class="gm-branch-search-slot"></div>
       </div>
     `;
 
-    const searchInput = searchContainer.querySelector('input') as HTMLInputElement;
-    searchInput.value = getState().branchFilter;
-    searchInput.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      setState(s => { s.branchFilter = target.value; });
-      // 订阅回调会触发 renderList，此处无需重复调用
+    searchHandle?.dispose();
+    searchHandle = mountSearchField(searchContainer.querySelector<HTMLElement>('[data-branch-search]')!, {
+      value: getState().branchFilter,
+      placeholder: t('branch.searchPlaceholder'),
+      onChange: (value) => {
+        setState(s => { s.branchFilter = value; });
+        // 订阅回调会触发 renderList，此处无需重复调用
+      },
     });
     container.appendChild(searchContainer);
 
@@ -260,6 +259,9 @@ export function createBranchPanel(
 
   const dispose = () => {
     disposed = true;
+    // 释放 SDK UI Kit 搜索框 handle，避免节点/监听泄漏
+    searchHandle?.dispose();
+    searchHandle = null;
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;

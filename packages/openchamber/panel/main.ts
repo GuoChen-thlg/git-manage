@@ -15,7 +15,8 @@
  * └──────────────────────────────────────────────────────────┘
  */
 
-import { mountEmpty, applyHostReady } from "@openchamber/sdk/ui";
+import { mountEmpty, applyHostReady, mountTabs } from "@openchamber/sdk/ui";
+import type { TabsHandle } from "@openchamber/sdk/ui";
 
 import { html } from './html';
 import { host } from './host';
@@ -335,15 +336,14 @@ async function render(): Promise<void> {
 
     /**
      * 切换到指定页签
+     * 由 Kit mountTabs 的 onChange 驱动（activeId + onChange）。
+     * Git 页签为收起入口：切到 Git 即隐藏底部面板；控制台/Worktrees 显示对应面板。
+     * 注：旧自绘页签支持“再次点击已激活页签收起”，Kit mountTabs 对激活页签点击
+     * 不触发 onChange，故该快捷收起不再保留，收起统一通过点击 Git 页签完成。
      * @param tab 页签名
      */
     const switchTab = (tab: 'git' | 'console' | 'worktrees'): void => {
-      if (activeTab === tab && tab !== 'git') {
-        // 再次点击已激活的可折叠页签：收起
-        activeTab = 'git';
-      } else {
-        activeTab = tab;
-      }
+      activeTab = tab;
       // 写回模块级，重建后仍停留在同一页签
       activeBottomTab = activeTab;
       bottomHandle?.dispose();
@@ -359,22 +359,21 @@ async function render(): Promise<void> {
         bottomPanel.style.display = 'block';
         bottomHandle = createWorktreesPanel(bottomPanel, service, getDir(), host);
       }
-      updateTabStyles();
+      // 由 activeId 驱动 Kit 页签激活态（替代旧的 class 切换）
+      tabsHandle?.update({ activeId: activeTab });
     };
 
-    // Tab 栏
-    const tabBar = createTabBar(switchTab);
-    root.appendChild(tabBar);
-
-    /**
-     * 同步页签的激活样式
-     */
-    function updateTabStyles(): void {
-      tabBar.querySelectorAll<HTMLElement>('[data-tab]').forEach((el) => {
-        const isActive = el.dataset.tab === activeTab && activeTab !== 'git';
-        el.classList.toggle('gm-tab-active', isActive);
-      });
-    }
+    // Tab 栏：底部三个页签改用 SDK UI Kit mountTabs（activeId + onChange 驱动）
+    const tabsHandle: TabsHandle = mountTabs(root, {
+      items: [
+        { id: 'git', label: 'Git' },
+        { id: 'console', label: t('main.tabConsole') },
+        { id: 'worktrees', label: 'Worktrees' },
+      ],
+      activeId: activeTab,
+      onChange: (id) => { switchTab(id as 'git' | 'console' | 'worktrees'); },
+    });
+    disposables.push(tabsHandle);
 
     disposables.push({
       dispose: () => { bottomHandle?.dispose(); },
@@ -436,33 +435,6 @@ function createProgressBar(element: HTMLElement): ProgressBar {
   };
 
   return { start, done };
-}
-
-/**
- * 底部 Tab 栏
- * 三个页签：Git（收起底部区域）、控制台、Worktrees
- * @param onSwitch 页签点击回调
- * @returns Tab 栏元素
- */
-function createTabBar(onSwitch: (tab: 'git' | 'console' | 'worktrees') => void): HTMLElement {
-  const bar = html`
-    <div class="gm-tabbar">
-      <div class="gm-tabbar-row">
-        <div data-tab="git" class="gm-tab gm-tab-active">Git</div>
-        <div data-tab="console" class="gm-tab">${t('main.tabConsole')}</div>
-        <div data-tab="worktrees" class="gm-tab">Worktrees</div>
-      </div>
-    </div>
-  `;
-
-  bar.addEventListener('click', (e) => {
-    const target = (e.target as HTMLElement).closest('[data-tab]') as HTMLElement | null;
-    if (!target) return;
-    const tab = target.dataset.tab as 'git' | 'console' | 'worktrees';
-    onSwitch(tab);
-  });
-
-  return bar;
 }
 
 /**

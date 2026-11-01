@@ -1677,7 +1677,16 @@
   margin: 8px 0 4px;
 }
 
-/* 文本/日期输入框 */
+/* Kit 控件挂载槽（dialogs 内部表单控件改用 SDK UI Kit，见 components/dialogs.ts） */
+.gm-dialog-slot {
+  display: block;
+}
+
+/* 槽位下边距修饰 */
+.gm-dialog-slot--mb8 { margin-bottom: 8px; }
+.gm-dialog-slot--mb12 { margin-bottom: 12px; }
+
+/* 文本/日期输入框（date 类型 Kit 不支持，保留自绘） */
 .gm-dialog-input {
   width: 100%;
   padding: 6px 8px;
@@ -1690,44 +1699,6 @@
   font-family: var(--gm-font);
 }
 
-/* 输入框下边距修饰 */
-.gm-dialog-input--mb8 { margin-bottom: 8px; }
-.gm-dialog-input--mb12 { margin-bottom: 12px; }
-
-/* 多行输入框 */
-.gm-dialog-textarea {
-  width: 100%;
-  height: 96px;
-  padding: 6px 8px;
-  background: var(--gm-muted-surface);
-  border: 1px solid var(--gm-border);
-  border-radius: 3px;
-  color: var(--gm-elevated-fg);
-  font-size: 12px;
-  box-sizing: border-box;
-  resize: vertical;
-  font-family: inherit;
-  margin-bottom: 8px;
-}
-
-/* 多行输入框高度修饰（路径过滤 120px） */
-.gm-dialog-textarea--h120 { height: 120px; }
-
-/* 选项行（勾选/单选标签） */
-.gm-dialog-check-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--gm-elevated-fg);
-  cursor: pointer;
-}
-
-/* 选项行下边距修饰 */
-.gm-dialog-check-label--mb12 {
-  margin-bottom: 12px;
-}
-
 /* 确认消息正文（可换行） */
 .gm-dialog-confirm-msg {
   font-size: 12px;
@@ -1737,13 +1708,7 @@
   white-space: pre-wrap;
 }
 
-/* 表单控件（勾选/单选）重置 */
-.gm-dialog-check {
-  margin: 0;
-  cursor: pointer;
-}
-
-/* 单选模式组容器 */
+/* 单选模式组容器（reset 模式 radio，Kit 无 radio 原语，保留自绘） */
 .gm-dialog-modes {
   margin-bottom: 12px;
 }
@@ -1756,6 +1721,12 @@
   font-size: 12px;
   color: var(--gm-elevated-fg);
   padding: 4px 0;
+  cursor: pointer;
+}
+
+/* 单选/复选框重置（reset 模式 radio 仍自绘） */
+.gm-dialog-check {
+  margin: 0;
   cursor: pointer;
 }
 
@@ -1779,51 +1750,6 @@
 /* 按钮行上边距修饰（路径树/提示对话框） */
 .gm-dialog-actions--top {
   margin-top: 12px;
-}
-
-/* 按钮基础 */
-.gm-dialog-btn {
-  padding: 4px 12px;
-  border: 1px solid var(--gm-border);
-  border-radius: 3px;
-  background: var(--gm-muted-surface);
-  color: var(--gm-elevated-fg);
-  cursor: pointer;
-  font-family: var(--gm-font);
-}
-
-/* 主操作按钮 */
-.gm-dialog-btn-primary {
-  background: var(--gm-primary);
-  border-color: var(--gm-primary);
-  color: var(--gm-primary-fg);
-}
-
-/* 危险操作按钮 */
-.gm-dialog-btn-danger {
-  background: var(--gm-error);
-  border-color: var(--gm-error);
-  color: var(--gm-primary-fg);
-}
-
-/* 错误提示（运行时 display 切换） */
-.gm-dialog-error {
-  font-size: 11px;
-  color: var(--gm-error-text);
-  margin-bottom: 8px;
-}
-
-/* 警告/提示（运行时 display 切换） */
-.gm-dialog-hint {
-  font-size: 11px;
-  color: var(--gm-warning-text);
-  margin-bottom: 8px;
-}
-
-/* 提示上边距修饰（路径树） */
-.gm-dialog-hint--top {
-  margin-top: 6px;
-  margin-bottom: 0;
 }
 
 /* 路径树列表容器（运行时 height/overflow 由 CSS 承担） */
@@ -1893,14 +1819,9 @@
   flex: 1;
 }
 
-.gm-console-clear-btn {
-  padding: 1px 8px;
-  background: var(--gm-elevated);
-  border: 1px solid var(--gm-border);
-  border-radius: var(--gm-radius);
-  color: var(--gm-fg);
-  cursor: pointer;
-  font-size: 11px;
+.gm-console-clear-slot {
+  display: inline-flex;
+  align-items: center;
 }
 
 .gm-console-body {
@@ -1977,14 +1898,9 @@
   flex-shrink: 0;
 }
 
-.gm-wt-btn {
-  padding: 2px 8px;
-  background: var(--gm-elevated);
-  border: 1px solid var(--gm-border);
-  border-radius: var(--gm-radius);
-  color: var(--gm-fg);
-  cursor: pointer;
-  font-size: 11px;
+.gm-wt-slot {
+  display: inline-flex;
+  align-items: center;
 }
 
 .gm-wt-count {
@@ -2051,14 +1967,9 @@
   flex-shrink: 0;
 }
 
-.gm-wt-remove-btn {
-  padding: 1px 6px;
-  background: var(--gm-elevated);
-  border: 1px solid var(--gm-border);
-  border-radius: var(--gm-radius);
-  color: var(--gm-fg);
-  cursor: pointer;
-  font-size: 10px;
+.gm-wt-remove-slot {
+  display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
 }
 

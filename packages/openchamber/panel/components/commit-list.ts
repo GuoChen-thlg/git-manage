@@ -21,7 +21,6 @@ import {
 } from '../state';
 import { ServiceClient } from '../service';
 import { t, getLang } from '../i18n';
-import { getIcon } from '../icons';
 import { showCommitContextMenu } from './context-menu';
 import { showSettingsMenu } from './settings-menu';
 import { showGotoDialog, showDateRangeDialog, showPathFilterDialog, showPathTreeDialog } from './dialogs';
@@ -29,6 +28,20 @@ import { showDropdownMenu } from './dropdown-menu';
 import type { DropdownMenuItem } from './dropdown-menu';
 import { host } from '../host';
 import { showOperationError } from './errors';
+import { getIcon } from '../icons';
+import { mountSelect, mountBadge, mountSearchField } from '@openchamber/sdk/ui';
+import type {
+  SelectOption,
+  SelectHandle,
+  BadgeHandle,
+  SearchFieldHandle,
+} from '@openchamber/sdk/ui';
+
+/** 按钮式触发选择下拉使用的空值选项标识（全部/不过滤） */
+const ALL_OPTION_ID = 'all';
+
+/** 提交行引用徽标 handle 列表（renderList 重建前与组件 dispose 时统一释放） */
+const badgeHandles: BadgeHandle[] = [];
 
 export function createCommitListPanel(
   container: HTMLElement,
@@ -54,6 +67,11 @@ export function createCommitListPanel(
     date: HTMLElement | null;
     path: HTMLElement | null;
   } = { regex: null, caseSensitive: null, branch: null, user: null, date: null, path: null };
+  /** SDK UI Kit 单选下拉 handle（分支/用户过滤）：纳入 dispose 流程避免泄漏 */
+  let branchSelect: SelectHandle | null = null;
+  let userSelect: SelectHandle | null = null;
+  /** SDK UI Kit 搜索框 handle（提交搜索）：render 重建前与组件 dispose 时统一释放 */
+  let searchHandle: SearchFieldHandle | null = null;
 
   const findCommitFromEvent = (e: Event): CommitInfo | null => {
     const target = e.target as HTMLElement;
@@ -76,7 +94,7 @@ export function createCommitListPanel(
   
   /**
    * 聚焦工具栏搜索框
-   * data-search-input 是侧边栏搜索图标的契约选择器（main.ts 按其聚焦）
+   * 搜索框为 Kit mountSearchField，聚焦其内部 .oc-sdk-input
    */
   
   /**
@@ -149,11 +167,13 @@ export function createCommitListPanel(
   };
 
   /**
-   * 按当前状态刷新工具栏 6 个过滤按钮的激活样式
+   * 按当前状态刷新工具栏过滤按钮的激活样式（仅正则/大小写/日期/路径四个自绘按钮）
+   * 分支/用户过滤已改为 SDK UI Kit 的 mountSelect，激活态由其选中值（placeholder=全部）承载，
+   * 不参与本函数的自绘按钮激活样式刷新
    * 激活/未激活视觉由 __styles__/commit-list.css 的
    * .gm-commit-filter-btn(.gm-commit-filter-btn-active) 承担
-   * 映射：btn-regex ← searchRegex；btn-case ← searchCaseSensitive；btn-filter-branch ← logBranch；
-   * btn-filter-user ← filterAuthor；btn-filter-date ← filterDateFrom/filterDateTo 任一非空；
+   * 映射：btn-regex ← searchRegex；btn-case ← searchCaseSensitive；
+   * btn-filter-date ← filterDateFrom/filterDateTo 任一非空；
    * btn-filter-path ← filterPaths 非空（多选路径数组，空数组 = 不过滤）
    * 触发时机：toolbar 构建后一次 + subscribeFields 订阅回调（仅关注字段变化时执行）
    */
@@ -162,8 +182,6 @@ export function createCommitListPanel(
     const activeFlags: Array<[HTMLElement | null, boolean]> = [
       [filterBtnRefs.regex, state.searchRegex],
       [filterBtnRefs.caseSensitive, state.searchCaseSensitive],
-      [filterBtnRefs.branch, !!state.logBranch],
-      [filterBtnRefs.user, !!state.filterAuthor],
       [filterBtnRefs.date, !!(state.filterDateFrom || state.filterDateTo)],
       [filterBtnRefs.path, state.filterPaths.length > 0],
     ];
@@ -178,31 +196,27 @@ export function createCommitListPanel(
     container.innerHTML = '';
 
     // 搜索过滤工具栏 (IntelliJ 完整风格)
+    // 分支/用户过滤改为 SDK UI Kit 的 mountSelect（单选下拉）；日期/路径仍为自绘 dropdown-menu。
+    // 搜索框改用 Kit mountSearchField。右侧四个图标按钮保持自绘 button+getIcon：
+    // mountButton 仅支持文本 label、无图标插槽，图标型按钮用 Kit 会退化为空白，故保留自绘。
     toolbar = html`
       <div class="gm-commit-toolbar">
-        <!-- 搜索输入框 -->
-        <div class="gm-commit-search-box">
-          <span class="gm-commit-search-icon">${getIcon('search')}</span>
-          <input 
-            type="text" 
-            placeholder="${t('commit.searchPlaceholder')}" 
-            data-search-input
-            class="gm-commit-search-input"
-          />
-        </div>
+        <!-- 搜索输入框（Kit mountSearchField 容器） -->
+        <div data-action="search-box" class="gm-commit-search-slot"></div>
         <!-- 正则/大小写按钮 -->
         <button data-action="btn-regex" class="gm-commit-filter-btn gm-commit-filter-btn-mono" title="${t('filter.regex')}">.*</button>
         <button data-action="btn-case" class="gm-commit-filter-btn gm-commit-filter-btn-bold" title="${t('filter.case')}">Cc</button>
         <!-- 分隔线 -->
         <div class="gm-commit-toolbar-sep"></div>
-        <!-- 过滤下拉按钮 -->
-        <button data-action="btn-filter-branch" class="gm-commit-filter-btn gm-commit-filter-btn-menu">${t('filter.branch')} ▾</button>
-        <button data-action="btn-filter-user" class="gm-commit-filter-btn gm-commit-filter-btn-menu">${t('filter.user')} ▾</button>
+        <!-- 分支/用户过滤下拉（SDK UI Kit mountSelect 容器） -->
+        <div data-action="filter-branch" class="gm-commit-filter-slot"></div>
+        <div data-action="filter-user" class="gm-commit-filter-slot"></div>
+        <!-- 日期/路径仍为自绘 dropdown-menu（日期含自定义对话框，路径为多选勾选） -->
         <button data-action="btn-filter-date" class="gm-commit-filter-btn gm-commit-filter-btn-menu">${t('filter.date')} ▾</button>
         <button data-action="btn-filter-path" class="gm-commit-filter-btn gm-commit-filter-btn-menu">${t('filter.path')} ▾</button>
         <!-- 分隔线 -->
         <div class="gm-commit-toolbar-sep"></div>
-        <!-- 右侧角：刷新 / Cherry-pick / 视图选项 / 搜索 -->
+        <!-- 右侧角：刷新 / Cherry-pick / 视图选项 / 搜索（自绘图标按钮） -->
         <button data-action="btn-refresh" class="gm-commit-toolbar-btn" title="${t('sidebar.refresh')}">${getIcon('refresh')}</button>
         <button data-action="btn-cherry-pick" class="gm-commit-toolbar-btn" title="${t('commit.cherryPick')}">${getIcon('cherryPick')}</button>
         <button data-action="btn-settings" class="gm-commit-toolbar-btn" title="${t('settings.title')}">${getIcon('gearSettings')}</button>
@@ -210,12 +224,15 @@ export function createCommitListPanel(
       </div>
     `;
 
-    const searchInput = toolbar.querySelector('input') as HTMLInputElement;
-    searchInput.value = getState().commitSearch;
-    searchInput.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      setState(s => { s.commitSearch = target.value; });
-      // 订阅回调会触发 filterCommits，filterCommits 更新 filteredCommits 后再触发 renderList
+    // 挂载搜索框（Kit mountSearchField），重建前先释放旧 handle
+    searchHandle?.dispose();
+    searchHandle = mountSearchField(toolbar.querySelector<HTMLElement>('[data-action="search-box"]')!, {
+      value: getState().commitSearch,
+      placeholder: t('commit.searchPlaceholder'),
+      onChange: (value) => {
+        setState(s => { s.commitSearch = value; });
+        // 订阅回调会触发 filterCommits，filterCommits 更新 filteredCommits 后再触发 renderList
+      },
     });
 
     /**
@@ -268,19 +285,18 @@ export function createCommitListPanel(
       }
     };
 
+    // 右侧四个图标按钮走事件委托（自绘 button+getIcon），与过滤按钮同一入口
     toolbar.addEventListener('click', (e) => {
       const target = (e.target as HTMLElement).closest('[data-action]');
       if (!target) return;
       const action = target.getAttribute('data-action');
-      if (action === 'btn-refresh') refreshCommits(service, directory);
-      else if (action === 'btn-regex') toggleRegex();
+      if (action === 'btn-regex') toggleRegex();
       else if (action === 'btn-case') toggleCase();
-      else if (action === 'btn-filter-branch') openBranchDropdown(target as HTMLElement);
-      else if (action === 'btn-filter-user') openUserDropdown(target as HTMLElement);
       else if (action === 'btn-filter-date') openDateDropdown(target as HTMLElement);
       else if (action === 'btn-filter-path') openPathDropdown(target as HTMLElement);
+      else if (action === 'btn-refresh') void refreshCommits(service, directory);
       else if (action === 'btn-cherry-pick') void handleCherryPick();
-      else if (action === 'btn-settings') showSettingsMenu(e);
+      else if (action === 'btn-settings') showSettingsMenu(e as MouseEvent);
       else if (action === 'btn-goto') showGotoDialog(gotoReference);
     });
 
@@ -289,11 +305,16 @@ export function createCommitListPanel(
     filterBtnRefs = {
       regex: toolbar.querySelector<HTMLElement>('[data-action="btn-regex"]'),
       caseSensitive: toolbar.querySelector<HTMLElement>('[data-action="btn-case"]'),
-      branch: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-branch"]'),
-      user: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-user"]'),
+      branch: null, // 分支过滤改为 mountSelect，激活态由 Kit 控件的选中值承载，无自绘按钮
+      user: null,   // 用户过滤改为 mountSelect，同上
       date: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-date"]'),
       path: toolbar.querySelector<HTMLElement>('[data-action="btn-filter-path"]'),
     };
+    // 挂载分支/用户过滤下拉（SDK UI Kit mountSelect），重建前先释放旧 handle
+    branchSelect?.dispose();
+    userSelect?.dispose();
+    branchSelect = mountBranchSelect(toolbar.querySelector<HTMLElement>('[data-action="filter-branch"]')!);
+    userSelect = mountUserSelect(toolbar.querySelector<HTMLElement>('[data-action="filter-user"]')!);
     updateFilterButtons();
     // 分支过滤标签单独更新，不随工具栏整体重建
     renderFilterTag();
@@ -440,6 +461,7 @@ export function createCommitListPanel(
     unsubscribe = subscribeFields(
       [
         'filteredCommits',
+        'allCommits',
         'branches',
         'logBranch',
         'selectedCommit',
@@ -460,6 +482,15 @@ export function createCommitListPanel(
         console.debug(JSON.stringify({ prefix: '[commit-list]', event: 'sub_changed', changed }));
         // 过滤按钮激活态随关注字段变化刷新（无关字段不进入本回调，不触发重绘）
         updateFilterButtons();
+        // 分支/用户过滤下拉（Kit）的选中值与选项随 state 同步
+        if (
+          changed.includes('logBranch') ||
+          changed.includes('filterAuthor') ||
+          changed.includes('branches') ||
+          changed.includes('allCommits')
+        ) {
+          syncFilterSelects();
+        }
         // 搜索模式开关（外部直接 setState 场景）→ 重算过滤；点击按钮场景由 toggle 显式调用，管道幂等
         if (changed.includes('searchRegex') || changed.includes('searchCaseSensitive')) {
           filterCommits();
@@ -565,88 +596,118 @@ export function createCommitListPanel(
   };
 
   /**
-   * 打开分支过滤下拉菜单
-   * 分组规则复用 branch-panel：收藏 = 非当前分支且在 favorites 中；
-   * 本地 = 非远程且非收藏（含当前分支），远程 = 远程且非收藏
-   * 选中 → setState(logBranch/selectedBranch) 并清空多选后按分支重新拉取提交；
-   * 选"全部" → 清空分支过滤状态后按全量拉取
-   * @param anchor 触发按钮（再次点击同一按钮由 showDropdownMenu 做 toggle 关闭）
+   * 构造分支过滤下拉选项（全部 + 分支名，分组信息降级为 hint）
+   * 收藏优先、其余按远程/本地排序，同组内保持原顺序
    */
-  const openBranchDropdown = (anchor: HTMLElement): void => {
+  const buildBranchOptions = (): SelectOption[] => {
     const state = getState();
     const isFav = (b: { isCurrent: boolean; name: string }): boolean =>
       !b.isCurrent && state.favorites.has(b.name);
-    const localBranches = state.branches.filter(b => !b.isRemote && !isFav(b));
-    const remoteBranches = state.branches.filter(b => b.isRemote && !isFav(b));
-    const favoriteBranches = state.branches.filter(b => isFav(b));
-
-    const items: DropdownMenuItem[] = [
-      { id: 'all', label: t('filter.all'), checked: state.logBranch === null },
-      { id: 'sep-branch', label: '', kind: 'separator' },
-    ];
-    const pushGroup = (labelKey: string, groupId: string, branches: { name: string }[]): void => {
-      if (branches.length === 0) return;
-      items.push({ id: groupId, label: t(labelKey), kind: 'group' });
-      for (const b of branches) {
-        items.push({ id: b.name, label: b.name, checked: state.logBranch === b.name });
-      }
-    };
-    pushGroup('filter.localBranches', 'group-local', localBranches);
-    pushGroup('filter.remoteBranches', 'group-remote', remoteBranches);
-    pushGroup('filter.favorites', 'group-favorites', favoriteBranches);
-
-    showDropdownMenu(anchor, items, (id) => {
-      console.debug(JSON.stringify({
-        prefix: '[commit-list]',
-        event: 'branch_dropdown_select',
-        branch: id === 'all' ? null : id,
-      }));
-      if (id === 'all') {
-        setState(s => {
-          s.logBranch = null;
-          s.selectedBranch = null;
-          s.selectedCommits = new Set<string>();
-        });
-      } else {
-        const branch = getState().branches.find(b => b.name === id) ?? null;
-        setState(s => {
-          s.logBranch = id;
-          s.selectedBranch = branch;
-          s.selectedCommits = new Set<string>();
-        });
-      }
-      // 按新分支重新拉取提交（内部会带 logBranch 调 getLog 并重跑过滤管道）
-      void refreshCommits(service, directory);
-    });
+    const hintOf = (b: { isCurrent: boolean; name: string; isRemote: boolean }): string =>
+      isFav(b) ? t('filter.favorites') : b.isRemote ? t('filter.remoteBranches') : t('filter.localBranches');
+    const ordered = [...state.branches].sort((a, b) => Number(isFav(b)) - Number(isFav(a)));
+    const options: SelectOption[] = [{ id: ALL_OPTION_ID, label: t('filter.all') }];
+    for (const b of ordered) {
+      options.push({ id: b.name, label: b.name, hint: hintOf(b) });
+    }
+    return options;
   };
 
   /**
-   * 打开用户（作者）过滤下拉菜单
-   * 条目 = "全部" + allCommits 中去重排序后的作者名（无提交时仅"全部"）
-   * 选中 → setState(filterAuthor) 后立即重跑过滤管道（数据不重新拉取）
-   * @param anchor 触发按钮
+   * 构造用户（作者）过滤下拉选项（全部 + allCommits 去重排序作者名）
    */
-  const openUserDropdown = (anchor: HTMLElement): void => {
+  const buildUserOptions = (): SelectOption[] => {
     const state = getState();
     const authors = [...new Set(state.allCommits.map(c => c.authorName))].sort();
-
-    const items: DropdownMenuItem[] = [
-      { id: 'all', label: t('filter.all'), checked: state.filterAuthor === '' },
-    ];
+    const options: SelectOption[] = [{ id: ALL_OPTION_ID, label: t('filter.all') }];
     for (const name of authors) {
-      items.push({ id: name, label: name, checked: state.filterAuthor === name });
+      options.push({ id: name, label: name });
     }
+    return options;
+  };
 
-    showDropdownMenu(anchor, items, (id) => {
-      const author = id === 'all' ? '' : id;
-      console.debug(JSON.stringify({
-        prefix: '[commit-list]',
-        event: 'user_dropdown_select',
-        author,
-      }));
-      setState(s => { s.filterAuthor = author; });
-      filterCommits();
+  /**
+   * 挂载分支过滤单选下拉（SDK UI Kit mountSelect）
+   * 分组规则复用 branch-panel：收藏 = 非当前分支且在 favorites 中；
+   * 本地 = 非远程且非收藏（含当前分支），远程 = 远程且非收藏。
+   * mountSelect 仅支持单选、无分组标题/子菜单，故分组信息以 hint 前缀降级表达。
+   * 选中 → setState(logBranch/selectedBranch) 并清空多选后按分支重新拉取提交；
+   * 选"全部"（ALL_OPTION_ID）→ 清空分支过滤状态后按全量拉取。
+   * @param root 挂载容器（工具栏分支过滤槽位）
+   * @returns Kit handle（update 同步选中值/选项，dispose 由组件统一释放）
+   */
+  const mountBranchSelect = (root: HTMLElement): SelectHandle => {
+    const handle = mountSelect(root, {
+      label: t('filter.branch'),
+      value: getState().logBranch ?? ALL_OPTION_ID,
+      options: buildBranchOptions(),
+      placeholder: t('filter.all'),
+      onChange: (id) => {
+        console.debug(JSON.stringify({
+          prefix: '[commit-list]',
+          event: 'branch_dropdown_select',
+          branch: id === ALL_OPTION_ID ? null : id,
+        }));
+        if (id === ALL_OPTION_ID) {
+          setState(s => {
+            s.logBranch = null;
+            s.selectedBranch = null;
+            s.selectedCommits = new Set<string>();
+          });
+        } else {
+          const branch = getState().branches.find(b => b.name === id) ?? null;
+          setState(s => {
+            s.logBranch = id;
+            s.selectedBranch = branch;
+            s.selectedCommits = new Set<string>();
+          });
+        }
+        // 按新分支重新拉取提交（内部会带 logBranch 调 getLog 并重跑过滤管道）
+        void refreshCommits(service, directory);
+      },
     });
+    return handle;
+  };
+
+  /**
+   * 挂载用户（作者）过滤单选下拉（SDK UI Kit mountSelect）
+   * 条目 = "全部" + allCommits 中去重排序后的作者名（无提交时仅"全部"）
+   * 选中 → setState(filterAuthor) 后立即重跑过滤管道（数据不重新拉取）
+   * @param root 挂载容器（工具栏用户过滤槽位）
+   * @returns Kit handle（update 同步选中值/选项，dispose 由组件统一释放）
+   */
+  const mountUserSelect = (root: HTMLElement): SelectHandle => {
+    const handle = mountSelect(root, {
+      label: t('filter.user'),
+      value: getState().filterAuthor || ALL_OPTION_ID,
+      options: buildUserOptions(),
+      placeholder: t('filter.all'),
+      onChange: (id) => {
+        const author = id === ALL_OPTION_ID ? '' : id;
+        console.debug(JSON.stringify({
+          prefix: '[commit-list]',
+          event: 'user_dropdown_select',
+          author,
+        }));
+        setState(s => { s.filterAuthor = author; });
+        filterCommits();
+      },
+    });
+    return handle;
+  };
+
+  /**
+   * 同步分支/用户过滤下拉的选中值与选项到当前状态
+   * 外部直接改写 logBranch/filterAuthor/branches/allCommits 时由订阅调用，
+   * 保证 Kit 控件展示与 state 一致（Kit 自身只在用户交互时改内部值）
+   */
+  const syncFilterSelects = (): void => {
+    const state = getState();
+    branchSelect?.update({ value: state.logBranch ?? ALL_OPTION_ID });
+    userSelect?.update({ value: state.filterAuthor || ALL_OPTION_ID });
+    // 选项集随分支表/作者集合变化而变化，需整体替换 options
+    branchSelect?.update({ options: buildBranchOptions() });
+    userSelect?.update({ options: buildUserOptions() });
   };
 
   /**
@@ -799,6 +860,8 @@ export function createCommitListPanel(
   const renderList = () => {
     if (disposed || !listContainer) return;
     const state = getState();
+    // 重建列表前释放上一轮引用徽标 handle，避免节点/监听泄漏
+    disposeBadges();
     listContainer.innerHTML = '';
 
     const commits = state.filteredCommits;
@@ -823,13 +886,21 @@ export function createCommitListPanel(
       for (const [shortHash, names] of branchMap) {
         if (commit.hash.startsWith(shortHash)) branches.push(...names);
       }
-      const item = createCommitItem(commit, branches);
+      const item = createCommitItem(commit, branches, badgeHandles);
       listContainer.appendChild(item);
     }
   };
 
   const dispose = () => {
     disposed = true;
+    // 释放 SDK UI Kit handle（select/badge/search/button），避免监听与节点泄漏
+    branchSelect?.dispose();
+    branchSelect = null;
+    userSelect?.dispose();
+    userSelect = null;
+    searchHandle?.dispose();
+    searchHandle = null;
+    disposeBadges();
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;
@@ -844,39 +915,52 @@ export function createCommitListPanel(
   return { dispose };
 }
 
-function createCommitItem(commit: CommitInfo, branches: string[] = []): HTMLElement {
+/**
+ * 清空已挂载的引用徽标 handle（renderList 重建前与 dispose 时调用）
+ */
+function disposeBadges(): void {
+  while (badgeHandles.length > 0) {
+    badgeHandles.pop()?.dispose();
+  }
+}
+
+function createCommitItem(
+  commit: CommitInfo,
+  branches: string[] = [],
+  badgeHandles: BadgeHandle[] = [],
+): HTMLElement {
   const state = getState();
   const settings = state.displaySettings;
   // 多选集合成员或单选主提交均高亮
   const isSelected = state.selectedCommits.has(commit.hash) ||
     state.selectedCommit?.hash === commit.hash;
 
-  // 引用标签（IntelliJ 风格彩色标签）
+  // 引用徽标（IntelliJ 风格彩色标签，改用 SDK UI Kit mountBadge）
   // 语义对齐 IDEA SimpleRefGroup.buildGroups：
   // - compactReferences：所有引用合并成一组，只渲染该组的首个名字
   // - showTagNames：控制标签是否显示名字（不影响分支）；两者独立生效，与调整顺序无关
-  const renderRef = (name: string, isTag: boolean): string => {
+  // tone 映射：tag=neutral、本地分支=primary、远程分支=info
+  const renderRef = (name: string, isTag: boolean): HTMLElement => {
     const isLocal = !isTag && !name.includes('/') && name !== 'HEAD';
-    // 引用类型语义类：标签 / 本地分支 / 远程分支，配色由 __styles__/commit-list.css 承担
-    const refClass = isTag
-      ? 'gm-commit-ref gm-commit-ref-tag'
-      : isLocal
-        ? 'gm-commit-ref gm-commit-ref-local'
-        : 'gm-commit-ref gm-commit-ref-remote';
+    const tone = isTag ? 'neutral' : isLocal ? 'primary' : 'info';
     // 标签名被隐藏时仍保留标签色块，只是不显示文字（与 IDEA 传入空名一致）
     const label = isTag && !settings.showTagNames ? '' : name;
-    return `<span data-ref="${name}" class="${refClass}">${label}</span>`;
+    const slot = document.createElement('span');
+    slot.setAttribute('data-ref', name);
+    const badge = mountBadge(slot, { label, tone });
+    badgeHandles.push(badge);
+    return slot;
   };
 
   const refs = branches.map(b => ({ name: b, isTag: b.startsWith('tag:') }));
-  const branchTags = (() => {
-    if (refs.length === 0) return '';
+  const branchTags: HTMLElement[] = (() => {
+    if (refs.length === 0) return [];
     if (settings.compactReferences) {
       // 紧凑：只显示首个引用（若首个是标签且标签名隐藏，则只留色块）
       const first = refs[0];
-      return renderRef(first.name, first.isTag);
+      return [renderRef(first.name, first.isTag)];
     }
-    return refs.map(r => renderRef(r.name, r.isTag)).join('');
+    return refs.map(r => renderRef(r.name, r.isTag));
   })();
 
   // 哈希列 / 日期列 / 作者列按显示设置开关；日期列隐藏时作者列接替右对齐

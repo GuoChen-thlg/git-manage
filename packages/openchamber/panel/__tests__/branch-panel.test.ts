@@ -837,16 +837,14 @@ describe('branch-panel', () => {
     expect(branchItem('origin/main')).toBeFalsy();
   });
 
-  it('搜索框应渲染 getIcon(search) 返回的放大镜图标', () => {
+  it('搜索框应渲染 Kit mountSearchField 自带的放大镜图标', () => {
     setState(s => { s.branches = makeBranches(); });
     createPanel();
 
-    const input = container.querySelector(`input[placeholder="${t('branch.searchPlaceholder')}"]`) as HTMLInputElement;
-    const iconBox = input.parentElement as HTMLElement;
-
-    // 图标 SVG 挂在输入框左侧的 span 内；图标名取错或返回空串都会导致 svg 缺失
-    expect(iconBox.querySelector('svg')).toBeTruthy();
-    expect(iconBox.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 16 16');
+    const searchRoot = container.querySelector('.oc-sdk-search') as HTMLElement;
+    expect(searchRoot, '搜索框应为 Kit mountSearchField').toBeTruthy();
+    // 搜索图标由 Kit 渲染（svg），图标缺失说明控件未正确挂载
+    expect(searchRoot.querySelector('svg')).toBeTruthy();
   });
 
   it('搜索框 placeholder 应随 locale 切换（zh-CN 分支或标签 / en Branch or tag）', () => {
