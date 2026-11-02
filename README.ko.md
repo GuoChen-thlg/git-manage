@@ -6,7 +6,7 @@
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 ![license](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-[OpenChamber](https://docs.openchamber.dev/sdk/) 확장으로 제공되는 크로스 플랫폼 Git 그래픽 관리 도구입니다. 인터페이스는 IntelliJ IDEA의 Git 도구 창을 충실히 따르므로, IDE 스타일 Git 워크플로에 익숙한 개발자가 어디서든 곧바로 익숙한 브랜치 관리, 커밋 탐색, 차이 비교를 사용할 수 있습니다.
+[OpenChamber](https://docs.openchamber.dev/sdk/) 확장으로 제공되는 크로스 플랫폼 Git 그래픽 관리 도구입니다. 인터페이스는 IntelliJ IDEA의 Git 도구 창을 충실히 따르므로, IDE 스타일 Git 워크플로에 익숙한 개발자가 어디서든 곧바로 익숙한 브랜치 관리, 커밋 탐색, 차이 비교를 사용할 수 있습니다. 웹사이트: [guochen-thlg.github.io/git-manage](https://guochen-thlg.github.io/git-manage/)
 
 ## 기능
 

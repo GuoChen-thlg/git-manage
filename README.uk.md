@@ -6,7 +6,7 @@
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 ![license](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-Багатоплатформний графічний інструмент керування Git, що постачається як розширення [OpenChamber](https://docs.openchamber.dev/sdk/). Дизайн взаємодії близько наслідує вікно Git в IntelliJ IDEA, тож розробники, звиклі до Git-процесів у стилі IDE, можуть одразу почати роботу: звичне керування гілками, перегляд комітів і порівняння різниць — будь-де.
+Багатоплатформний графічний інструмент керування Git, що постачається як розширення [OpenChamber](https://docs.openchamber.dev/sdk/). Дизайн взаємодії близько наслідує вікно Git в IntelliJ IDEA, тож розробники, звиклі до Git-процесів у стилі IDE, можуть одразу почати роботу: звичне керування гілками, перегляд комітів і порівняння різниць — будь-де. Вебсайт: [guochen-thlg.github.io/git-manage](https://guochen-thlg.github.io/git-manage/)
 
 ## Можливості
 

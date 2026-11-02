@@ -6,7 +6,7 @@
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 ![license](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-一款跨平台的 Git 图形化管理工具，以 [OpenChamber](https://docs.openchamber.dev/sdk/) 扩展形式提供。在交互设计上深度参考了 IntelliJ IDEA 的 Git 工具窗，让习惯 IDE 式 Git 工作流的开发者可以无缝上手，熟悉的分支管理、提交浏览与差异对比体验随处可用。
+一款跨平台的 Git 图形化管理工具，以 [OpenChamber](https://docs.openchamber.dev/sdk/) 扩展形式提供。在交互设计上深度参考了 IntelliJ IDEA 的 Git 工具窗，让习惯 IDE 式 Git 工作流的开发者可以无缝上手，熟悉的分支管理、提交浏览与差异对比体验随处可用。官网：[guochen-thlg.github.io/git-manage](https://guochen-thlg.github.io/git-manage/)
 
 ## 功能特性
 
