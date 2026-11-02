@@ -6,7 +6,7 @@
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 ![license](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-[OpenChamber](https://docs.openchamber.dev/sdk/) eklentisi olarak sunulan, platformlar arası bir grafik Git yönetim aracı. Arayüz etkileşimi IntelliJ IDEA'nın Git araç penceresini yakından izler; IDE tarzı Git iş akışına alışkın geliştiriciler tanıdık dal yönetimi, commit inceleme ve diff karşılaştırmayı her ortamda hemen kullanabilir.
+[OpenChamber](https://docs.openchamber.dev/sdk/) eklentisi olarak sunulan, platformlar arası bir grafik Git yönetim aracı. Arayüz etkileşimi IntelliJ IDEA'nın Git araç penceresini yakından izler; IDE tarzı Git iş akışına alışkın geliştiriciler tanıdık dal yönetimi, commit inceleme ve diff karşılaştırmayı her ortamda hemen kullanabilir. Web sitesi: [guochen-thlg.github.io/git-manage](https://guochen-thlg.github.io/git-manage/)
 
 ## Özellikler
 

@@ -6,7 +6,7 @@
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 ![license](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-Eine plattformübergreifende, grafische Git-Verwaltung, verfügbar als [OpenChamber](https://docs.openchamber.dev/sdk/)–Erweiterung. Das Interaktionsdesign orientiert sich eng am Git-Fenster von IntelliJ IDEA, sodass Entwickler, die einen IDE-artigen Git-Workflow gewohnt sind, sofort loslegen können — vertrautes Branch-Management, Commit-Durchsicht und Diff-Vergleiche, überall.
+Eine plattformübergreifende, grafische Git-Verwaltung, verfügbar als [OpenChamber](https://docs.openchamber.dev/sdk/)–Erweiterung. Das Interaktionsdesign orientiert sich eng am Git-Fenster von IntelliJ IDEA, sodass Entwickler, die einen IDE-artigen Git-Workflow gewohnt sind, sofort loslegen können — vertrautes Branch-Management, Commit-Durchsicht und Diff-Vergleiche, überall. Website: [guochen-thlg.github.io/git-manage](https://guochen-thlg.github.io/git-manage/)
 
 ## Funktionen
 

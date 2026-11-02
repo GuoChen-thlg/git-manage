@@ -6,7 +6,7 @@
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 ![license](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-[OpenChamber](https://docs.openchamber.dev/sdk/) 拡張として提供されるクロスプラットフォームの Git グラフィカル管理ツールです。UI は IntelliJ IDEA の Git ツールウィンドウを忠実に参考にしており、IDE 流の Git ワークフローに慣れた開発者が、どこでも使い慣れたブランチ管理・コミット閲覧・差分比較をそのまま利用できます。
+[OpenChamber](https://docs.openchamber.dev/sdk/) 拡張として提供されるクロスプラットフォームの Git グラフィカル管理ツールです。UI は IntelliJ IDEA の Git ツールウィンドウを忠実に参考にしており、IDE 流の Git ワークフローに慣れた開発者が、どこでも使い慣れたブランチ管理・コミット閲覧・差分比較をそのまま利用できます。ウェブサイト: [guochen-thlg.github.io/git-manage](https://guochen-thlg.github.io/git-manage/)
 
 ## 機能
 
