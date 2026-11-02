@@ -120,6 +120,7 @@ a:hover { text-decoration: none; }
   white-space: nowrap;
 }
 .pill .star svg { color: var(--text); }
+.pill .star img { height: 14px; display: block; }
 
 .btn {
   display: inline-flex;
