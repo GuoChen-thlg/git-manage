@@ -1,6 +1,6 @@
 # Git Manager for VS Code
 
-在 VS Code 中提供 IntelliJ IDEA 风格的 Git 管理体验：分支树、提交图、差异对比与常用 git 操作。
+在 VS Code 中提供 IntelliJ IDEA 风格的 Git 管理体验：分支树、提交图、差异对比与常用 git 操作。官网：[guochen-thlg.github.io/git-manage](https://guochen-thlg.github.io/git-manage/vscode/zh/)
 
 ## 功能
 

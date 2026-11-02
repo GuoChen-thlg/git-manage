@@ -6,7 +6,7 @@
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 ![license](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-Un outil de gestion Git graphique multiplateforme, fourni sous forme d'extension [OpenChamber](https://docs.openchamber.dev/sdk/). Son design d'interaction s'inspire étroitement de la fenêtre Git d'IntelliJ IDEA, permettant aux développeurs habitués aux workflows Git de type IDE de démarrer immédiatement — gestion des branches, navigation des commits et comparaison de diffs, comme chez eux.
+Un outil de gestion Git graphique multiplateforme, fourni sous forme d'extension [OpenChamber](https://docs.openchamber.dev/sdk/). Son design d'interaction s'inspire étroitement de la fenêtre Git d'IntelliJ IDEA, permettant aux développeurs habitués aux workflows Git de type IDE de démarrer immédiatement — gestion des branches, navigation des commits et comparaison de diffs, comme chez eux. Site web : [guochen-thlg.github.io/git-manage](https://guochen-thlg.github.io/git-manage/)
 
 ## Fonctionnalités
 

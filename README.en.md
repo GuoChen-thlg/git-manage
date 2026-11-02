@@ -6,7 +6,7 @@
 ![version](https://img.shields.io/badge/version-0.0.1-blue)
 ![license](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-A cross-platform graphical Git management tool, delivered as an [OpenChamber](https://docs.openchamber.dev/sdk/) extension. Its interaction design closely follows the Git tool window of IntelliJ IDEA, so developers used to an IDE-style Git workflow can get started seamlessly — familiar branch management, commit browsing, and diff comparison, everywhere.
+A cross-platform graphical Git management tool, delivered as an [OpenChamber](https://docs.openchamber.dev/sdk/) extension. Its interaction design closely follows the Git tool window of IntelliJ IDEA, so developers used to an IDE-style Git workflow can get started seamlessly — familiar branch management, commit browsing, and diff comparison, everywhere. Website: [guochen-thlg.github.io/git-manage](https://guochen-thlg.github.io/git-manage/)
 
 ## Features
 
