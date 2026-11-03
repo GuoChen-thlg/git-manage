@@ -1,6 +1,7 @@
 /**
  * file-diff 组件单元测试
- * 覆盖：空态、setState 触发 diffs 变化后的文件列表渲染、点击文件后的差异行渲染、dispose 行为
+ * 覆盖：空态、setState 触发 diffs 变化后的文件列表渲染、点击文件打开 diff 弹窗、
+ * hover/右键交互、dispose 行为
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createFileDiffPanel } from '../components/file-diff';
@@ -32,14 +33,23 @@ function getTitleCount(container: HTMLElement): string {
   return getTitle(container).querySelector('span')?.textContent ?? '';
 }
 
-/** 获取文件列表容器（splitArea 第一个子元素） */
+/** 获取文件列表容器（container 第二个子元素：标题 + 列表） */
 function getListContainer(container: HTMLElement): HTMLElement {
-  return (container.children[1] as HTMLElement).children[0] as HTMLElement;
+  return container.children[1] as HTMLElement;
 }
 
-/** 获取差异预览容器（splitArea 第二个子元素） */
-function getPreviewContainer(container: HTMLElement): HTMLElement {
-  return (container.children[1] as HTMLElement).children[1] as HTMLElement;
+/** 获取 diff 弹窗覆盖层（未打开时为 null） */
+function getPopupOverlay(): HTMLElement | null {
+  return document.getElementById('gm-diff-popup-overlay');
+}
+
+/**
+ * 关闭可能残留的 diff 弹窗
+ * 先按 Escape 走正常关闭（解绑弹窗的 document 键盘监听），兜底直接移除节点，避免污染后续用例
+ */
+function closeDiffPopup(): void {
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  getPopupOverlay()?.remove();
 }
 
 /** 创建面板并登记清理 */
@@ -150,18 +160,21 @@ describe('file-diff', () => {
     // 清理组件订阅与残留 DOM
     for (const dispose of disposers) dispose();
     disposers = [];
+    // 关闭可能残留的 diff 弹窗（含其 document 键盘监听）
+    closeDiffPopup();
     document.body.innerHTML = '';
   });
 
   describe('空态', () => {
-    it('初始 diffs 为空时应该显示标题计数 0、列表空态和预览空态', () => {
+    it('初始 diffs 为空时应该显示标题计数 0 与列表空态', () => {
       const { container } = createPanel();
 
       expect(getTitle(container).textContent).toContain('变更文件');
       expect(getTitleCount(container)).toBe('0');
       expect(getListContainer(container).textContent).toContain('暂无变更文件');
-      expect(getPreviewContainer(container).textContent).toContain('选择文件查看差异');
       expect(getListContainer(container).querySelectorAll('[data-path]').length).toBe(0);
+      // 页内预览已移除：不应存在预览节点
+      expect(container.querySelector('.gm-file-diff-preview')).toBeNull();
     });
   });
 
@@ -206,8 +219,8 @@ describe('file-diff', () => {
     });
   });
 
-  describe('差异预览渲染', () => {
-    it('点击文件后应该按行类型渲染差异行前缀、内容与行号', () => {
+  describe('点击文件打开 diff 弹窗', () => {
+    it('点击文件条目应打开弹窗并展示该文件路径与计数', () => {
       const { container } = createPanel();
       setState(s => {
         s.diffs = sampleDiffs;
@@ -216,39 +229,65 @@ describe('file-diff', () => {
       const item = getListContainer(container).querySelector('[data-path="src/app.ts"]') as HTMLElement;
       item.click();
 
-      const preview = getPreviewContainer(container);
-      expect(preview.textContent).toContain('src/app.ts');
-
-      // diffContent 是预览区第二个子元素，其子元素即差异行
-      const diffContent = preview.children[1] as HTMLElement;
-      const lines = Array.from(diffContent.children) as HTMLElement[];
-      expect(lines.length).toBe(3);
-
-      const [contextLine, addLine, deleteLine] = lines;
-
-      // context 行：前缀为空格、透明背景、双侧行号
-      expect(contextLine.children[2].textContent).toBe(' ');
-      expect(contextLine.children[3].textContent).toBe('const a = 1;');
-      expect(contextLine.children[0].textContent).toBe('1');
-      expect(contextLine.children[1].textContent).toBe('1');
-      expectThemedClass(contextLine, 'gm-diff-line-context');
-
-      // add 行：前缀 +、新增状态色、只有新侧行号
-      expect(addLine.children[2].textContent).toBe('+');
-      expect(addLine.children[3].textContent).toBe('const b = 2;');
-      expect(addLine.children[0].textContent).toBe(' ');
-      expect(addLine.children[1].textContent).toBe('2');
-      expectThemedClass(addLine, 'gm-diff-line-add');
-
-      // delete 行：前缀 -、删除状态色、只有旧侧行号
-      expect(deleteLine.children[2].textContent).toBe('-');
-      expect(deleteLine.children[3].textContent).toBe('const c = 3;');
-      expect(deleteLine.children[0].textContent).toBe('2');
-      expect(deleteLine.children[1].textContent).toBe(' ');
-      expectThemedClass(deleteLine, 'gm-diff-line-delete');
+      const overlay = getPopupOverlay();
+      expect(overlay).toBeTruthy();
+      expect(overlay!.querySelector('.gm-diff-popup-path')!.textContent).toBe('src/app.ts');
+      expect(overlay!.querySelector('[data-diff-popup-count]')!.textContent).toBe('1/2');
+      // 首文件：上一个禁用、下一个可用
+      expect((overlay!.querySelector('[data-diff-popup-prev]') as HTMLButtonElement).disabled).toBe(true);
+      expect((overlay!.querySelector('[data-diff-popup-next]') as HTMLButtonElement).disabled).toBe(false);
     });
 
-    it('差异文件没有行内容时应该显示无差异内容', () => {
+    it('弹窗应按并排结构渲染差异行前缀、内容与行号', () => {
+      const { container } = createPanel();
+      setState(s => {
+        s.diffs = sampleDiffs;
+      });
+
+      const item = getListContainer(container).querySelector('[data-path="src/app.ts"]') as HTMLElement;
+      item.click();
+
+      const overlay = getPopupOverlay()!;
+      // sampleDiffs[0] 三行（context/add/delete）：双列结构，左列 3 行 + 右列 3 行
+      const rowsLeft = Array.from(overlay.querySelectorAll('.gm-diff-popup-col-left .gm-diff-popup-row')) as HTMLElement[];
+      const rowsRight = Array.from(overlay.querySelectorAll('.gm-diff-popup-col-right .gm-diff-popup-row')) as HTMLElement[];
+      expect(rowsLeft.length).toBe(3);
+      expect(rowsRight.length).toBe(3);
+
+      // 第 1 行：context 左右同显；左列只显示旧行号，右列只显示新行号
+      const ctxLeft = rowsLeft[0]!.children[0]!.querySelector('.gm-diff-line') as HTMLElement;
+      const ctxRight = rowsRight[0]!.children[0]!.querySelector('.gm-diff-line') as HTMLElement;
+      expect(ctxLeft.children[0].textContent).toBe('1');
+      expect(ctxLeft.children[1].textContent).toBe(' ');
+      expect(ctxLeft.children[2].textContent).toBe(' ');
+      expect(ctxLeft.children[3].textContent).toBe('const a = 1;');
+      expect(ctxRight.children[0].textContent).toBe(' ');
+      expect(ctxRight.children[1].textContent).toBe('1');
+      expect(ctxRight.children[2].textContent).toBe(' ');
+      expect(ctxRight.children[3].textContent).toBe('const a = 1;');
+      expectThemedClass(ctxLeft, 'gm-diff-line-context');
+      expectThemedClass(ctxRight, 'gm-diff-line-context');
+
+      // 第 2 行：左侧补位、右侧 add（前缀 +、只有新侧行号）
+      expect(rowsLeft[1]!.children[0]!.querySelector('.gm-diff-popup-cell-empty')).toBeTruthy();
+      const addLine = rowsRight[1]!.children[0]!.querySelector('.gm-diff-line') as HTMLElement;
+      expect(addLine.children[0].textContent).toBe(' ');
+      expect(addLine.children[1].textContent).toBe('2');
+      expect(addLine.children[2].textContent).toBe('+');
+      expect(addLine.children[3].textContent).toBe('const b = 2;');
+      expectThemedClass(addLine, 'gm-diff-line-add');
+
+      // 第 3 行：左侧 delete（前缀 -、只有旧行号）、右侧补位
+      const delLine = rowsLeft[2]!.children[0]!.querySelector('.gm-diff-line') as HTMLElement;
+      expect(delLine.children[0].textContent).toBe('2');
+      expect(delLine.children[1].textContent).toBe(' ');
+      expect(delLine.children[2].textContent).toBe('-');
+      expect(delLine.children[3].textContent).toBe('const c = 3;');
+      expectThemedClass(delLine, 'gm-diff-line-delete');
+      expect(rowsRight[2]!.children[0]!.querySelector('.gm-diff-popup-cell-empty')).toBeTruthy();
+    });
+
+    it('差异文件没有行内容时弹窗应显示无差异内容', () => {
       const { container } = createPanel();
       setState(s => {
         s.diffs = sampleDiffs;
@@ -257,26 +296,28 @@ describe('file-diff', () => {
       const item = getListContainer(container).querySelector('[data-path="src/util.new.ts"]') as HTMLElement;
       item.click();
 
-      const preview = getPreviewContainer(container);
-      expect(preview.textContent).toContain('src/util.new.ts');
-      expect(preview.textContent).toContain('无差异内容');
+      const overlay = getPopupOverlay()!;
+      expect(overlay.querySelector('.gm-diff-popup-path')!.textContent).toBe('src/util.new.ts');
+      expect(overlay.querySelector('.gm-diff-popup-body')!.textContent).toContain('无差异内容');
     });
 
-    it('diffs 再次变化时预览应该重置回空态', () => {
+    it('diffs 再次变化时应更新标题计数并重绘文件列表', () => {
       const { container } = createPanel();
       setState(s => {
         s.diffs = sampleDiffs;
       });
 
       (getListContainer(container).querySelector('[data-path="src/app.ts"]') as HTMLElement).click();
-      expect(getPreviewContainer(container).textContent).toContain('src/app.ts');
+      expect(getPopupOverlay()).toBeTruthy();
 
-      // diffs 引用变化触发订阅，预览重置
+      // diffs 引用变化触发订阅：标题计数与文件列表局部更新
       setState(s => {
         s.diffs = [sampleDiffs[1]];
       });
-      expect(getPreviewContainer(container).textContent).toContain('选择文件查看差异');
       expect(getTitleCount(container)).toBe('1');
+      const items = getListContainer(container).querySelectorAll('[data-path]');
+      expect(items.length).toBe(1);
+      expect((items[0] as HTMLElement).getAttribute('data-path')).toBe('src/util.new.ts');
     });
   });
 
@@ -312,15 +353,15 @@ describe('file-diff', () => {
   });
 
   describe('渲染结构清理', () => {
-    it('渲染面板时应先清空容器再插入标题与分割区', () => {
+    it('渲染面板时应先清空容器再插入标题与列表', () => {
       const { container } = createPanel();
 
-      // 清空后再插入：只应有标题、分割区两个节点，不应残留占位文本节点
+      // 清空后再插入：只应有标题、列表两个节点，不应残留占位文本节点
       expect(container.childNodes.length).toBe(2);
       expect(container.firstChild).toBe(getTitle(container));
     });
 
-    it('点击文件后预览区只应保留标题与差异内容两个节点', () => {
+    it('点击文件后不应在页内产生预览节点', () => {
       const { container } = createPanel();
       setState(s => {
         s.diffs = sampleDiffs;
@@ -328,10 +369,10 @@ describe('file-diff', () => {
 
       (getListContainer(container).querySelector('[data-path="src/app.ts"]') as HTMLElement).click();
 
-      const preview = getPreviewContainer(container);
-      expect(preview.childNodes.length).toBe(2);
-      expect(preview.firstChild).toBe(preview.children[0]);
-      expect(preview.children[0].textContent).toContain('src/app.ts');
+      // 页内预览已移除：容器仍只有标题 + 列表两个子节点，差异内容由弹窗承载（挂在 body 下）
+      expect(container.childNodes.length).toBe(2);
+      expect(container.querySelector('.gm-file-diff-preview')).toBeNull();
+      expect(getPopupOverlay()).toBeTruthy();
     });
 
     it('文件列表重绘时应先清空旧条目再插入新条目', () => {
@@ -366,7 +407,7 @@ describe('file-diff', () => {
   });
 
   describe('差异行颜色', () => {
-    it('上下文行、新增行、删除行应分别渲染各自的前景色', () => {
+    it('弹窗内上下文行、新增行、删除行应分别渲染各自的前景色', () => {
       const { container } = createPanel();
       setState(s => {
         s.diffs = sampleDiffs;
@@ -374,9 +415,14 @@ describe('file-diff', () => {
 
       (getListContainer(container).querySelector('[data-path="src/app.ts"]') as HTMLElement).click();
 
-      const diffContent = (getPreviewContainer(container).children[1] as HTMLElement);
-      const [contextLine, addLine, deleteLine] = Array.from(diffContent.children) as HTMLElement[];
+      const overlay = getPopupOverlay()!;
+      const contextLine = overlay.querySelector('.gm-diff-popup-cell-left .gm-diff-line-context') as HTMLElement;
+      const addLine = overlay.querySelector('.gm-diff-popup-cell-right .gm-diff-line-add') as HTMLElement;
+      const deleteLine = overlay.querySelector('.gm-diff-popup-cell-left .gm-diff-line-delete') as HTMLElement;
 
+      expect(contextLine).toBeTruthy();
+      expect(addLine).toBeTruthy();
+      expect(deleteLine).toBeTruthy();
       expectThemedClass(contextLine, 'gm-diff-line-context');
       expectThemedClass(addLine, 'gm-diff-line-add');
       expectThemedClass(deleteLine, 'gm-diff-line-delete');
@@ -465,7 +511,7 @@ describe('file-diff', () => {
       }
     });
 
-    it('点击列表空白处应保持当前预览与高亮不变', () => {
+    it('点击列表空白处不应打开弹窗且保持高亮不变', () => {
       const { container } = createPanel();
       setState(s => {
         s.diffs = sampleDiffs;
@@ -474,6 +520,8 @@ describe('file-diff', () => {
       const list = getListContainer(container);
       const first = list.querySelector('[data-path="src/app.ts"]') as HTMLElement;
       first.click();
+      // 先关闭条目点击打开的弹窗，隔离"空白处不打开弹窗"的断言
+      closeDiffPopup();
 
       const { errors, restore } = captureListenerErrors();
       try {
@@ -481,7 +529,7 @@ describe('file-diff', () => {
         list.click();
 
         expect(errors).toHaveLength(0);
-        expect(getPreviewContainer(container).textContent).toContain('src/app.ts');
+        expect(getPopupOverlay()).toBeNull();
         expect(first.classList.contains('gm-file-diff-item-selected')).toBe(true);
       } finally {
         restore();

@@ -5,7 +5,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { PANEL_CSS } from '../webview/styles';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+/** 面板样式（真 CSS 文件，构建时复制为 dist/webview/main.css） */
+const PANEL_CSS = readFileSync(resolve(__dirname, '../webview/src/styles.css'), 'utf-8');
 
 /**
  * 取出某个选择器的样式规则体

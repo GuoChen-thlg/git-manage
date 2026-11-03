@@ -61,9 +61,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
 
   // 收藏分支存在工作区状态里，不写进仓库
   const FAVORITES_KEY = 'gitManager.favorites';
+  /** diff 弹窗自动换行开关的存储键 */
+  const DIFF_WRAP_KEY = 'gitManager.diffWrap';
   const store = {
     getFavorites: () => context.workspaceState.get<string[]>(FAVORITES_KEY, []),
     setFavorites: (names: string[]) => { void context.workspaceState.update(FAVORITES_KEY, names); },
+    getDiffWrap: () => context.workspaceState.get<boolean>(DIFF_WRAP_KEY, false),
+    setDiffWrap: (value: boolean) => { void context.workspaceState.update(DIFF_WRAP_KEY, value); },
   };
   setPanelStore(store);
   setPanelRoot(currentRoot);

@@ -33,6 +33,8 @@ export interface GitCommandOptions {
   timeout?: number;
   /** 额外环境变量 */
   env?: Record<string, string>;
+  /** 是否忽略空白差异（对应 git diff -w） */
+  ignoreWhitespace?: boolean;
 }
 
 /**

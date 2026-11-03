@@ -175,7 +175,10 @@ export async function getCommitDiff(
   to: string,
   options: GitCommandOptions
 ): Promise<FileDiff[]> {
-  const result = await gitExec(`diff ${from} ${to}`, options);
+  const result = await gitExec(
+    `diff ${options.ignoreWhitespace ? '-w ' : ''}${from} ${to}`,
+    options
+  );
   
   if (!result.stdout) {
     return [];

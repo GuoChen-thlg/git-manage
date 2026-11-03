@@ -38,7 +38,7 @@ describe('GitPanelView', () => {
     const mocks = await import('./__mocks__/vscode');
     const { GitPanelView, setPanelRoot, setPanelStore } = await import('../webview/panel');
 
-    setPanelStore({ getFavorites: () => [], setFavorites: () => {} });
+    setPanelStore({ getFavorites: () => [], setFavorites: () => {}, getDiffWrap: () => false, setDiffWrap: () => {} });
     setPanelRoot('/repo');
 
     const provider = new GitPanelView();

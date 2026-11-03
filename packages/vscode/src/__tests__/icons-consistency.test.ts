@@ -8,7 +8,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PANEL_ICONS } from '../webview/icons';
-import { PANEL_SCRIPT } from '../webview/script';
+import { SIDEBAR_ITEMS } from '../webview/src/render-sidebar';
+
+/** webview 前端源码（原 script.ts 拆分后的模块） */
+const sidebarSource = readFileSync(resolve(__dirname, '../webview/src/render-sidebar.ts'), 'utf-8');
+const commitsSource = readFileSync(resolve(__dirname, '../webview/src/render-commits.ts'), 'utf-8');
+/** 全部前端源码拼接，供「用到但未定义」扫描 */
+const PANEL_SOURCE = sidebarSource + commitsSource;
 
 /** 仓库根目录 */
 const REPO_ROOT = resolve(__dirname, '../../../..');
@@ -31,9 +37,8 @@ describe('图标与 OpenChamber 一致', () => {
     // OpenChamber 侧栏图标定义（icon: 字段按顺序出现）
     const ocIcons = [...sidebar.matchAll(/icon: '([a-zA-Z]+)'/g)].map(m => m[1]);
 
-    // VS Code 面板侧栏项
-    const block = /SIDEBAR_ITEMS = \[([\s\S]*?)\];/.exec(PANEL_SCRIPT)?.[1] ?? '';
-    const vsIcons = [...block.matchAll(/icon: '([a-zA-Z]+)'/g)].map(m => m[1]);
+    // VS Code 面板侧栏项（真 TS 模块，直接取 SIDEBAR_ITEMS 定义）
+    const vsIcons = SIDEBAR_ITEMS.map(item => item.icon);
 
     expect(vsIcons.length).toBe(ocIcons.length);
     // 收藏图标会按状态在 favorite/favoriteOutline 间切换，比对时归一化
@@ -51,8 +56,8 @@ describe('图标与 OpenChamber 一致', () => {
     }
     expect(ocToolbar).toEqual(['refresh', 'cherryPick', 'gearSettings', 'search']);
 
-    // VS Code 面板工具栏右侧
-    const block = /\/\/ 右侧操作[^]*?const settingsBtn[\s\S]*?\n\n/.exec(PANEL_SCRIPT)?.[0] ?? '';
+    // VS Code 面板工具栏右侧（render-commits.ts）
+    const block = /\/\/ 右侧操作[^]*?const settingsBtn[\s\S]*?\n\n/.exec(commitsSource)?.[0] ?? '';
     const vsIcons = [...block.matchAll(/iconButton\('([a-zA-Z]+)'/g)].map(m => m[1]);
 
     // gearSettings 通过变量传递，单独补上
@@ -70,7 +75,7 @@ describe('图标与 OpenChamber 一致', () => {
     expect(sidebar).toContain("getIcon('hideBranches')");
 
     // VS Code 面板必须使用同样这一对图标
-    const line = /branchPanelHidden \? '([a-zA-Z]+)' : '([a-zA-Z]+)'/.exec(PANEL_SCRIPT);
+    const line = /branchPanelHidden \? '([a-zA-Z]+)' : '([a-zA-Z]+)'/.exec(PANEL_SOURCE);
     expect(line).toBeTruthy();
     expect(line![1]).toBe('showBranches');
     expect(line![2]).toBe('hideBranches');
@@ -78,12 +83,12 @@ describe('图标与 OpenChamber 一致', () => {
 
   it('面板用到的每个图标都必须有定义，否则渲染为空白', () => {
     const used = new Set<string>([
-      ...[...PANEL_SCRIPT.matchAll(/icon: '([a-zA-Z]+)'/g)].map(m => m[1]),
-      ...[...PANEL_SCRIPT.matchAll(/iconButton\('([a-zA-Z]+)'/g)].map(m => m[1]),
+      ...[...PANEL_SOURCE.matchAll(/icon: '([a-zA-Z]+)'/g)].map(m => m[1]),
+      ...[...PANEL_SOURCE.matchAll(/iconButton\('([a-zA-Z]+)'/g)].map(m => m[1]),
       // 三元表达式里以字符串形式指定的图标（如收起/展开切换）也要覆盖
-      ...[...PANEL_SCRIPT.matchAll(/\? '([a-zA-Z]+)' : '([a-zA-Z]+)'/g)].flatMap(m => [m[1]!, m[2]!]),
+      ...[...PANEL_SOURCE.matchAll(/\? '([a-zA-Z]+)' : '([a-zA-Z]+)'/g)].flatMap(m => [m[1]!, m[2]!]),
       // 赋值语句右侧的图标名
-      ...[...PANEL_SCRIPT.matchAll(/iconName = '([a-zA-Z]+)'/g)].map(m => m[1]),
+      ...[...PANEL_SOURCE.matchAll(/iconName = '([a-zA-Z]+)'/g)].map(m => m[1]),
     ]);
 
     const missing = [...used].filter(name => !PANEL_ICONS[name as keyof typeof PANEL_ICONS]);

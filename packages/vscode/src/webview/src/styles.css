@@ -1,9 +1,3 @@
-/**
- * 面板样式
- * 采用 VS Code 主题变量，跟随用户当前主题自动适配明暗。
- */
-
-export const PANEL_CSS = `
 * { box-sizing: border-box; }
 html, body {
   margin: 0; padding: 0; height: 100%; overflow: hidden;
@@ -373,4 +367,213 @@ html, body {
 .ptree-check { width: 14px; flex-shrink: 0; text-align: center; }
 .ptree-name { overflow: hidden; text-overflow: ellipsis; }
 .ptree-name.dir { font-weight: 600; }
-`;
+
+/* ===== 变更文件 diff 弹窗（IDEA 风格并排对比） ===== */
+/* 遮罩层：z-index 高于内置对话框 dlg-overlay(200) */
+.diff-popup-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+/* 对话框主体 */
+.diff-popup {
+  display: flex; flex-direction: column; overflow: hidden;
+  width: 1100px; max-width: 96vw; height: 640px; max-height: 90vh;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+/* 顶部工具栏 */
+.diff-popup-toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; flex-shrink: 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+/* 当前文件路径：超长省略 */
+.diff-popup-path {
+  min-width: 0; font-size: 12px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--vscode-foreground);
+}
+/* 工具栏弹性间隔：把导航区与关闭按钮推到右侧 */
+.diff-popup-spacer { flex: 1; }
+/* 导航按钮组 */
+.diff-popup-nav { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.diff-popup-nav-btn {
+  width: 22px; height: 22px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px; color: var(--vscode-foreground);
+  font-size: 12px; line-height: 1; cursor: pointer;
+}
+.diff-popup-nav-btn:hover:not(:disabled) { background: var(--vscode-toolbar-hoverBackground); }
+/* 边缘禁用：首尾/单文件时导航按钮置灰（原生 disabled 同时拦截点击） */
+.diff-popup-nav-btn:disabled {
+  color: var(--vscode-disabledForeground);
+  cursor: default; opacity: 0.7;
+}
+.diff-popup-nav-btn:disabled:hover { background: transparent; }
+/* n/m 计数链接：点击弹出文件列表 */
+.diff-popup-count {
+  flex-shrink: 0; padding: 0 4px;
+  font-size: 11px; color: var(--vscode-descriptionForeground);
+  cursor: pointer; user-select: none;
+}
+.diff-popup-count:hover { color: var(--vscode-foreground); text-decoration: underline; }
+/* 关闭按钮 */
+/* SVG 图标为 inline 元素，基线对齐会产生 1-2px 偏移，统一块级显示并居中 */
+.diff-popup-close svg,
+.diff-popup-nav-btn svg {
+  display: block;
+}
+.diff-popup-close {
+  width: 22px; height: 22px; padding: 0; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none;
+  color: var(--vscode-descriptionForeground);
+  font-size: 16px; line-height: 1; cursor: pointer;
+}
+.diff-popup-close:hover {
+  color: var(--vscode-foreground);
+  background: var(--vscode-toolbar-hoverBackground);
+  border-radius: 3px;
+}
+/* 主体：不再自己滚动，左右两栏各自滚动 */
+.diff-popup-body {
+  flex: 1; min-height: 0;
+  display: flex; overflow: hidden;
+}
+/* 独立滚动列容器：左列放旧行、右列放新行，各带横向滚动条，垂直滚动由脚本同步 */
+.diff-popup-col {
+  flex: 1 1 50%; min-width: 0; overflow: auto;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size, 12px);
+}
+/* 左列右缘分隔线（替代原 cell-left 的 border-right） */
+.diff-popup-col-left { border-right: 1px solid var(--vscode-panel-border); }
+/* 并排对齐行：列内用 grid 让所有行拉伸到滚动区全宽（= 最长行宽），
+   行背景铺满整个横向滚动范围，任意滚动位置都不会露出无背景空白。
+   align-content:start 防止 grid 把行高均分拉伸（行高必须由内容决定） */
+.diff-popup-col { display: grid; grid-template-columns: 1fr; align-content: start; }
+.diff-popup-row { display: flex; min-width: max-content; }
+/* 左右单元格各占一半；overflow 兜底：测量失败或极端内容时不许越中线压到对侧 */
+.diff-popup-cell {
+  box-sizing: border-box; width: 50%; min-width: 0;
+  white-space: pre;
+  overflow: visible;
+}
+/* 弹窗内行宽跟随内容：行内不裁剪，长行把列容器撑出横向滚动条（双列各自独立滚动） */
+.diff-popup-cell .diff-line {
+  width: max-content;
+  min-width: 100%;
+}
+/* 背景铺满整栏：type 背景由 cell 层承担（cell 宽=列可视宽，滚动时覆盖到底），
+   行本身只作内容层，避免 max-content 行宽使背景止于文本末尾 */
+.diff-popup-cell.diff-popup-line-add { background: var(--vscode-diffEditor-insertedLineBackground, rgba(155,185,85,0.2)); }
+.diff-popup-cell.diff-popup-line-delete { background: var(--vscode-diffEditor-removedLineBackground, rgba(255,0,0,0.2)); }
+.diff-popup-cell .diff-line.add,
+.diff-popup-cell .diff-line.delete { background: transparent; }
+/* 左右单元格：row 在列内只有一个 cell，覆盖原双栏 50% 规则，占满整列 */
+.diff-popup-col .diff-popup-cell { width: 100%; }
+/* 左右列分隔线 */
+.diff-popup-cell-left { border-right: 1px solid var(--vscode-panel-border); }
+/* 空白补位行：略暗背景与真实行区分 */
+.diff-popup-cell-empty { background: rgba(128, 128, 128, 0.12); }
+/* 当前文件无差异的空态 */
+.diff-popup-empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; min-height: 80px;
+  color: var(--vscode-descriptionForeground); font-size: 12px;
+}
+/* n/m 计数点击弹出的文件列表（挂在 overlay 内计数下方） */
+.diff-popup-filelist {
+  position: absolute; z-index: 1;
+  min-width: 240px; max-width: 480px; max-height: 300px; overflow: auto;
+  padding: 4px;
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+/* 列表项：单行省略，hover 反馈 */
+.diff-popup-filelist-item {
+  padding: 4px 8px; font-size: 12px; line-height: 1.4;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-radius: 3px;
+}
+.diff-popup-filelist-item:hover { background: var(--vscode-list-hoverBackground); }
+/* 当前展示文件的高亮项 */
+.diff-popup-filelist-item-active {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+/* 自动换行开关按钮激活态 */
+.diff-popup-wrap-btn-active {
+  color: var(--vscode-textLink-foreground);
+  background: var(--vscode-toolbar-hoverBackground);
+}
+/* 功能开关按钮激活态（视图/忽略空白/单词高亮，统一对齐 wrap） */
+.diff-popup-view-btn-active,
+.diff-popup-ignorews-btn-active,
+.diff-popup-highlight-btn-active {
+  color: var(--vscode-textLink-foreground);
+  background: var(--vscode-toolbar-hoverBackground);
+}
+/* 单词级高亮标记（token LCS 差异） */
+mark.diff-popup-word-hl {
+  background: var(--vscode-editorWordHighlightBackground, rgba(255, 200, 0, 0.35));
+  color: inherit;
+}
+/* 行内字符级差异标记（inlineDiff 开启时标出的不同字符段） */
+.diff-popup-char-hl {
+  background: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.4));
+  text-decoration: underline;
+  text-decoration-color: var(--vscode-focusBorder);
+}
+/* 差异块导航：当前锚点行高亮（outline 不覆盖行背景色） */
+.diff-popup-row.diff-popup-change-active {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+/* 设置菜单：对齐 filelist 弹层风格 */
+.diff-popup-settings-menu {
+  position: absolute; z-index: 1;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.diff-popup-settings-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; font-size: 12px; line-height: 1.4;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.diff-popup-settings-item:hover { background: var(--vscode-list-hoverBackground); }
+.diff-popup-settings-item input[type="checkbox"] { margin: 0; cursor: pointer; }
+/* 设置项：隐藏行号时隐藏 .ln 列 */
+.diff-popup-hide-linenums .diff-line .ln { display: none; }
+/* 单栏（unified）模式：隐藏右列、左列占满整行（body 加 class 驱动，不用 inline style） */
+.diff-popup-unified .diff-popup-col-right { display: none; }
+.diff-popup-unified .diff-popup-col-left {
+  flex: 1 1 100%;
+  border-right: none;
+}
+/* 自动换行模式：diff 行折行显示（对齐 IDEA「自动换行」设置项）
+   行宽必须改回 100%（max-content 永不折行），内容才能按列宽折行 */
+.diff-popup-wrap .diff-popup-cell .diff-line {
+  width: 100%;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.diff-popup-wrap .diff-popup-cell {
+  white-space: normal;
+}

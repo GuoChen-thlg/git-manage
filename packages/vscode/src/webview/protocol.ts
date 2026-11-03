@@ -29,6 +29,8 @@ export type RequestMethod =
   | 'push'
   | 'getFavorites'
   | 'saveFavorites'
+  | 'getDiffWrap'
+  | 'setDiffWrap'
   | 'getMyBranches'
   | 'listFiles'
   | 'getCommandLogs'
@@ -60,12 +62,16 @@ export interface RequestParams {
   targetBranch?: string;
   /** 收藏的分支名列表 */
   favorites?: string[];
+  /** diff 弹窗自动换行开关值 */
+  value?: boolean;
   /** 命令日志增量起点 id */
   since?: number;
   /** worktree 路径 */
   path?: string;
   /** worktree 绑定分支 */
   branchName?: string;
+  /** 是否忽略空白差异（git diff -w） */
+  ignoreWhitespace?: boolean;
 }
 
 /** webview 发往主进程的请求 */
