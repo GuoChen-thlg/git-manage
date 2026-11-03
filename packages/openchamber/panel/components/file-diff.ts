@@ -6,6 +6,7 @@ import { html } from '../html';
 import { getState, subscribeFields, FileDiff, DiffLine } from '../state';
 import { ServiceClient } from '../service';
 import { showFileContextMenu } from './file-context-menu';
+import { showDiffPopup } from './diff-popup';
 import { t } from '../i18n';
 import { tokenize } from '../syntax';
 
@@ -16,7 +17,6 @@ export function createFileDiffPanel(
 ): { dispose: () => void } {
   let disposed = false;
   let listContainer: HTMLElement | null = null;
-  let previewContainer: HTMLElement | null = null;
   let selectedPath: string | null = null;
   let unsubscribe: (() => void) | null = null;
   let titleEl: HTMLElement | null = null;
@@ -26,37 +26,6 @@ export function createFileDiffPanel(
     const item = target.closest('[data-path]');
     if (!item) return null;
     return item.getAttribute('data-path');
-  };
-
-  const renderPreview = (diff: FileDiff | null) => {
-    if (!previewContainer) return;
-    previewContainer.innerHTML = '';
-
-    if (!diff) {
-      previewContainer.innerHTML = `<div class="gm-file-diff-empty">${t('file.selectDiff')}</div>`;
-      return;
-    }
-
-    const title = html`
-      <div class="gm-file-diff-preview-title">
-        ${diff.path}
-      </div>
-    `;
-    previewContainer.appendChild(title);
-
-    const diffContent = html`
-      <div class="gm-file-diff-content"></div>
-    `;
-
-    if (diff.lines && diff.lines.length > 0) {
-      for (const line of diff.lines) {
-        diffContent.appendChild(createDiffLine(line));
-      }
-    } else {
-      diffContent.innerHTML = `<div class="gm-file-diff-empty-inline">${t('file.noDiff')}</div>`;
-    }
-
-    previewContainer.appendChild(diffContent);
   };
 
   const render = () => {
@@ -71,11 +40,6 @@ export function createFileDiffPanel(
       </div>
     `;
     container.appendChild(titleEl);
-
-    // 文件列表 + 预览 (上下分割)
-    const splitArea = html`
-      <div class="gm-file-diff-split"></div>
-    `;
 
     // 文件列表
     listContainer = html`
@@ -98,13 +62,23 @@ export function createFileDiffPanel(
 
     listContainer.addEventListener('click', (e) => {
       const path = findPathFromEvent(e);
-      if (path) {
-        selectedPath = path;
-        const diff = getState().diffs.find(d => d.path === path) || null;
-        renderPreview(diff);
-        listContainer?.querySelectorAll('[data-path]').forEach(el => {
-          const el2 = el as HTMLElement;
-          el2.classList.toggle('gm-file-diff-item-selected', el2.getAttribute('data-path') === path);
+      if (!path) return;
+      selectedPath = path;
+      listContainer?.querySelectorAll('[data-path]').forEach(el => {
+        const el2 = el as HTMLElement;
+        el2.classList.toggle('gm-file-diff-item-selected', el2.getAttribute('data-path') === path);
+      });
+      // 点击文件条目打开并排 diff 弹窗；路径不在当前 diffs 中（如残留 DOM）时不打开
+      const state = getState();
+      const diffs = state.diffs;
+      const index = diffs.findIndex(d => d.path === path);
+      if (index !== -1) {
+        showDiffPopup(diffs, index, {
+          hash: state.commitDetail?.hash,
+          directory,
+          // 忽略空白：经 service 重新拉取提交差异（body 带 ignoreWhitespace 供服务端过滤）
+          refetch: (ignoreWhitespace) =>
+            service.getCommitDiffs(directory, state.commitDetail?.hash ?? '', ignoreWhitespace),
         });
       }
     });
@@ -118,20 +92,11 @@ export function createFileDiffPanel(
       }
     });
 
-    splitArea.appendChild(listContainer);
-
-    // 差异预览
-    previewContainer = html`
-      <div class="gm-file-diff-preview"></div>
-    `;
-    splitArea.appendChild(previewContainer);
-
-    container.appendChild(splitArea);
+    // 文件列表直接挂在容器下：标题 + 列表两个子节点
+    container.appendChild(listContainer);
 
     // 渲染文件列表
     renderFileList();
-
-    renderPreview(null);
 
     // 订阅 diffs，变化时局部更新标题计数 + 文件列表
     if (unsubscribe) unsubscribe();
@@ -140,7 +105,6 @@ export function createFileDiffPanel(
       updateTitleCount();
       selectedPath = null;
       renderFileList();
-      renderPreview(null);
     });
   };
 

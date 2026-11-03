@@ -279,9 +279,9 @@ export function createServiceClient(host: HostClient) {
     return serviceCall<CommitInfo>('git-commit-detail', { directory, hash });
   }
 
-  /** 获取提交差异 */
-  async function getCommitDiffs(directory: string, hash: string) {
-    return serviceCall<FileDiff[]>('git-commit-diffs', { directory, hash });
+  /** 获取提交差异（ignoreWhitespace 为 true 时服务端按 -w 忽略空白重算差异） */
+  async function getCommitDiffs(directory: string, hash: string, ignoreWhitespace?: boolean) {
+    return serviceCall<FileDiff[]>('git-commit-diffs', { directory, hash, ignoreWhitespace });
   }
 
   /** 与本地（工作区）比较差异：比较指定提交与当前工作区的差异 */

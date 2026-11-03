@@ -371,7 +371,9 @@ export async function handleRequest(request: Request): Promise<Response> {
       }
       case "/git-diff":
       case "/git-commit-diffs": {
-        const diffs = await getCommitFileDiffs(directory, body.hash);
+        const diffs = await getCommitFileDiffs(directory, body.hash, {
+          ignoreWhitespace: body.ignoreWhitespace === true,
+        });
         return Response.json(diffs);
       }
       case "/git-diff-vs-local": {

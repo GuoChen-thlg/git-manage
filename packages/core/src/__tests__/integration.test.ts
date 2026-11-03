@@ -531,6 +531,29 @@ describe('提交历史', () => {
     expect(diffs[0].additions).toBe(1);
     expect(diffs[0].deletions).toBe(0);
   });
+
+  it('getCommitFileDiffs 开启 ignoreWhitespace 应忽略纯空白差异（git diff -w）', async () => {
+    // fixture：新文件提交基线，再只改行内空白（缩进变化）提交第二个版本
+    await git(['checkout', '-b', 'feature/ws-only'], repoDir);
+    writeFileSync(join(repoDir, 'ws.txt'), 'line one\nline two\n');
+    await git(['add', '.'], repoDir);
+    await git(['commit', '-m', '基线'], repoDir);
+    // 仅行首缩进变化，语义相同
+    writeFileSync(join(repoDir, 'ws.txt'), 'line one\n    line two\n');
+    await git(['add', '.'], repoDir);
+    await git(['commit', '-m', '空白改动'], repoDir);
+
+    const tip = await hashOf('feature/ws-only', repoDir);
+
+    // 默认：空白差异计入（有增删行）
+    const strict = await getCommitFileDiffs(repoDir, tip);
+    expect(strict).toHaveLength(1);
+    expect((strict[0].additions ?? 0) + (strict[0].deletions ?? 0)).toBeGreaterThan(0);
+
+    // 开启 ignoreWhitespace：纯空白差异被忽略（git diff -w 输出为空 → 不返回该文件）
+    const relaxed = await getCommitFileDiffs(repoDir, tip, { ignoreWhitespace: true });
+    expect(relaxed).toHaveLength(0);
+  });
 });
 
 /** 工作区状态与提交流转 */

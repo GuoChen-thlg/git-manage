@@ -197,12 +197,20 @@ export async function getCommitDetail(cwd: string, commitHash: string): Promise<
  * 获取提交差异（基于提交哈希）
  * @param cwd - 工作目录
  * @param commitHash - 提交哈希
+ * @param options - 可选参数，ignoreWhitespace 是否忽略空白差异
  * @returns 文件差异列表
  */
-export async function getCommitFileDiffs(cwd: string, commitHash: string): Promise<FileDiff[]> {
+export async function getCommitFileDiffs(
+  cwd: string,
+  commitHash: string,
+  options?: { ignoreWhitespace?: boolean }
+): Promise<FileDiff[]> {
   const commit = await _showCommit(commitHash, { cwd });
   if (!commit || !commit.parents[0]) {
     return [];
   }
-  return _getCommitDiff(commit.parents[0], commitHash, { cwd });
+  return _getCommitDiff(commit.parents[0], commitHash, {
+    cwd,
+    ignoreWhitespace: options?.ignoreWhitespace,
+  });
 }

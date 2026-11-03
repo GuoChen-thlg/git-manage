@@ -37,6 +37,16 @@ const store = {
   setFavorites: vi.fn(function (this: { favorites: string[] }, names: string[]) {
     this.favorites = names;
   }),
+  getDiffWrap: vi.fn(() => false),
+  setDiffWrap: vi.fn(),
+  getDiffView: vi.fn(() => 'side'),
+  setDiffView: vi.fn(),
+  getIgnoreWs: vi.fn(() => false),
+  setIgnoreWs: vi.fn(),
+  getHighlightWords: vi.fn(() => false),
+  setHighlightWords: vi.fn(),
+  getShowLineNums: vi.fn(() => true),
+  setShowLineNums: vi.fn(),
 };
 
 describe('handleRequest', () => {
@@ -97,6 +107,19 @@ describe('handleRequest', () => {
     const { handleRequest } = await import('../webview/handler');
 
     await expect(handleRequest('getCommitDetail', {}, ROOT, store)).rejects.toThrow('缺少参数：hash');
+  });
+
+  it('getCommitDiffs 应透传 ignoreWhitespace（缺省 false）', async () => {
+    core.getCommitFileDiffs.mockResolvedValue([]);
+    const { handleRequest } = await import('../webview/handler');
+
+    // 显式开启
+    await handleRequest('getCommitDiffs', { hash: 'abc123', ignoreWhitespace: true }, ROOT, store);
+    expect(core.getCommitFileDiffs).toHaveBeenLastCalledWith(ROOT, 'abc123', { ignoreWhitespace: true });
+
+    // 未指定时按 false 处理（弹窗关闭忽略空白后的重拉场景）
+    await handleRequest('getCommitDiffs', { hash: 'abc123' }, ROOT, store);
+    expect(core.getCommitFileDiffs).toHaveBeenLastCalledWith(ROOT, 'abc123', { ignoreWhitespace: false });
   });
 
   it('cherry-pick 与 revert 应经 gitExecStrict 执行', async () => {

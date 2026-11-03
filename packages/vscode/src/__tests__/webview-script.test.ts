@@ -6,7 +6,10 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { JSDOM } from 'jsdom';
-import { PANEL_SCRIPT } from '../webview/script';
+import { initPanel } from '../webview/src/main';
+import { resetState } from '../webview/src/state';
+import { closeDropdown } from '../webview/src/dialogs';
+import type { VsCodeApi } from '../webview/src/api';
 
 /** 记录 webview 发出的请求 */
 interface SentMessage {
@@ -20,7 +23,24 @@ interface SentMessage {
  * 启动一个带面板脚本的 jsdom 环境
  * @returns 窗口、文档与已发送消息
  */
-function boot() {
+function boot(opts: {
+  /** 预置自动换行持久化状态 */
+  diffWrap?: boolean;
+  /** 预置 diff 弹窗视图模式持久化状态 */
+  diffView?: 'side' | 'unified';
+  /** 预置忽略空白持久化状态 */
+  ignoreWs?: boolean;
+  /** 预置单词高亮持久化状态 */
+  highlightWords?: boolean;
+  /** 预置显示行号持久化状态（默认 true） */
+  showLineNums?: boolean;
+  /** 预置显示空白符持久化状态 */
+  showWhitespace?: boolean;
+  /** 预置行内差异高亮持久化状态 */
+  inlineDiff?: boolean;
+  /** 覆盖 getCommitDiffs 返回的差异样例（默认两组固定文件） */
+  commitDiffs?: unknown;
+} = {}) {
   const dom = new JSDOM(
     `<!DOCTYPE html><body><div id="app">
       <div id="content">
@@ -37,6 +57,20 @@ function boot() {
   const sent: SentMessage[] = [];
   /** 收藏存储，跨请求保留 */
   const favorites: string[] = [];
+  /** 自动换行持久化状态（可由用例预置，模拟 workspaceState） */
+  let diffWrap = opts.diffWrap === true;
+  /** diff 弹窗视图模式持久化状态（'side' 并排 / 'unified' 单栏） */
+  let diffView = opts.diffView ?? 'side';
+  /** 忽略空白持久化状态 */
+  let ignoreWs = opts.ignoreWs === true;
+  /** 单词高亮持久化状态 */
+  let highlightWords = opts.highlightWords === true;
+  /** 显示行号持久化状态（默认开） */
+  let showLineNums = opts.showLineNums !== false;
+  /** 显示空白符持久化状态 */
+  let showWhitespace = opts.showWhitespace === true;
+  /** 行内差异高亮持久化状态 */
+  let inlineDiff = opts.inlineDiff === true;
 
   // 模拟扩展主进程：收到请求后按方法返回假数据
   (window as unknown as { acquireVsCodeApi: () => unknown }).acquireVsCodeApi = () => ({
@@ -82,16 +116,59 @@ function boot() {
             authorName: '张三', authorEmail: 'z@example.com', date: '2026-01-01', parents: [],
           };
         } else if (message.method === 'getCommitDiffs') {
-          reply.data = [{
+          // 两个文件：供 diff 弹窗的上一个/下一个切换用例使用；
+          // 用例可通过 opts.commitDiffs 覆盖（如配对 delete/add 行的高亮场景）
+          reply.data = opts.commitDiffs ?? [{
             path: 'a.ts', additions: 2, deletions: 1,
             lines: [
               { type: 'context', content: 'const a = 1;', oldLine: 1, newLine: 1 },
               { type: 'add', content: 'const b = 2;', newLine: 2 },
               { type: 'delete', content: 'old();', oldLine: 2 },
             ],
+          }, {
+            path: 'b.ts', additions: 1, deletions: 0,
+            lines: [
+              { type: 'add', content: 'new line', newLine: 1 },
+            ],
           }];
         } else if (message.method === 'getFavorites') {
           reply.data = favorites;
+        } else if (message.method === 'getDiffWrap') {
+          reply.data = diffWrap;
+        } else if (message.method === 'setDiffWrap') {
+          diffWrap = (message.params as { value?: boolean } | undefined)?.value === true;
+          reply.data = null;
+        } else if (message.method === 'getDiffView') {
+          reply.data = diffView;
+        } else if (message.method === 'setDiffView') {
+          const v = (message.params as { value?: string } | undefined)?.value;
+          if (v === 'unified' || v === 'side') diffView = v;
+          reply.data = null;
+        } else if (message.method === 'getIgnoreWs') {
+          reply.data = ignoreWs;
+        } else if (message.method === 'setIgnoreWs') {
+          ignoreWs = (message.params as { value?: boolean } | undefined)?.value === true;
+          reply.data = null;
+        } else if (message.method === 'getHighlightWords') {
+          reply.data = highlightWords;
+        } else if (message.method === 'setHighlightWords') {
+          highlightWords = (message.params as { value?: boolean } | undefined)?.value === true;
+          reply.data = null;
+        } else if (message.method === 'getShowLineNums') {
+          reply.data = showLineNums;
+        } else if (message.method === 'setShowLineNums') {
+          showLineNums = (message.params as { value?: boolean } | undefined)?.value !== false;
+          reply.data = null;
+        } else if (message.method === 'getShowWhitespace') {
+          reply.data = showWhitespace;
+        } else if (message.method === 'setShowWhitespace') {
+          showWhitespace = (message.params as { value?: boolean } | undefined)?.value === true;
+          reply.data = null;
+        } else if (message.method === 'getInlineDiff') {
+          reply.data = inlineDiff;
+        } else if (message.method === 'setInlineDiff') {
+          inlineDiff = (message.params as { value?: boolean } | undefined)?.value === true;
+          reply.data = null;
         } else if (message.method === 'saveFavorites') {
           favorites.length = 0;
           const list = (message.params as { favorites?: string[] } | undefined)?.favorites ?? [];
@@ -135,8 +212,37 @@ function boot() {
     regex: '<svg></svg>', goToRef: '<svg></svg>', graph: '<svg></svg>',
     remote: '<svg></svg>', pull: '<svg></svg>', push: '<svg></svg>', download: '<svg></svg>',
   };
-  window.eval(PANEL_SCRIPT);
-  return { window, document: window.document, sent };
+  // 直接调用入口初始化（替代原先 window.eval(PANEL_SCRIPT)）
+  // 迁移后代码以真模块运行，需要把 jsdom 的全局挂到 Node globalThis（等价于原 eval 的全局环境）
+  const globals = globalThis as unknown as Record<string, unknown>;
+  globals.document = window.document;
+  globals.window = window;
+  globals.Event = window.Event;
+  globals.KeyboardEvent = window.KeyboardEvent;
+  globals.MouseEvent = window.MouseEvent;
+  globals.Node = window.Node;
+  globals.MessageEvent = window.MessageEvent;
+  // 模块级单例状态在 boot 之间共享（原 eval 每次新建闭包），此处重置等价隔离
+  resetState();
+  closeDropdown();
+  initPanel((window as unknown as { acquireVsCodeApi: () => unknown }).acquireVsCodeApi() as unknown as VsCodeApi);
+  return {
+    window, document: window.document, sent,
+    /** 读写当前换行持久化状态 */
+    get diffWrap() { return diffWrap; },
+    /** 读写当前视图模式持久化状态 */
+    get diffView() { return diffView; },
+    /** 读写当前忽略空白持久化状态 */
+    get ignoreWs() { return ignoreWs; },
+    /** 读写当前单词高亮持久化状态 */
+    get highlightWords() { return highlightWords; },
+    /** 读写当前显示行号持久化状态 */
+    get showLineNums() { return showLineNums; },
+    /** 读写当前显示空白符持久化状态 */
+    get showWhitespace() { return showWhitespace; },
+    /** 读写当前行内差异高亮持久化状态 */
+    get inlineDiff() { return inlineDiff; },
+  };
 }
 
 
@@ -377,7 +483,7 @@ async function ensureExpanded() {
     await settle(30);
   });
 
-  it('点击文件应展开差异内容并按类型着色', async () => {
+  it('点击文件应打开 diff 弹窗并渲染差异内容', async () => {
     // 先选中一个提交以加载详情
     const commitRow = env.document.querySelector('.commit-item') as HTMLElement;
     commitRow.click();
@@ -385,26 +491,51 @@ async function ensureExpanded() {
 
     const fileRow = env.document.querySelector('.file-row') as HTMLElement;
     expect(fileRow).toBeTruthy();
-    // 初始为折叠态
-    expect(fileRow.querySelector('.arrow')!.textContent).toBe('▸');
-    expect(env.document.querySelector('.diff-lines')).toBeNull();
+    // 初始无弹窗
+    expect(env.document.querySelector('#diff-popup-overlay')).toBeNull();
 
     fileRow.click();
     await settle(30);
 
-    // 展开后出现差异行
-    const lines = env.document.querySelectorAll('.diff-line');
-    expect(lines.length).toBe(3);
-    expect(env.document.querySelectorAll('.diff-line.add').length).toBe(1);
-    expect(env.document.querySelectorAll('.diff-line.delete').length).toBe(1);
-    expect(env.document.querySelector('.diff-lines')!.textContent).toContain('const b = 2;');
+    // 弹窗出现，展示第一个文件的路径与计数
+    const overlay = env.document.querySelector('#diff-popup-overlay');
+    expect(overlay, '点击文件行应打开 diff 弹窗').toBeTruthy();
+    expect(overlay!.querySelector('.diff-popup-path')!.textContent).toBe('a.ts');
+    expect(overlay!.querySelector('[data-diff-popup-count]')!.textContent).toBe('1/2');
+    // 首文件：上一个禁用，下一个可用
+    expect((overlay!.querySelector('[data-diff-popup-prev]') as HTMLButtonElement).disabled).toBe(true);
+    expect((overlay!.querySelector('[data-diff-popup-next]') as HTMLButtonElement).disabled).toBe(false);
+
+    // 并排渲染：双列结构，左列 3 行 + 右列 3 行（context/add/delete）
+    const rows = overlay!.querySelectorAll('.diff-popup-body .diff-popup-col-left .diff-popup-row');
+    expect(rows.length).toBe(3);
+    const rightRows = overlay!.querySelectorAll('.diff-popup-body .diff-popup-col-right .diff-popup-row');
+    expect(rightRows.length).toBe(3);
+    expect(overlay!.querySelectorAll('.diff-line.add').length).toBe(1);
+    expect(overlay!.querySelectorAll('.diff-line.delete').length).toBe(1);
+    // context 行左右各一份
+    expect(overlay!.querySelectorAll('.diff-line.context').length).toBe(2);
+    // 补位行 2 个：add 行左栏、delete 行右栏
+    expect(overlay!.querySelectorAll('.diff-popup-cell-empty').length).toBe(2);
+    expect(overlay!.querySelector('.diff-popup-body')!.textContent).toContain('const b = 2;');
   });
 
-  it('再次点击文件应收起差异', async () => {
-    const fileRow = env.document.querySelector('.file-row') as HTMLElement;
-    fileRow.click();
+  it('按 Escape 应关闭 diff 弹窗', async () => {
+    // 前一个用例打开了弹窗；若未打开则补点一次，保证用例可独立执行
+    let overlay = env.document.querySelector('#diff-popup-overlay');
+    if (!overlay) {
+      const fileRow = env.document.querySelector('.file-row') as HTMLElement;
+      fileRow.click();
+      await settle(30);
+      overlay = env.document.querySelector('#diff-popup-overlay');
+    }
+    expect(overlay, '应存在打开的 diff 弹窗').toBeTruthy();
+
+    env.document.dispatchEvent(new env.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await settle(30);
-    expect(env.document.querySelector('.diff-lines')).toBeNull();
+
+    // 关闭后 overlay 应从 DOM 移除
+    expect(env.document.querySelector('#diff-popup-overlay')).toBeNull();
   });
 
   it('底部应有 Git / 控制台 / Worktrees 三个页签', () => {
@@ -1354,5 +1485,841 @@ describe('Webview 边界场景', () => {
 
     // 此时应只有一个遮罩
     expect(local.document.querySelectorAll('.dlg-overlay').length).toBe(1);
+  });
+});
+
+describe('diff 弹窗', () => {
+  /**
+   * 启动独立环境并等待首屏加载
+   */
+  async function newEnv() {
+    const local = boot();
+    await settle(150);
+    return local;
+  }
+
+  /**
+   * 选中首个提交并点击第一个文件行，打开 diff 弹窗
+   * @param local 环境
+   * @returns overlay 元素
+   */
+  async function openPopup(local: ReturnType<typeof boot>) {
+    const commitRow = local.document.querySelector('.commit-item') as HTMLElement;
+    expect(commitRow).toBeTruthy();
+    commitRow.click();
+    await settle(120);
+
+    const fileRow = local.document.querySelector('.file-row') as HTMLElement;
+    expect(fileRow).toBeTruthy();
+    fileRow.click();
+    await settle(30);
+
+    const overlay = local.document.querySelector('#diff-popup-overlay');
+    expect(overlay, '点击文件行应打开 diff 弹窗').toBeTruthy();
+    return overlay as HTMLElement;
+  }
+
+  /**
+   * 派发键盘按键到 document（jsdom 环境下脚本监听 document 级 keydown）
+   * @param local 环境
+   * @param key 按键名
+   */
+  function press(local: ReturnType<typeof boot>, key: string) {
+    local.document.dispatchEvent(new local.window.KeyboardEvent('keydown', { key, bubbles: true }));
+  }
+
+  /**
+   * 关闭弹窗，避免残留 DOM 影响后续用例
+   * @param local 环境
+   */
+  async function closePopup(local: ReturnType<typeof boot>) {
+    const overlay = local.document.querySelector('#diff-popup-overlay') as HTMLElement | null;
+    if (!overlay) return;
+    press(local, 'Escape');
+    await settle(30);
+  }
+
+  it('打开弹窗应展示路径、计数与禁用态，并渲染并排差异', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    expect(overlay.querySelector('.diff-popup-path')!.textContent).toBe('a.ts');
+    expect(overlay.querySelector('[data-diff-popup-count]')!.textContent).toBe('1/2');
+    // 首文件：上一个禁用，下一个可用
+    expect((overlay.querySelector('[data-diff-popup-prev]') as HTMLButtonElement).disabled).toBe(true);
+    expect((overlay.querySelector('[data-diff-popup-next]') as HTMLButtonElement).disabled).toBe(false);
+
+    // 并排渲染：双列结构，左列 3 行 + 右列 3 行（context/add/delete）
+    const rows = overlay.querySelectorAll('.diff-popup-body .diff-popup-col-left .diff-popup-row');
+    expect(rows.length).toBe(3);
+    const rightRows = overlay.querySelectorAll('.diff-popup-body .diff-popup-col-right .diff-popup-row');
+    expect(rightRows.length).toBe(3);
+    expect(overlay.querySelectorAll('.diff-line.add').length).toBe(1);
+    expect(overlay.querySelectorAll('.diff-line.delete').length).toBe(1);
+    // context 行左右各一份
+    expect(overlay.querySelectorAll('.diff-line.context').length).toBe(2);
+    // 补位行 2 个：add 行左栏、delete 行右栏
+    expect(overlay.querySelectorAll('.diff-popup-cell-empty').length).toBe(2);
+    expect(overlay.querySelector('.diff-popup-body')!.textContent).toContain('const b = 2;');
+
+    await closePopup(local);
+  });
+
+  it('右方向键应切换到下一个文件，末尾禁用且不循环', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+    const path = () => overlay.querySelector('.diff-popup-path')!.textContent;
+    const count = () => overlay.querySelector('[data-diff-popup-count]')!.textContent;
+    const next = () => overlay.querySelector('[data-diff-popup-next]') as HTMLButtonElement;
+
+    press(local, 'ArrowRight');
+    await settle(20);
+    expect(path()).toBe('b.ts');
+    expect(count()).toBe('2/2');
+    // 末文件：下一个禁用
+    expect(next().disabled).toBe(true);
+
+    // 再按一次不切换（禁用不循环）
+    press(local, 'ArrowRight');
+    await settle(20);
+    expect(path()).toBe('b.ts');
+    expect(count()).toBe('2/2');
+
+    await closePopup(local);
+  });
+
+  it('左方向键应回到上一个文件，首文件不切换', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+    const path = () => overlay.querySelector('.diff-popup-path')!.textContent;
+    const count = () => overlay.querySelector('[data-diff-popup-count]')!.textContent;
+
+    // 先切到第二个文件
+    press(local, 'ArrowRight');
+    await settle(20);
+    expect(count()).toBe('2/2');
+
+    press(local, 'ArrowLeft');
+    await settle(20);
+    expect(path()).toBe('a.ts');
+    expect(count()).toBe('1/2');
+
+    // 首文件再按不切换（不循环）
+    press(local, 'ArrowLeft');
+    await settle(20);
+    expect(path()).toBe('a.ts');
+    expect(count()).toBe('1/2');
+
+    await closePopup(local);
+  });
+
+  it('上下方向键不应切换文件', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+    const path = () => overlay.querySelector('.diff-popup-path')!.textContent;
+    const count = () => overlay.querySelector('[data-diff-popup-count]')!.textContent;
+
+    press(local, 'ArrowUp');
+    await settle(20);
+    expect(path()).toBe('a.ts');
+    expect(count()).toBe('1/2');
+
+    press(local, 'ArrowDown');
+    await settle(20);
+    expect(path()).toBe('a.ts');
+    expect(count()).toBe('1/2');
+
+    await closePopup(local);
+  });
+
+  it('点击计数应弹出文件列表，选择条目可切换并关闭列表', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+    const path = () => overlay.querySelector('.diff-popup-path')!.textContent;
+    const countEl = overlay.querySelector('[data-diff-popup-count]') as HTMLElement;
+
+    // 点击计数打开文件列表
+    countEl.click();
+    await settle(20);
+    const list = overlay.querySelector('.diff-popup-filelist');
+    expect(list, '点击计数应出现文件列表').toBeTruthy();
+    const items = [...list!.querySelectorAll('[data-diff-popup-file-index]')] as HTMLElement[];
+    expect(items.length).toBe(2);
+    // 当前项高亮
+    expect(items[0]!.classList.contains('diff-popup-filelist-item-active')).toBe(true);
+    expect(items[1]!.classList.contains('diff-popup-filelist-item-active')).toBe(false);
+
+    // 点第 2 项：路径切换为 b.ts 且列表关闭
+    items[1]!.click();
+    await settle(20);
+    expect(path()).toBe('b.ts');
+    expect(overlay.querySelector('.diff-popup-filelist')).toBeNull();
+
+    // 再点计数可 toggle 关闭：先打开
+    countEl.click();
+    await settle(20);
+    expect(overlay.querySelector('.diff-popup-filelist')).toBeTruthy();
+    // 再点一次关闭
+    countEl.click();
+    await settle(20);
+    expect(overlay.querySelector('.diff-popup-filelist')).toBeNull();
+
+    await closePopup(local);
+  });
+
+  it('Escape 应先关文件列表再关弹窗，关闭后键盘监听解绑', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    // 打开文件列表后 Escape 只关列表
+    const countEl = overlay.querySelector('[data-diff-popup-count]') as HTMLElement;
+    countEl.click();
+    await settle(20);
+    expect(overlay.querySelector('.diff-popup-filelist')).toBeTruthy();
+
+    press(local, 'Escape');
+    await settle(20);
+    expect(overlay.querySelector('.diff-popup-filelist')).toBeNull();
+    expect(local.document.querySelector('#diff-popup-overlay'), '列表关闭后弹窗应仍在').toBeTruthy();
+
+    // 再按 Escape 关闭弹窗
+    press(local, 'Escape');
+    await settle(20);
+    expect(local.document.querySelector('#diff-popup-overlay')).toBeNull();
+
+    // 关闭后再派发按键：不报错也不应重新出现弹窗（监听已解绑）
+    expect(() => press(local, 'ArrowRight')).not.toThrow();
+    await settle(20);
+    expect(local.document.querySelector('#diff-popup-overlay')).toBeNull();
+  });
+
+  it('点击关闭按钮应关闭弹窗', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    const closeBtn = overlay.querySelector('[data-diff-popup-close]') as HTMLElement;
+    expect(closeBtn).toBeTruthy();
+    closeBtn.click();
+    await settle(20);
+
+    expect(local.document.querySelector('#diff-popup-overlay')).toBeNull();
+  });
+
+  it('并排单元格应按侧行号渲染并含补位行标记', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    // a.ts 三行：双列结构，每列 3 行
+    const rows = [...overlay.querySelectorAll('.diff-popup-col-left .diff-popup-row')];
+    expect(rows.length).toBe(3);
+    const rightRows = [...overlay.querySelectorAll('.diff-popup-col-right .diff-popup-row')];
+    // 右列同步断言行数一致
+    expect(rightRows.length).toBe(3);
+
+    for (let i = 0; i < rows.length; i += 1) {
+      const leftCell = rows[i]!.querySelector('.diff-popup-cell-left');
+      const rightCell = rightRows[i]!.querySelector('.diff-popup-cell-right');
+      expect(leftCell, `左列第 ${i} 行应有单元格`).toBeTruthy();
+      expect(rightCell, `右列第 ${i} 行应有单元格`).toBeTruthy();
+
+      // 左栏 .diff-line 的 span 顺序：[旧行号, 空, 内容]
+      const leftLine = leftCell!.querySelector('.diff-line');
+      if (leftLine && !leftCell!.querySelector('.diff-popup-cell-empty')) {
+        const spans = leftLine.querySelectorAll('span');
+        expect(spans.length).toBeGreaterThanOrEqual(3);
+        // 旧行号非空时应为数字，第二个 span（新行号位）留空
+        if (spans[0]!.textContent?.trim()) {
+          expect(spans[0]!.textContent).toMatch(/^\d+$/);
+          expect(spans[1]!.textContent?.trim()).toBe('');
+        }
+      }
+
+      // 右栏 .diff-line 的 span 顺序：[空, 新行号, 内容]
+      const rightLine = rightCell!.querySelector('.diff-line');
+      if (rightLine && !rightCell!.querySelector('.diff-popup-cell-empty')) {
+        const spans = rightLine.querySelectorAll('span');
+        expect(spans.length).toBeGreaterThanOrEqual(3);
+        if (spans[1]!.textContent?.trim()) {
+          expect(spans[1]!.textContent).toMatch(/^\d+$/);
+          expect(spans[0]!.textContent?.trim()).toBe('');
+        }
+      }
+    }
+
+    // context 行左右都有内容；delete 行仅左栏有内容，右栏为补位
+    const deleteRowIndex = rows.findIndex(r => r.querySelector('.diff-line.delete'));
+    expect(deleteRowIndex, '应存在 delete 行').toBeGreaterThanOrEqual(0);
+    expect(rows[deleteRowIndex]!.querySelector('.diff-popup-cell-left .diff-line.delete')).toBeTruthy();
+    // 右列对应行无 delete 内容，应为补位标记或空内容
+    const rightCell = rightRows[deleteRowIndex]!.querySelector('.diff-popup-cell-right')!;
+    const rightLine = rightCell.querySelector('.diff-line');
+    const isPlaceholder = rightCell.querySelector('.diff-popup-cell-empty') !== null
+      || rightLine?.classList.contains('diff-popup-cell-empty') === true
+      || (rightLine?.textContent?.trim() ?? '') === '';
+    expect(isPlaceholder, 'delete 行右栏应为补位').toBe(true);
+
+    await closePopup(local);
+  });
+});
+
+describe('diff 弹窗自动换行', () => {
+  /**
+   * 启动独立环境并等待首屏加载
+   * @param opts 可预置持久化的换行开关状态
+   */
+  async function newEnv(opts: { diffWrap?: boolean } = {}) {
+    const local = boot(opts);
+    await settle(150);
+    return local;
+  }
+
+  /**
+   * 选中首个提交并点击第一个文件行，打开 diff 弹窗
+   * @param local 环境
+   * @returns overlay 元素
+   */
+  async function openPopup(local: ReturnType<typeof boot>) {
+    const commitRow = local.document.querySelector('.commit-item') as HTMLElement;
+    expect(commitRow).toBeTruthy();
+    commitRow.click();
+    await settle(120);
+
+    const fileRow = local.document.querySelector('.file-row') as HTMLElement;
+    expect(fileRow).toBeTruthy();
+    fileRow.click();
+    await settle(30);
+
+    const overlay = local.document.querySelector('#diff-popup-overlay');
+    expect(overlay, '点击文件行应打开 diff 弹窗').toBeTruthy();
+    return overlay as HTMLElement;
+  }
+
+  /**
+   * 关闭弹窗，避免残留 DOM 影响后续用例
+   * @param local 环境
+   */
+  async function closePopup(local: ReturnType<typeof boot>) {
+    const overlay = local.document.querySelector('#diff-popup-overlay') as HTMLElement | null;
+    if (!overlay) return;
+    local.document.dispatchEvent(new local.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await settle(30);
+  }
+
+  it('默认不开换行：body 与按钮均无激活样式', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    const body = overlay.querySelector('.diff-popup-body') as HTMLElement;
+    expect(body.classList.contains('diff-popup-wrap')).toBe(false);
+    const wrapBtn = overlay.querySelector('[data-diff-popup-wrap]') as HTMLElement;
+    expect(wrapBtn, '工具栏应有自动换行按钮').toBeTruthy();
+    expect(wrapBtn.classList.contains('diff-popup-wrap-btn-active')).toBe(false);
+
+    await closePopup(local);
+  });
+
+  it('点击自动换行按钮应进入折行态并发出 setDiffWrap(true)', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    const wrapBtn = overlay.querySelector('[data-diff-popup-wrap]') as HTMLElement;
+    wrapBtn.click();
+    await settle(30);
+
+    const last = local.sent.filter(m => m.method === 'setDiffWrap').at(-1);
+    expect(last, '应发出 setDiffWrap 请求').toBeTruthy();
+    expect((last!.params as { value?: boolean }).value).toBe(true);
+    expect(local.diffWrap).toBe(true);
+
+    await closePopup(local);
+  });
+
+  // 已知实现 bug（webview/script.ts render()）：wrap=true 时提前 return（约 665-670 行），
+  // 跳过了后方的 body class 与按钮激活态同步（约 694-699 行），
+  // 导致开启换行后 diff-popup-wrap class 永远不会加上。修复后取消 skip。
+  it('点击自动换行按钮后 body 应加 diff-popup-wrap 且按钮激活', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    const wrapBtn = overlay.querySelector('[data-diff-popup-wrap]') as HTMLElement;
+    wrapBtn.click();
+    await settle(30);
+
+    expect((overlay.querySelector('.diff-popup-body') as HTMLElement).classList.contains('diff-popup-wrap')).toBe(true);
+    expect(wrapBtn.classList.contains('diff-popup-wrap-btn-active')).toBe(true);
+
+    await closePopup(local);
+  });
+
+  it('再次点击应退出折行态并发出 setDiffWrap(false)', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    const wrapBtn = overlay.querySelector('[data-diff-popup-wrap]') as HTMLElement;
+    wrapBtn.click();
+    await settle(30);
+    wrapBtn.click();
+    await settle(30);
+
+    expect((overlay.querySelector('.diff-popup-body') as HTMLElement).classList.contains('diff-popup-wrap')).toBe(false);
+    expect(wrapBtn.classList.contains('diff-popup-wrap-btn-active')).toBe(false);
+
+    const last = local.sent.filter(m => m.method === 'setDiffWrap').at(-1)!;
+    expect((last.params as { value?: boolean }).value).toBe(false);
+    expect(local.diffWrap).toBe(false);
+
+    await closePopup(local);
+  });
+
+  it('换行开启时行内 minWidth 应被清空（默认态 jsdom 测不出宽度，跳过非空断言）', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    const wrapBtn = overlay.querySelector('[data-diff-popup-wrap]') as HTMLElement;
+    wrapBtn.click();
+    await settle(30);
+
+    // wrap 态下所有行的 inline minWidth 必须为空字符串
+    const rows = [...overlay.querySelectorAll('.diff-popup-row')] as HTMLElement[];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.style.minWidth).toBe('');
+    }
+
+    await closePopup(local);
+  });
+
+  // 已知实现 bug（webview/script.ts render()）：wrap=true 提前 return 跳过 class 同步，
+  // 持久化开启时 body 不会加 diff-popup-wrap。修复后取消 skip。
+  it('持久化开启时打开弹窗应自动进入换行态', async () => {
+    const local = await newEnv({ diffWrap: true });
+    const overlay = await openPopup(local);
+
+    // getDiffWrap 异步取回后套用，需等待 settle
+    const body = overlay.querySelector('.diff-popup-body') as HTMLElement;
+    expect(body.classList.contains('diff-popup-wrap')).toBe(true);
+    const wrapBtn = overlay.querySelector('[data-diff-popup-wrap]') as HTMLElement;
+    expect(wrapBtn.classList.contains('diff-popup-wrap-btn-active')).toBe(true);
+
+    await closePopup(local);
+  });
+});
+
+describe('diff 弹窗工具栏功能组', () => {
+  /**
+   * 含配对 delete/add 行的差异样例：
+   * 注意两行 token 数必须相等（均为 1），否则 highlightWordDiff 第二次 buildSide
+   * 会以 table[i+1][j] 越界抛错（PANEL_SCRIPT 模板字符串吞掉 \w 导致分词异常），
+   * render 中断后 mark 无法注入
+   */
+  const pairedDiffs = [{
+    path: 'a.ts', additions: 1, deletions: 1,
+    lines: [
+      { type: 'context', content: 'const a = 1;', oldLine: 1, newLine: 1 },
+      { type: 'delete', content: 'aaa;', oldLine: 2 },
+      { type: 'add', content: 'bbb;', newLine: 2 },
+    ],
+  }];
+
+  /**
+   * 启动独立环境并等待首屏加载
+   * @param opts 可预置持久化偏好与差异样例
+   */
+  async function newEnv(opts: Parameters<typeof boot>[0] = {}) {
+    const local = boot(opts);
+    await settle(150);
+    return local;
+  }
+
+  /**
+   * 选中首个提交并点击第一个文件行，打开 diff 弹窗
+   * @param local 环境
+   * @returns overlay 元素
+   */
+  async function openPopup(local: ReturnType<typeof boot>) {
+    const commitRow = local.document.querySelector('.commit-item') as HTMLElement;
+    expect(commitRow).toBeTruthy();
+    commitRow.click();
+    await settle(120);
+
+    const fileRow = local.document.querySelector('.file-row') as HTMLElement;
+    expect(fileRow).toBeTruthy();
+    fileRow.click();
+    await settle(60);
+
+    const overlay = local.document.querySelector('#diff-popup-overlay');
+    expect(overlay, '点击文件行应打开 diff 弹窗').toBeTruthy();
+    return overlay as HTMLElement;
+  }
+
+  /**
+   * 关闭弹窗（Escape），避免残留 DOM 与键盘监听影响后续用例
+   * @param local 环境
+   */
+  async function closePopup(local: ReturnType<typeof boot>) {
+    const overlay = local.document.querySelector('#diff-popup-overlay') as HTMLElement | null;
+    if (!overlay) return;
+    local.document.dispatchEvent(
+      new local.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    await settle(30);
+  }
+
+  it('点击视图切换按钮应进入单栏模式并发出 setDiffView，再点回并排', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+    const body = overlay.querySelector('.diff-popup-body') as HTMLElement;
+    const viewBtn = overlay.querySelector('[data-diff-popup-view]') as HTMLElement;
+    expect(viewBtn, '工具栏应有视图切换按钮').toBeTruthy();
+
+    // 切到单栏：body 加 unified class
+    viewBtn.click();
+    await settle(30);
+    expect(body.classList.contains('diff-popup-unified')).toBe(true);
+    expect(viewBtn.classList.contains('diff-popup-view-btn-active')).toBe(true);
+    // 右列隐藏由 CSS 驱动，jsdom 无布局，断言行数结构：单栏线性渲染进左列，无补位行
+    const leftRows = overlay.querySelectorAll('.diff-popup-col-left .diff-popup-row');
+    expect(leftRows.length).toBe(3);
+    // 补位行只存在于并排模式，单栏下不应出现
+    expect(overlay.querySelectorAll('.diff-popup-cell-empty').length).toBe(0);
+    // 发出持久化请求
+    const lastSet = local.sent.filter(m => m.method === 'setDiffView').at(-1);
+    expect(lastSet, '应发出 setDiffView 请求').toBeTruthy();
+    expect((lastSet!.params as { value?: string }).value).toBe('unified');
+    expect(local.diffView).toBe('unified');
+
+    // 再点切回并排：class 移除，恢复配对补位结构
+    viewBtn.click();
+    await settle(30);
+    expect(body.classList.contains('diff-popup-unified')).toBe(false);
+    expect(overlay.querySelectorAll('.diff-popup-cell-empty').length).toBe(2);
+    expect(local.diffView).toBe('side');
+
+    await closePopup(local);
+  });
+
+  it('点击忽略空白应重拉 getCommitDiffs 且带 ignoreWhitespace: true，再点关闭重拉不带', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+    const ignoreBtn = overlay.querySelector('[data-diff-popup-ignore-ws]') as HTMLElement;
+    expect(ignoreBtn, '工具栏应忽略空白按钮').toBeTruthy();
+
+    ignoreBtn.click();
+    await settle(60);
+    expect(ignoreBtn.classList.contains('diff-popup-ignorews-btn-active')).toBe(true);
+    // 重拉请求应带 ignoreWhitespace: true
+    const reloads = local.sent.filter(m => m.method === 'getCommitDiffs');
+    expect(reloads.length).toBeGreaterThanOrEqual(2);
+    expect((reloads.at(-1)!.params as { ignoreWhitespace?: boolean }).ignoreWhitespace).toBe(true);
+    expect(local.ignoreWs).toBe(true);
+
+    // 再点关闭：重拉请求不带 ignoreWhitespace（params 忽略或为 false）
+    ignoreBtn.click();
+    await settle(60);
+    expect(ignoreBtn.classList.contains('diff-popup-ignorews-btn-active')).toBe(false);
+    const last = local.sent.filter(m => m.method === 'getCommitDiffs').at(-1)!;
+    expect((last.params as { ignoreWhitespace?: boolean }).ignoreWhitespace === true).toBe(false);
+    expect(local.ignoreWs).toBe(false);
+
+    await closePopup(local);
+  });
+
+  it('点击单词高亮按钮应激活并对配对 delete/add 行的 code 注入 mark 高亮', async () => {
+    const local = await newEnv({ commitDiffs: pairedDiffs });
+    const overlay = await openPopup(local);
+    const hlBtn = overlay.querySelector('[data-diff-popup-highlight]') as HTMLElement;
+    expect(hlBtn, '工具栏应有单词高亮按钮').toBeTruthy();
+
+    // 默认关：无 mark
+    expect(overlay.querySelectorAll('mark.diff-popup-word-hl').length).toBe(0);
+
+    hlBtn.click();
+    await settle(30);
+    expect(hlBtn.classList.contains('diff-popup-highlight-btn-active')).toBe(true);
+    // 配对行（delete 'aaa;' ↔ add 'bbb;'）的 .code 内应出现 mark 高亮
+    const marks = overlay.querySelectorAll('.code mark.diff-popup-word-hl');
+    expect(marks.length).toBeGreaterThan(0);
+    // 未匹配 token 被包 mark：'aaa' 与 'bbb' 是差异 token
+    // （迁移为真模块后 \w 分词正常：'aaa;' 切为 'aaa' + ';'，';' 两侧相同不标，mark 文本为单词本身）
+    const markedTexts = [...marks].map(m => m.textContent);
+    expect(markedTexts).toContain('aaa');
+    expect(markedTexts).toContain('bbb');
+    // 持久化请求已发出
+    const lastSet = local.sent.filter(m => m.method === 'setHighlightWords').at(-1);
+    expect((lastSet!.params as { value?: boolean }).value).toBe(true);
+
+    // 再点关闭：mark 消失
+    hlBtn.click();
+    await settle(30);
+    expect(hlBtn.classList.contains('diff-popup-highlight-btn-active')).toBe(false);
+    expect(overlay.querySelectorAll('mark.diff-popup-word-hl').length).toBe(0);
+
+    await closePopup(local);
+  });
+
+  it('点击设置按钮应弹出菜单且含显示行号项，点该项切换 hide-linenums 并发出 setShowLineNums', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+    const body = overlay.querySelector('.diff-popup-body') as HTMLElement;
+    const settingsBtn = overlay.querySelector('[data-diff-popup-settings]') as HTMLElement;
+    expect(settingsBtn, '工具栏应有设置按钮').toBeTruthy();
+
+    settingsBtn.click();
+    await settle(30);
+    const menu = overlay.querySelector('.diff-popup-settings-menu') as HTMLElement;
+    expect(menu, '点设置应弹出菜单').toBeTruthy();
+    const item = menu.querySelector('.diff-popup-settings-item') as HTMLElement;
+    expect(item, '菜单应含设置项').toBeTruthy();
+    expect(item.textContent).toContain('显示行号');
+
+    // 默认显示行号：点 label（切换逻辑挂在 label.onclick，非容器）→ 隐藏
+    const label = item.querySelector('.diff-popup-settings-label') as HTMLElement;
+    label.click();
+    await settle(30);
+    expect(body.classList.contains('diff-popup-hide-linenums')).toBe(true);
+    const lastSet = local.sent.filter(m => m.method === 'setShowLineNums').at(-1);
+    expect(lastSet, '应发出 setShowLineNums 请求').toBeTruthy();
+    expect((lastSet!.params as { value?: boolean }).value).toBe(false);
+    expect(local.showLineNums).toBe(false);
+
+    // 再开菜单再点 label：恢复显示（延迟注册的 document 点击监听使本次点击 toggle 关闭菜单，故再点一次重开）
+    settingsBtn.click();
+    await settle(60);
+    if (!overlay.querySelector('.diff-popup-settings-menu')) {
+      settingsBtn.click();
+      await settle(60);
+    }
+    const label2 = overlay.querySelector('.diff-popup-settings-menu .diff-popup-settings-label') as HTMLElement;
+    expect(label2, '再次打开应仍有菜单项').toBeTruthy();
+    label2.click();
+    await settle(30);
+    expect(body.classList.contains('diff-popup-hide-linenums')).toBe(false);
+    expect(local.showLineNums).toBe(true);
+
+    await closePopup(local);
+  });
+
+  it('持久化 viewMode 为 unified 时打开弹窗应自动进入单栏', async () => {
+    const local = await newEnv({ diffView: 'unified' });
+    const overlay = await openPopup(local);
+    const body = overlay.querySelector('.diff-popup-body') as HTMLElement;
+
+    // prefs 异步回包后套用并重渲染，settle 已覆盖
+    expect(body.classList.contains('diff-popup-unified')).toBe(true);
+    const viewBtn = overlay.querySelector('[data-diff-popup-view]') as HTMLElement;
+    expect(viewBtn.classList.contains('diff-popup-view-btn-active')).toBe(true);
+    // 单栏线性渲染：无补位行
+    expect(overlay.querySelectorAll('.diff-popup-cell-empty').length).toBe(0);
+
+    await closePopup(local);
+  });
+});
+
+describe('差异导航与设置扩充', () => {
+  /**
+   * 启动独立环境并等待首屏加载
+   * @param opts 可预置持久化偏好与差异样例
+   */
+  async function newEnv(opts: Parameters<typeof boot>[0] = {}) {
+    const local = boot(opts);
+    await settle(150);
+    return local;
+  }
+
+  /**
+   * 选中首个提交并点击第一个文件行，打开 diff 弹窗
+   * @param local 环境
+   * @returns overlay 元素
+   */
+  async function openPopup(local: ReturnType<typeof boot>) {
+    const commitRow = local.document.querySelector('.commit-item') as HTMLElement;
+    expect(commitRow).toBeTruthy();
+    commitRow.click();
+    await settle(120);
+
+    const fileRow = local.document.querySelector('.file-row') as HTMLElement;
+    expect(fileRow).toBeTruthy();
+    fileRow.click();
+    await settle(60);
+
+    const overlay = local.document.querySelector('#diff-popup-overlay');
+    expect(overlay, '点击文件行应打开 diff 弹窗').toBeTruthy();
+    return overlay as HTMLElement;
+  }
+
+  /**
+   * 关闭弹窗（Escape），避免残留 DOM 与键盘监听影响后续用例
+   * @param local 环境
+   */
+  async function closePopup(local: ReturnType<typeof boot>) {
+    const overlay = local.document.querySelector('#diff-popup-overlay') as HTMLElement | null;
+    if (!overlay) return;
+    local.document.dispatchEvent(
+      new local.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    await settle(30);
+  }
+
+  /**
+   * 派发带 Alt 修饰的键盘按键（差异块导航快捷键）
+   * @param local 环境
+   * @param key 按键名
+   */
+  function pressAlt(local: ReturnType<typeof boot>, key: string) {
+    local.document.dispatchEvent(
+      new local.window.KeyboardEvent('keydown', { key, altKey: true, bubbles: true }),
+    );
+  }
+
+  it('打开弹窗后差异导航按钮存在且可用，点击下一个应高亮变更块起始行', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    const prevChange = overlay.querySelector('[data-diff-popup-prev-change]') as HTMLButtonElement;
+    const nextChange = overlay.querySelector('[data-diff-popup-next-change]') as HTMLButtonElement;
+    expect(prevChange, '工具栏应有上一个差异按钮').toBeTruthy();
+    expect(nextChange, '工具栏应有下一个差异按钮').toBeTruthy();
+    // a.ts 含 add/delete 变更块：按钮应可用
+    expect(prevChange.disabled).toBe(false);
+    expect(nextChange.disabled).toBe(false);
+
+    nextChange.click();
+    await settle(30);
+    // 块起始行（连续变更行合并锚点）应加高亮 class
+    const active = overlay.querySelectorAll('.diff-popup-change-active');
+    expect(active.length).toBe(1);
+
+    await closePopup(local);
+  });
+
+  it('连续点击差异导航不越界不循环，行为保持在锚点边界内', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    const nextChange = overlay.querySelector('[data-diff-popup-next-change]') as HTMLButtonElement;
+    // a.ts 单一变更块：连点多次应始终停在唯一锚点上（不越界不报错）
+    nextChange.click();
+    await settle(20);
+    nextChange.click();
+    await settle(20);
+    nextChange.click();
+    await settle(20);
+
+    expect(overlay.querySelectorAll('.diff-popup-change-active').length).toBe(1);
+
+    // 上一个差异按钮：回到同一锚点后仍在边界内
+    const prevChange = overlay.querySelector('[data-diff-popup-prev-change]') as HTMLButtonElement;
+    prevChange.click();
+    await settle(20);
+    expect(overlay.querySelectorAll('.diff-popup-change-active').length).toBe(1);
+
+    await closePopup(local);
+  });
+
+  it('Alt+ArrowDown 应与下一个差异按钮同效，高亮变更块', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+
+    pressAlt(local, 'ArrowDown');
+    await settle(30);
+    expect(overlay.querySelectorAll('.diff-popup-change-active').length).toBe(1);
+
+    // Alt+ArrowUp 回跳：同样保持高亮在锚点行
+    pressAlt(local, 'ArrowUp');
+    await settle(30);
+    expect(overlay.querySelectorAll('.diff-popup-change-active').length).toBe(1);
+
+    await closePopup(local);
+  });
+
+  it('Escape 关闭后重开弹窗，差异块高亮应被清除（切文件重置）', async () => {
+    const local = await newEnv();
+    let overlay = await openPopup(local);
+
+    (overlay.querySelector('[data-diff-popup-next-change]') as HTMLButtonElement).click();
+    await settle(20);
+    expect(overlay.querySelectorAll('.diff-popup-change-active').length).toBe(1);
+
+    // 关闭再重开：高亮不应残留
+    await closePopup(local);
+    overlay = await openPopup(local);
+    expect(overlay.querySelectorAll('.diff-popup-change-active').length).toBe(0);
+
+    await closePopup(local);
+  });
+
+  it('设置菜单应含 3 项，点显示空白符后行文本出现中点并发送 setShowWhitespace', async () => {
+    const local = await newEnv();
+    const overlay = await openPopup(local);
+    const settingsBtn = overlay.querySelector('[data-diff-popup-settings]') as HTMLElement;
+
+    settingsBtn.click();
+    await settle(30);
+    const menu = overlay.querySelector('.diff-popup-settings-menu') as HTMLElement;
+    expect(menu, '点设置应弹出菜单').toBeTruthy();
+    // 菜单应含 3 项：显示行号 / 显示空白符 / 行内差异高亮
+    const items = [...menu.querySelectorAll('.diff-popup-settings-label')] as HTMLElement[];
+    expect(items.length).toBe(3);
+    expect(items[0]!.textContent).toContain('显示行号');
+    expect(items[1]!.textContent).toContain('显示空白符');
+    expect(items[2]!.textContent).toContain('行内差异高亮');
+
+    // 默认 'const a = 1;' 中的空格为原样：点「显示空白符」label → 空格替换为 U+00B7
+    items[1]!.click();
+    await settle(30);
+    const bodyText = (overlay.querySelector('.diff-popup-body') as HTMLElement).textContent ?? '';
+    expect(bodyText).toContain('\u00B7');
+    const lastSet = local.sent.filter(m => m.method === 'setShowWhitespace').at(-1);
+    expect(lastSet, '应发出 setShowWhitespace 请求').toBeTruthy();
+    expect((lastSet!.params as { value?: boolean }).value).toBe(true);
+    expect(local.showWhitespace).toBe(true);
+
+    await closePopup(local);
+  });
+
+  it('点行内差异高亮后配对行出现字符级高亮 span 并发送 setInlineDiff', async () => {
+    // 配对 delete/add 行：'aaa;' ↔ 'bbb;'（无公共字符，全部标色）
+    const pairedDiffs = [{
+      path: 'a.ts', additions: 1, deletions: 1,
+      lines: [
+        { type: 'context', content: 'const a = 1;', oldLine: 1, newLine: 1 },
+        { type: 'delete', content: 'aaa;', oldLine: 2 },
+        { type: 'add', content: 'bbb;', newLine: 2 },
+      ],
+    }];
+    const local = await newEnv({ commitDiffs: pairedDiffs });
+    const overlay = await openPopup(local);
+    const settingsBtn = overlay.querySelector('[data-diff-popup-settings]') as HTMLElement;
+
+    // 默认关：无字符级高亮
+    expect(overlay.querySelectorAll('.diff-popup-char-hl').length).toBe(0);
+
+    settingsBtn.click();
+    await settle(30);
+    const labels = [...overlay.querySelectorAll('.diff-popup-settings-menu .diff-popup-settings-label')] as HTMLElement[];
+    expect(labels.length).toBe(3);
+    labels[2]!.click();
+    await settle(30);
+
+    // 配对 delete/add 行内容出现字符级高亮 span
+    const spans = overlay.querySelectorAll('.code .diff-popup-char-hl');
+    expect(spans.length).toBeGreaterThan(0);
+    const lastSet = local.sent.filter(m => m.method === 'setInlineDiff').at(-1);
+    expect(lastSet, '应发出 setInlineDiff 请求').toBeTruthy();
+    expect((lastSet!.params as { value?: boolean }).value).toBe(true);
+    expect(local.inlineDiff).toBe(true);
+
+    await closePopup(local);
+  });
+
+  it('持久化 showWhitespace 开启时打开弹窗应自动显示空白符', async () => {
+    const local = await newEnv({ showWhitespace: true });
+    const overlay = await openPopup(local);
+
+    // prefs 异步回包后套用并重渲染，settle 已覆盖
+    const bodyText = (overlay.querySelector('.diff-popup-body') as HTMLElement).textContent ?? '';
+    expect(bodyText).toContain('\u00B7');
+
+    await closePopup(local);
   });
 });

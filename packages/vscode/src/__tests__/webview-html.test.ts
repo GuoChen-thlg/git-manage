@@ -63,9 +63,8 @@ describe('buildHtml', () => {
     for (const id of ['app', 'sidebar', 'branches', 'commits', 'detail']) {
       expect(html).toContain(`id="${id}"`);
     }
-    // 脚本应真正注入，而不是空壳页面
-    expect(html).toContain('acquireVsCodeApi');
-    expect(html).toContain('postMessage');
+    // 脚本应真正挂载：迁移为 esbuild 产物外链后，通过 script src 验证（等价于原「脚本注入」断言）
+    expect(html).toMatch(/<script nonce="[A-Za-z0-9]+" src="[^"]*main\.js"><\/script>/);
   });
 
   it('脚本内容不应包含会破坏 HTML 的未转义结束标签', async () => {

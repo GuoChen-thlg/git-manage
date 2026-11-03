@@ -2176,3 +2176,386 @@
 
 /* ============ 工具栏内联下拉（分支/用户过滤）对齐 ============ */
 /* 分支/用户过滤已退回自绘 dropdown-menu，与日期/路径共用 .gm-commit-filter-btn(-menu) 视觉 */
+
+/* ============ diff 并排弹窗（IDE 风格文件对比） ============ */
+/* 遮罩层 */
+.gm-diff-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1002;
+}
+
+/* 对话框主体 */
+.gm-diff-popup {
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  width: 1100px;
+  max-width: 96vw;
+  height: 640px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 顶部工具栏 */
+.gm-diff-popup-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+
+/* 当前文件路径 */
+.gm-diff-popup-path {
+  min-width: 0;
+  color: var(--gm-fg);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 文件计数 n/m */
+.gm-diff-popup-count {
+  flex-shrink: 0;
+  color: var(--gm-muted);
+  font-size: 11px;
+}
+
+/* 导航按钮组 */
+.gm-diff-popup-nav {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* 方形小导航按钮（上一个/下一个文件） */
+.gm-diff-popup-nav-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  color: var(--gm-fg);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gm-diff-popup-nav-btn:hover {
+  background: var(--gm-muted-surface);
+}
+
+/* 关闭按钮 */
+.gm-diff-popup-close {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  background: transparent;
+  border: none;
+  color: var(--gm-muted);
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* 导航/关闭按钮内的 SVG 图标按块渲染，避免行内基线导致垂直偏移 */
+.gm-diff-popup-nav-btn svg,
+.gm-diff-popup-close svg {
+  display: block;
+}
+
+.gm-diff-popup-close:hover {
+  color: var(--gm-fg);
+}
+
+/* 主体：flex 双列布局，滚动交给左右列容器各自承担 */
+.gm-diff-popup-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* 左右独立滚动列容器：各带横向滚动条，垂直滚动由 JS 互相同步 */
+.gm-diff-popup-col {
+  flex: 1 1 50%;
+  min-width: 0;
+  overflow: auto;
+  font-family: var(--gm-mono);
+  font-size: 12px;
+}
+
+.gm-diff-popup-col-left {
+  border-right: 1px solid var(--gm-border);
+}
+
+/* 并排对齐行：列内用 grid 让所有行拉伸到滚动区全宽（= 最长行宽），
+   行背景铺满整个横向滚动范围，任意滚动位置都不会露出无背景空白。
+   align-content:start 防止 grid 把行高均分拉伸（行高必须由内容决定） */
+.gm-diff-popup-col { display: grid; grid-template-columns: 1fr; align-content: start; }
+.gm-diff-popup-row {
+  display: flex;
+  min-width: max-content;
+}
+
+/* 左右单元格各占一半 */
+.gm-diff-popup-cell {
+  box-sizing: border-box;
+  width: 50%;
+  min-width: 0;
+  overflow: visible;
+}
+
+/* 行内只剩单个 cell：铺满所在列宽（覆盖 width:50%） */
+.gm-diff-popup-col .gm-diff-popup-cell {
+  width: 100%;
+}
+
+/* 行宽跟随内容：行内不裁剪，长行把列容器撑出横向滚动条（双列各自独立滚动） */
+.gm-diff-popup-col .gm-diff-popup-cell .gm-diff-line {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* 左右列分隔线 */
+.gm-diff-popup-cell-left {
+  border-right: 1px solid var(--gm-border);
+}
+
+/* 单元格内不换行；横向滚动交给 body */
+.gm-diff-popup-cell .gm-diff-line {
+  white-space: pre;
+}
+
+.gm-diff-popup-cell .gm-diff-line-content {
+  overflow-x: visible;
+}
+
+/* 弹窗内行宽跟随列宽：背景铺满整列，长行由所在列的横向滚动条查看 */
+.gm-diff-popup-cell .gm-diff-line {
+  width: max-content;
+  min-width: 100%;
+}
+
+.gm-diff-popup-cell .gm-diff-line-content {
+  min-width: 0;
+}
+
+/* 背景铺满整栏：type 背景由 cell 层承担（cell 宽=列宽，滚动时覆盖到底），
+   行本身只作内容层，避免行宽随内容使背景止于文本末尾 */
+.gm-diff-popup-cell.gm-diff-popup-line-add { background: color-mix(in srgb, var(--gm-success) 12%, transparent); }
+.gm-diff-popup-cell.gm-diff-popup-line-delete { background: color-mix(in srgb, var(--gm-error) 12%, transparent); }
+.gm-diff-popup-cell .gm-diff-line-add,
+.gm-diff-popup-cell .gm-diff-line-delete { background: transparent; }
+
+/* 空白补位行：略暗背景与真实行区分 */
+.gm-diff-popup-cell-empty {
+  background: color-mix(in srgb, var(--gm-muted-surface) 60%, transparent);
+}
+
+/* 当前文件无差异的空态 */
+.gm-diff-popup-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--gm-muted);
+  font-size: 12px;
+}
+
+/* ============ diff 弹窗导航改造（IDEA 对齐：边缘禁用 + n/m 链接 + 文件列表） ============ */
+
+/* 工具栏弹性间隔：把导航区与关闭按钮推到右侧 */
+.gm-diff-popup-spacer {
+  flex: 1;
+}
+
+/* n/m 计数链接（夹在 ‹ › 之间，点击弹出文件列表） */
+.gm-diff-popup-count {
+  padding: 0 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.gm-diff-popup-count:hover {
+  color: var(--gm-primary-text);
+  text-decoration: underline;
+}
+
+/* 边缘禁用：首尾/单文件时导航按钮置灰（原生 disabled 同时拦截点击） */
+.gm-diff-popup-nav-btn:disabled {
+  color: var(--gm-muted);
+  opacity: 0.4;
+  cursor: default;
+}
+
+.gm-diff-popup-nav-btn:disabled:hover {
+  background: transparent;
+}
+
+/* n/m 计数点击弹出的文件列表（IDEA "Go to Changed File" 风格，挂在 overlay 内计数下方） */
+.gm-diff-popup-filelist {
+  position: absolute;
+  z-index: 1;
+  min-width: 240px;
+  max-width: 480px;
+  max-height: 300px;
+  overflow: auto;
+  padding: 4px;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* 列表项：单行省略，hover 反馈 */
+.gm-diff-popup-filelist-item {
+  padding: 4px 8px;
+  color: var(--gm-fg);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: calc(var(--gm-radius) / 2);
+}
+
+.gm-diff-popup-filelist-item:hover {
+  background: var(--gm-muted-surface);
+}
+
+/* 当前展示文件的高亮项 */
+.gm-diff-popup-filelist-item-active {
+  background: var(--gm-muted-surface);
+}
+
+/* ============ diff 弹窗自动换行开关（IDEA Presentation「自动换行」对齐） ============ */
+
+/* 工具栏换行图标按钮：与导航按钮同尺寸风格 */
+.gm-diff-popup-wrap-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  color: var(--gm-fg);
+  cursor: pointer;
+}
+
+.gm-diff-popup-wrap-btn:hover {
+  background: var(--gm-muted-surface);
+}
+
+/* 激活态：与面板其他激活按钮一致的主题色 */
+.gm-diff-popup-wrap-btn-active {
+  color: var(--gm-primary-text);
+  border-color: var(--gm-focus);
+}
+
+/* 自动换行模式：diff 行折行显示（对齐 IDEA「自动换行」设置项）
+   行宽必须改回 100%（max-content 永不折行），内容才能按列宽折行 */
+.gm-diff-popup-wrap .gm-diff-popup-cell .gm-diff-line {
+  width: 100%;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.gm-diff-popup-wrap .gm-diff-line-content {
+  white-space: pre-wrap;
+  overflow-x: visible;
+}
+
+/* ============ diff 弹窗工具栏扩展（IDEA 对齐：视图切换 / 忽略空白 / 单词高亮 / 设置菜单） ============ */
+
+/* 新增工具栏按钮复用 .gm-diff-popup-wrap-btn 同款风格（结构一致，无需额外基类）；
+   激活态类 gm-diff-popup-ignorews-btn-active 与 view/highlight 共用 wrap-btn-active 配色 */
+.gm-diff-popup-ignorews-btn-active {
+  color: var(--gm-primary-text);
+  border-color: var(--gm-focus);
+}
+
+/* 单词级 LCS 高亮：未匹配 token 的 mark 标记（背景走 --gm-warning 变量，无变量时回退琥珀色） */
+mark.gm-diff-popup-word-hl {
+  background: color-mix(in srgb, var(--gm-warning, #ffb300) 35%, transparent);
+  color: inherit;
+}
+
+/* 行内字符级差异高亮（设置菜单「行内差异高亮」开启时）：对齐 IDEA 字符级标色 */
+.gm-diff-popup-char-hl {
+  background: color-mix(in srgb, var(--gm-focus, #3574f0) 35%, transparent);
+  color: inherit;
+}
+
+/* 差异块跳转目标行高亮：outline 不影响行盒尺寸，滚动定位更稳 */
+.gm-diff-popup-change-active {
+  outline: 1px solid var(--gm-focus);
+}
+
+/* 隐藏行号（设置菜单「显示行号」关闭时由 body class 驱动） */
+.gm-diff-popup-hide-linenums .gm-diff-line-num {
+  display: none;
+}
+
+/* 单栏（unified）模式：隐藏右列，左列铺满全宽并去掉中缝分隔线 */
+.gm-diff-popup-unified .gm-diff-popup-col-right {
+  display: none;
+}
+
+.gm-diff-popup-unified .gm-diff-popup-col-left {
+  flex: 1 1 100%;
+  border-right: none;
+}
+
+/* 设置菜单弹层：对齐文件列表弹层（gm-diff-popup-filelist）的浮层风格 */
+.gm-diff-popup-settings-menu {
+  position: absolute;
+  z-index: 1;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--gm-elevated);
+  border: 1px solid var(--gm-border);
+  border-radius: var(--gm-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* 设置菜单项：checkbox + 文案，hover 反馈对齐文件列表项 */
+.gm-diff-popup-settings-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  color: var(--gm-fg);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: calc(var(--gm-radius) / 2);
+  user-select: none;
+}
+
+.gm-diff-popup-settings-item:hover {
+  background: var(--gm-muted-surface);
+}
+
+.gm-diff-popup-settings-item input[type='checkbox'] {
+  margin: 0;
+  accent-color: var(--gm-primary-text, #409eff);
+}

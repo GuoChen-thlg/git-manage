@@ -6,13 +6,13 @@
  * 无法放入底部面板。
  *
  * 通信：webview 每次操作发一条 request，主进程处理后回 response。
+ * 资源加载：脚本与样式由 esbuild 产物（dist/webview/main.js / main.css）外链提供，
+ * 图标与初始哈希仍以小段内联脚本注入（nonce 允许）。
  */
 
 import * as vscode from 'vscode';
 import { handleRequest } from './handler';
 import type { WebviewStore } from './handler';
-import { PANEL_CSS } from './styles';
-import { PANEL_SCRIPT } from './script';
 import { PANEL_ICONS } from './icons';
 import type { ExtensionResponse, WebviewRequest } from './protocol';
 import { debug, error as logError, info } from '../logger';
@@ -27,6 +27,8 @@ let currentRoot: string | null = null;
 let store: WebviewStore = {
   getFavorites: () => [],
   setFavorites: () => {},
+  getDiffWrap: () => false,
+  setDiffWrap: () => {},
 };
 
 /**
@@ -75,7 +77,7 @@ export class GitPanelView implements vscode.WebviewViewProvider {
     info('panel', 'resolve_view');
 
     webviewView.webview.options = { enableScripts: true };
-    webviewView.webview.html = buildHtml();
+    webviewView.webview.html = buildHtml(undefined, webviewView.webview);
 
     webviewView.webview.onDidReceiveMessage(
       (message: WebviewRequest) => { void this.onMessage(message); },
@@ -157,18 +159,32 @@ export async function focusPanel(commitHash?: string): Promise<void> {
 /**
  * 构造 webview 页面
  * @param initialHash 可选：初始定位的提交
+ * @param webview 可选：宿主 webview 对象；传入时脚本与样式以 asWebviewUri 外链引用，
+ *                不传（测试等场景）回退为产物相对路径占位
  * @returns HTML 文本
  */
-function buildHtml(initialHash?: string): string {
+function buildHtml(initialHash?: string, webview?: vscode.Webview): string {
   const nonce = createNonce();
   const initial = JSON.stringify(initialHash ?? null);
   // 图标以 JSON 注入，避免在脚本里重复拼接 SVG 字符串
   const iconsJson = JSON.stringify(PANEL_ICONS).replace(/</g, '\\u003c');
-  // 内容安全策略：脚本仅允许带 nonce 的内联脚本
+
+  // 外链资源 URI：有 webview 时转为 webview 可访问的 https URI
+  const extUri = vscode.extensions?.getExtension('thlg.git-manager-vscode')?.extensionUri
+    ?? vscode.Uri.file('/');
+  const scriptSrc = webview
+    ? webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'dist', 'webview', 'main.js')).toString()
+    : 'dist/webview/main.js';
+  const cssSrc = webview
+    ? webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'dist', 'webview', 'main.css')).toString()
+    : 'dist/webview/main.css';
+
+  // 内容安全策略：脚本仅允许带 nonce 的内联脚本与 webview 资源来源
+  const cspSource = webview ? ` ${webview.cspSource}` : '';
   const csp = [
     "default-src 'none'",
-    "style-src 'unsafe-inline'",
-    `script-src 'nonce-${nonce}'`,
+    `style-src 'unsafe-inline'${cspSource}`,
+    `script-src 'nonce-${nonce}'${cspSource}`,
   ].join('; ');
 
   return `<!DOCTYPE html>
@@ -177,7 +193,7 @@ function buildHtml(initialHash?: string): string {
 <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="${csp}" />
 <title>${PANEL_TITLE}</title>
-<style>${PANEL_CSS}</style>
+<link rel="stylesheet" href="${cssSrc}" />
 </head>
 <body>
 <div id="app">
@@ -194,7 +210,7 @@ function buildHtml(initialHash?: string): string {
 </div>
 <script nonce="${nonce}">window.__ICONS__ = ${iconsJson};</script>
 <script nonce="${nonce}">window.__INITIAL_HASH__ = ${initial};</script>
-<script nonce="${nonce}">${PANEL_SCRIPT}</script>
+<script nonce="${nonce}" src="${scriptSrc}"></script>
 </body>
 </html>`;
 }

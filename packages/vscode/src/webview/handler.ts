@@ -41,6 +41,10 @@ export interface WebviewStore {
   getFavorites(): string[];
   /** 保存收藏分支 */
   setFavorites(names: string[]): void;
+  /** 读取 diff 弹窗自动换行设置 */
+  getDiffWrap(): boolean;
+  /** 保存 diff 弹窗自动换行设置 */
+  setDiffWrap(value: boolean): void;
 }
 
 /**
@@ -74,7 +78,9 @@ export async function handleRequest(
       return getCommitDetail(cwd, required(params.hash, 'hash'));
 
     case 'getCommitDiffs':
-      return getCommitFileDiffs(cwd, required(params.hash, 'hash'));
+      return getCommitFileDiffs(cwd, required(params.hash, 'hash'), {
+        ignoreWhitespace: params.ignoreWhitespace === true,
+      });
 
     case 'getStatus':
       return getStatus({ cwd });
@@ -122,6 +128,13 @@ export async function handleRequest(
 
     case 'saveFavorites':
       return store.setFavorites(params.favorites ?? []);
+
+    case 'getDiffWrap':
+      return store.getDiffWrap();
+
+    case 'setDiffWrap':
+      store.setDiffWrap(params.value === true);
+      return null;
 
     case 'getMyBranches':
       return findMyBranches({ cwd });

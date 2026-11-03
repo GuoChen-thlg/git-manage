@@ -84,7 +84,14 @@ async function bootPanel() {
 
   // 真实调用 handler，不打桩 core
   const { handleRequest } = await import('../webview/handler');
-  const store = { getFavorites: () => [], setFavorites: () => {} };
+  const store = {
+    getFavorites: () => [], setFavorites: () => {},
+    getDiffWrap: () => false, setDiffWrap: () => {},
+    getDiffView: () => 'side', setDiffView: () => {},
+    getIgnoreWs: () => false, setIgnoreWs: () => {},
+    getHighlightWords: () => false, setHighlightWords: () => {},
+    getShowLineNums: () => true, setShowLineNums: () => {},
+  };
 
   (window as unknown as { acquireVsCodeApi: () => unknown }).acquireVsCodeApi = () => ({
     postMessage: (message: { id: number; method: string; params: Record<string, unknown> }) => {
@@ -102,9 +109,21 @@ async function bootPanel() {
     },
   });
 
-  const { PANEL_SCRIPT } = await import('../webview/script');
+  const { initPanel } = await import('../webview/src/main');
   (window as unknown as { __ICONS__: Record<string, string> }).__ICONS__ = {};
-  window.eval(PANEL_SCRIPT);
+  // 迁移后代码以真模块运行，需要把 jsdom 的全局挂到 Node globalThis（等价于原 eval 的全局环境）
+  const globals = globalThis as unknown as Record<string, unknown>;
+  globals.document = window.document;
+  globals.window = window;
+  globals.Event = window.Event;
+  globals.KeyboardEvent = window.KeyboardEvent;
+  globals.MouseEvent = window.MouseEvent;
+  globals.Node = window.Node;
+  globals.MessageEvent = window.MessageEvent;
+  // 模块级单例状态在 boot 之间共享（原 eval 每次新建闭包），此处重置等价隔离
+  const { resetState } = await import('../webview/src/state');
+  resetState();
+  initPanel((window as unknown as { acquireVsCodeApi: () => unknown }).acquireVsCodeApi() as never);
   return { window, document: window.document, sent };
 }
 
@@ -224,7 +243,7 @@ describe('端到端：真实仓库完整流程', () => {
   }, 20000);
 
   it('点击提交应加载真实的详情与差异', async () => {
-    const { document } = await bootPanel();
+    const { window, document } = await bootPanel();
     await settle(400);
 
     // 选中第一条提交
@@ -238,11 +257,18 @@ describe('端到端：真实仓库完整流程', () => {
     expect(detail).toContain('bob@example.com');
     expect(detail).toContain('src/b.ts');
 
-    // 文件差异可展开
+    // 点击文件应弹出 diff 弹窗（IDEA 风格，替代原行内展开）
     const fileRow = document.querySelector('.file-row') as HTMLElement;
     expect(fileRow).toBeTruthy();
     fileRow.click();
     await settle(60);
-    expect(document.querySelector('.diff-lines')).toBeTruthy();
+    const popup = document.getElementById('diff-popup-overlay');
+    expect(popup).toBeTruthy();
+    expect(popup!.querySelector('.diff-popup-path')!.textContent).toContain('src/b.ts');
+    expect(popup!.querySelector('.diff-line')).toBeTruthy();
+    // Escape 关闭弹窗，避免残留影响后续用例
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await settle(30);
+    expect(document.getElementById('diff-popup-overlay')).toBeNull();
   }, 20000);
 });

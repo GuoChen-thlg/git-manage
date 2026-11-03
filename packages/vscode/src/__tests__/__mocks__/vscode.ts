@@ -109,6 +109,8 @@ export function createWebviewView() {
 
   const webview = {
     options: {} as unknown,
+    cspSource: 'https://test.vscode-cdn.net',
+    asWebviewUri: (uri: { path: string }) => ({ toString: () => 'https://test.vscode-cdn.net' + uri.path }),
     get html(): string { return record.html; },
     set html(value: string) { record.html = value; },
     postMessage: vi.fn(async (message: unknown) => {
@@ -261,6 +263,21 @@ export const commands = {
     return { dispose: vi.fn() };
   }),
   executeCommand: vi.fn(async () => undefined),
+};
+
+/** URI 替身（仅记录路径，供 webview 资源外链测试） */
+export const Uri = {
+  file: (path: string) => ({ fsPath: path, path, scheme: 'file' }),
+  joinPath: (base: { path: string }, ...segments: string[]) => ({
+    fsPath: [base.path, ...segments].join('/'),
+    path: [base.path, ...segments].join('/'),
+    scheme: 'file',
+  }),
+};
+
+/** 扩展上下文替身 */
+export const extensions = {
+  getExtension: () => undefined,
 };
 
 /** 清空已注册命令 */
