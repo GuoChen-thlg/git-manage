@@ -11,6 +11,7 @@ import {
   clearGitCommandLogs,
   createBranch,
   deleteBranch,
+  deleteRemoteBranch,
   fetch,
   findMyBranches,
   getBranches,
@@ -91,12 +92,19 @@ export async function handleRequest(
     case 'createBranch': {
       const name = required(params.name, 'name');
       return params.checkoutAfter === false
-        ? createBranch(name, { cwd })
-        : checkoutNew(name, { cwd });
+        ? createBranch(name, { cwd }, params.startPoint)
+        : checkoutNew(name, { cwd }, params.startPoint);
     }
 
     case 'deleteBranch':
       return deleteBranch(required(params.name, 'name'), { cwd }, params.force === true);
+
+    case 'deleteRemoteBranch':
+      return deleteRemoteBranch(
+        required(params.remote, 'remote'),
+        required(params.name, 'name'),
+        { cwd },
+      );
 
     case 'renameBranch':
       return renameBranch(

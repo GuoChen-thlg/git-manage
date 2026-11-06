@@ -88,11 +88,11 @@ describe('handleRequest', () => {
     const { handleRequest } = await import('../webview/handler');
 
     await handleRequest('createBranch', { name: 'feat-a' }, ROOT, store);
-    expect(core.checkoutNew).toHaveBeenCalledWith('feat-a', { cwd: ROOT });
+    expect(core.checkoutNew).toHaveBeenCalledWith('feat-a', { cwd: ROOT }, undefined);
 
     core.createBranch.mockClear();
     await handleRequest('createBranch', { name: 'feat-b', checkoutAfter: false }, ROOT, store);
-    expect(core.createBranch).toHaveBeenCalledWith('feat-b', { cwd: ROOT });
+    expect(core.createBranch).toHaveBeenCalledWith('feat-b', { cwd: ROOT }, undefined);
   });
 
   it('删除分支应传递 force 标志', async () => {
