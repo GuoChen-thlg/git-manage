@@ -7,7 +7,16 @@ import { el } from './dom';
 import { state } from './state';
 import { loadAll, loadCommits } from './data';
 import { renderSidebar } from './render-sidebar';
-import { toggleFavoriteFor } from './actions';
+import {
+  toggleFavoriteFor,
+  checkoutBranchFlow,
+  renameBranchFlow,
+  deleteLocalBranchFlow,
+  createBranchFromFlow,
+  deleteRemoteBranchFlow,
+  copyBranchName,
+} from './actions';
+import { showDropdown, type DropdownItem } from './dialogs';
 
 /**
  * 取当前分支名
@@ -155,7 +164,74 @@ export function renderBranchList(): void {
         renderBranches();
         void loadCommits(branch.name);
       };
+      // 右键菜单：对齐 IDEA 分支操作，按本地/远程区分可用项
+      row.oncontextmenu = function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        showBranchContextMenu(row, branch, ev);
+      };
       list.appendChild(row);
     });
   });
+}
+
+/**
+ * 分支项右键菜单
+ * 对齐 IDEA 分支操作：本地与远程分支展示不同可用项。
+ * @param anchor 触发行（用于去重与默认定位）
+ * @param branch 分支数据
+ * @param ev 右键事件，提供鼠标坐标
+ */
+function showBranchContextMenu(
+  anchor: HTMLElement,
+  branch: { name: string; isCurrent?: boolean; isRemote?: boolean },
+  ev: MouseEvent,
+): void {
+  const items: DropdownItem[] = [];
+
+  if (!branch.isRemote) {
+    // 本地分支
+    items.push({
+      id: 'checkout',
+      label: '切换分支',
+      disabled: branch.isCurrent,
+    });
+    items.push({
+      id: 'createFrom',
+      label: '基于该分支新建',
+    });
+    items.push({
+      id: 'rename',
+      label: '重命名',
+      disabled: branch.isCurrent,
+    });
+    items.push({ kind: 'separator', id: 'sep1', label: '' });
+    items.push({
+      id: 'delete',
+      label: '删除',
+      disabled: branch.isCurrent,
+    });
+  } else {
+    // 远程分支
+    items.push({
+      id: 'createFrom',
+      label: '基于该远程分支新建本地分支',
+    });
+    items.push({
+      id: 'deleteRemote',
+      label: '删除远程分支',
+    });
+  }
+
+  items.push({ kind: 'separator', id: 'sepCopy', label: '' });
+  items.push({ id: 'copy', label: '复制分支名' });
+
+  showDropdown(anchor, items, function (id) {
+    if (id === 'checkout') void checkoutBranchFlow(branch.name);
+    else if (id === 'createFrom') void createBranchFromFlow(branch.name);
+    else if (id === 'rename') void renameBranchFlow(branch.name);
+    else if (id === 'delete') void deleteLocalBranchFlow(branch.name);
+    else if (id === 'deleteRemote') void deleteRemoteBranchFlow(branch.name);
+    else if (id === 'copy') void copyBranchName(branch.name);
+  }, { x: ev.clientX, y: ev.clientY });
 }

@@ -64,11 +64,17 @@ export interface DropdownItem {
 
 /**
  * 显示下拉菜单
- * @param anchor 触发按钮
+ * @param anchor 触发元素（用于同一元素去重与默认定位）
  * @param items 菜单条目
  * @param onSelect 选中回调
+ * @param at 指定弹出坐标（右键场景，传入鼠标位置）；省略时基于 anchor 矩形定位
  */
-export function showDropdown(anchor: HTMLElement, items: DropdownItem[], onSelect: (id: string) => void): void {
+export function showDropdown(
+  anchor: HTMLElement,
+  items: DropdownItem[],
+  onSelect: (id: string) => void,
+  at?: { x: number; y: number },
+): void {
   // 用按钮文案判定是否同一按钮：工具栏重建后节点引用会变，不能靠引用比较
   const anchorKey = (anchor && anchor.textContent) || '';
   const sameAnchor = openDropdown && openDropdown.anchorKey === anchorKey;
@@ -105,14 +111,21 @@ export function showDropdown(anchor: HTMLElement, items: DropdownItem[], onSelec
     labels: items.map(function (i) { return i.label; }),
   });
 
-  // 定位：默认在按钮下方，空间不足时向上翻转
-  const rect = anchor.getBoundingClientRect();
+  // 定位：传入坐标时以坐标为准，否则落在触发元素下方；空间不足时翻转
   const menuRect = menu.getBoundingClientRect();
-  let top = rect.bottom + 2;
-  if (top + menuRect.height > window.innerHeight - 4) {
-    top = Math.max(4, rect.top - menuRect.height - 2);
+  let top: number;
+  let left: number;
+  if (at) {
+    top = at.y;
+    left = at.x;
+  } else {
+    const rect = anchor.getBoundingClientRect();
+    top = rect.bottom + 2;
+    left = rect.left;
   }
-  let left = rect.left;
+  if (top + menuRect.height > window.innerHeight - 4) {
+    top = Math.max(4, top - menuRect.height - 2);
+  }
   if (left + menuRect.width > window.innerWidth - 4) {
     left = Math.max(4, window.innerWidth - menuRect.width - 4);
   }

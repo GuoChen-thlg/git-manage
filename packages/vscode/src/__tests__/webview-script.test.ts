@@ -928,6 +928,56 @@ async function ensureExpanded() {
     expect(search.value).toBe('');
     expect(env.document.getElementById('commits')!.textContent).toContain('feat: 第一条');
   });
+
+  it('右键本地分支应弹出菜单，当前分支的切换/重命名/删除应禁用', async () => {
+    const items = [...env.document.querySelectorAll('.branch-item')] as HTMLElement[];
+    const currentRow = items.find(r => r.classList.contains('current'))!;
+    currentRow.dispatchEvent(new env.window.MouseEvent('contextmenu', { bubbles: true, clientX: 10, clientY: 10 }));
+    await settle(10);
+
+    const menu = env.document.querySelector('.dd-menu');
+    expect(menu).toBeTruthy();
+    const labels = [...menu!.querySelectorAll('.dd-item')].map(el => el.textContent);
+    // 当前分支（main）：切换/重命名/删除禁用，但仍保留「基于该分支新建」与「复制分支名」
+    const checkout = [...menu!.querySelectorAll('.dd-item')].find(el => el.textContent === '切换分支')!;
+    const rename = [...menu!.querySelectorAll('.dd-item')].find(el => el.textContent === '重命名')!;
+    const del = [...menu!.querySelectorAll('.dd-item')].find(el => el.textContent === '删除')!;
+    expect(checkout.classList.contains('disabled')).toBe(true);
+    expect(rename.classList.contains('disabled')).toBe(true);
+    expect(del.classList.contains('disabled')).toBe(true);
+    expect(labels).toContain('基于该分支新建');
+    expect(labels).toContain('复制分支名');
+  });
+
+  it('右键非当前本地分支选择「删除」应调用 deleteBranch', async () => {
+    const items = [...env.document.querySelectorAll('.branch-item')] as HTMLElement[];
+    const featRow = items.find(r => r.querySelector('.name')?.textContent === 'feat')!;
+    featRow.dispatchEvent(new env.window.MouseEvent('contextmenu', { bubbles: true, clientX: 10, clientY: 10 }));
+    await settle(10);
+
+    const menu = env.document.querySelector('.dd-menu')!;
+    const del = [...menu.querySelectorAll('.dd-item')].find(el => el.textContent === '删除')!;
+    del.dispatchEvent(new env.window.MouseEvent('click', { bubbles: true }));
+    await settle(20);
+
+    const calls = env.sent.filter(m => m.method === 'deleteBranch' && (m.params as { name?: string }).name === 'feat');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  it('右键远程分支应提供「基于该远程分支新建本地分支」与「删除远程分支」', async () => {
+    const items = [...env.document.querySelectorAll('.branch-item')] as HTMLElement[];
+    const remoteRow = items.find(r => r.querySelector('.name')?.textContent === 'origin/main')!;
+    remoteRow.dispatchEvent(new env.window.MouseEvent('contextmenu', { bubbles: true, clientX: 10, clientY: 10 }));
+    await settle(10);
+
+    const menu = env.document.querySelector('.dd-menu')!;
+    const labels = [...menu.querySelectorAll('.dd-item')].map(el => el.textContent);
+    expect(labels).toContain('基于该远程分支新建本地分支');
+    expect(labels).toContain('删除远程分支');
+    // 远程分支不应出现本地专用的删除/重命名项
+    expect(labels).not.toContain('删除');
+    expect(labels).not.toContain('重命名');
+  });
 });
 
 describe('工具栏过滤下拉', () => {
