@@ -84,6 +84,42 @@ export async function deleteBranchFlow(): Promise<void> {
 }
 
 /**
+ * 删除单个本地分支（右键菜单入口，基于显式分支名而非面板多选）
+ * 与批量删除共用「当前分支禁止删除」与「未合并二次确认」逻辑
+ * @param name 本地分支名
+ */
+export async function deleteLocalBranchFlow(name: string): Promise<void> {
+  if (!name) return;
+  const current = currentBranchName();
+  if (current === name) {
+    toast('当前分支不能删除', true);
+    return;
+  }
+
+  try {
+    await call('deleteBranch', { name: name });
+    toast('已删除分支 ' + name);
+  } catch (err) {
+    const message = String((err as Error).message || err);
+    if (message.indexOf('not fully merged') >= 0) {
+      const force = await showConfirm(name + ' 尚未合并，强制删除将丢失其提交，继续？');
+      if (!force) return;
+      try {
+        await call('deleteBranch', { name: name, force: true });
+        toast('已强制删除分支 ' + name);
+      } catch (forceErr) {
+        toast('强制删除失败：' + ((forceErr as Error).message || forceErr), true);
+        return;
+      }
+    } else {
+      toast('删除失败：' + message, true);
+      return;
+    }
+  }
+  await loadAll();
+}
+
+/**
  * 远程操作
  * @param method 方法名
  */
@@ -127,6 +163,92 @@ export async function toggleFavoriteFor(name: string): Promise<void> {
     else state.favorite.add(name);
     renderBranchList();
     toast('保存收藏失败：' + ((err as Error).message || err), true);
+  }
+}
+
+/**
+ * 切换分支（基于单个分支名的右键菜单入口）
+ * @param name 分支名
+ */
+export async function checkoutBranchFlow(name: string): Promise<void> {
+  if (!name) return;
+  try {
+    await call('checkoutBranch', { branch: name });
+    toast('已切换到 ' + name);
+    await loadAll();
+  } catch (err) {
+    toast('切换分支失败：' + ((err as Error).message || err), true);
+  }
+}
+
+/**
+ * 重命名分支（基于单个分支名的右键菜单入口）
+ * @param name 分支名
+ */
+export async function renameBranchFlow(name: string): Promise<void> {
+  if (!name) return;
+  const newName = await showPrompt('重命名 ' + name, name);
+  if (!newName || newName === name) return;
+  try {
+    await call('renameBranch', { name: name, newName: newName });
+    toast('已重命名为 ' + newName);
+    await loadAll();
+  } catch (err) {
+    toast('重命名失败：' + ((err as Error).message || err), true);
+  }
+}
+
+/**
+ * 新建分支（基于指定起点，区别于顶部「新建分支」基于当前 HEAD）
+ * @param startPoint 起点分支名（基于该分支创建）
+ */
+export async function createBranchFromFlow(startPoint: string): Promise<void> {
+  const name = await showPrompt('新分支名称（基于 ' + startPoint + '）');
+  if (!name) return;
+  try {
+    await call('createBranch', { name: name, startPoint: startPoint, checkoutAfter: true });
+    toast('已创建并切换到 ' + name);
+    await loadAll();
+  } catch (err) {
+    toast('创建分支失败：' + ((err as Error).message || err), true);
+  }
+}
+
+/**
+ * 删除远程分支（基于单个远程分支名的右键菜单入口）
+ * @param name 远程分支全名，形如 origin/feature
+ */
+export async function deleteRemoteBranchFlow(name: string): Promise<void> {
+  if (!name || name.indexOf('/') < 0) { toast('无效的远程分支', true); return; }
+  const confirm = await showConfirm('确认删除远程分支 ' + name + '？此操作会推送到远端，不可撤销。');
+  if (!confirm) return;
+  const slash = name.indexOf('/');
+  const remote = name.slice(0, slash);
+  const shortName = name.slice(slash + 1);
+  try {
+    await call('deleteRemoteBranch', { remote: remote, name: shortName });
+    toast('已删除远程分支 ' + name);
+    await loadAll();
+  } catch (err) {
+    toast('删除远程分支失败：' + ((err as Error).message || err), true);
+  }
+}
+
+/**
+ * 复制分支名到剪贴板
+ * @param name 分支名
+ */
+export async function copyBranchName(name: string): Promise<void> {
+  if (!name) return;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(name);
+    } else if ((window as unknown as { clipboardData?: { setData(t: string, v: string): void } }).clipboardData) {
+      (window as unknown as { clipboardData: { setData(t: string, v: string): void } }).clipboardData.setData('text', name);
+    }
+    toast('已复制分支名 ' + name);
+  } catch (err) {
+    toast('复制失败：' + ((err as Error).message || err), true);
   }
 }
 

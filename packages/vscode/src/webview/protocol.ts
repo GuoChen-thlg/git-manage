@@ -20,6 +20,7 @@ export type RequestMethod =
   | 'checkoutBranch'
   | 'createBranch'
   | 'deleteBranch'
+  | 'deleteRemoteBranch'
   | 'renameBranch'
   | 'cherryPick'
   | 'revert'
@@ -56,8 +57,12 @@ export interface RequestParams {
   newName?: string;
   /** 创建后是否检出 */
   checkoutAfter?: boolean;
+  /** 创建分支的起点引用（如某分支名或提交 sha） */
+  startPoint?: string;
   /** 删除是否强制 */
   force?: boolean;
+  /** 远程分支所属远程名 */
+  remote?: string;
   /** 推送目标分支 */
   targetBranch?: string;
   /** 收藏的分支名列表 */
@@ -111,6 +116,7 @@ export interface MethodResults {
   checkoutBranch: void;
   createBranch: void;
   deleteBranch: void;
+  deleteRemoteBranch: void;
   renameBranch: void;
   cherryPick: void;
   revert: void;
